@@ -1,0 +1,10 @@
+# پوشه‌ی داده‌های داخلی — از بیرون قابل دسترس نیست
+Deny from all
+Options -Indexes
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>

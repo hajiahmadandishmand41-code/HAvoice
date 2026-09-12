@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /index.php?p=search
+Disallow: /search
+Disallow: /storage/
+Disallow: /config/
+Disallow: /includes/
+Disallow: /data/
+
+Sitemap: https://your-domain.com/sitemap.php
