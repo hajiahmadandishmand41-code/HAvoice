@@ -259,7 +259,7 @@ $instructor = $site['instructor'] ?? [];
                 <p class="instructor__bio"><?= e($instructor['bio'] ?? '') ?></p>
                 <ul class="instructor__points">
                     <?php foreach((array)($instructor['points']??[]) as $pt): ?>
-                        <li><span class="tick" aria-hidden="true">✓</span><span><?= e($pt) ?></span></li>
+                        <li><span class="tick" aria-hidden="true"><?= ha_icon('check', 12) ?></span><span><?= e($pt) ?></span></li>
                     <?php endforeach; ?>
                 </ul>
                 <?php if(!empty($instructor['note'])): ?><p class="instructor__note"><?= e($instructor['note']) ?></p><?php endif; ?>

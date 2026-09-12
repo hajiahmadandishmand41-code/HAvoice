@@ -50,7 +50,7 @@ $action = url('contact');
 
         <?php if($flash!==[] && !empty($flash['message'])): ?>
             <div class="alert alert--<?= e($flash['type']==='success'?'success':'error') ?>" role="<?= $flash['type']==='success'?'status':'alert' ?>">
-                <span class="alert__icon" aria-hidden="true"><?= $flash['type']==='success'?'✓':'!' ?></span>
+                <span class="alert__icon" aria-hidden="true"><?= ha_icon($flash['type']==='success'?'check':'alert', 13) ?></span>
                 <p><?= e($flash['message']) ?></p>
             </div>
         <?php endif; ?>

@@ -111,7 +111,7 @@ $topicsJson = json_encode(['topics' => $allTopics], JSON_UNESCAPED_UNICODE | JSO
         </div>
 
         <footer class="modal__foot">
-            <button class="btn btn--primary" type="button" data-modal-done>انجام شد ✓</button>
+            <button class="btn btn--primary" type="button" data-modal-done>انجام شد <?= ha_icon('check', 16) ?></button>
         </footer>
     </div>
 </div>
