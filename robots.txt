@@ -1,3 +1,12 @@
+# ============================================================
+#  HAvoice — robots.txt (نسخه‌ی ثابتِ پشتیبان)
+#
+#  حالتِ اصلی: در .htaccess نگاشته شده  robots.txt → robots.php
+#  تا خطِ Sitemap با نشانیِ مطلقِ واقعیِ سایت ساخته شود.
+#  این فایل فقط وقتی سرو می‌شود که mod_rewrite فعال نباشد؛
+#  در آن صورت خطِ Sitemap را با دامنه‌ی واقعی خودتان کامل کنید.
+# ============================================================
+
 User-agent: *
 Allow: /
 Disallow: /index.php?p=search
@@ -6,5 +15,6 @@ Disallow: /storage/
 Disallow: /config/
 Disallow: /includes/
 Disallow: /data/
+Disallow: /pages/
 
-Sitemap: https://your-domain.com/sitemap.php
+# Sitemap: https://YOUR-DOMAIN/sitemap.php
