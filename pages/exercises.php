@@ -83,7 +83,7 @@ $topicsJson = json_encode(['topics' => $allTopics], JSON_UNESCAPED_UNICODE | JSO
     <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <header class="modal__head">
             <h2 id="modal-title" class="modal__title" data-modal-title>تمرین</h2>
-            <button class="icon-btn" type="button" data-modal-close aria-label="بستن پنجره‌ی تمرین">✕</button>
+            <button class="icon-btn" type="button" data-modal-close aria-label="بستن پنجره‌ی تمرین"><?= ha_icon('close', 18) ?></button>
         </header>
 
         <div class="modal__body">
@@ -111,7 +111,7 @@ $topicsJson = json_encode(['topics' => $allTopics], JSON_UNESCAPED_UNICODE | JSO
         </div>
 
         <footer class="modal__foot">
-            <button class="btn btn--primary" type="button" data-modal-done>انجام شد ✓</button>
+            <button class="btn btn--primary" type="button" data-modal-done>انجام شد <?= ha_icon('check', 16) ?></button>
         </footer>
     </div>
 </div>

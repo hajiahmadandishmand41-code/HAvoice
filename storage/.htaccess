@@ -1,10 +1,20 @@
 # پوشه‌ی داده‌های داخلی — از بیرون قابل دسترس نیست
-Deny from all
+# هر دو نحوِ Apache 2.4 و 2.2 تا روی همه‌ی هاست‌ها کار کند
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
 Options -Indexes
 
 <IfModule mod_php.c>
     php_flag engine off
 </IfModule>
 <IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
     php_flag engine off
 </IfModule>

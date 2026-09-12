@@ -74,6 +74,8 @@
         var sync = function () {
             var mode = root.dataset.theme || 'auto';
             button.setAttribute('title', 'حالت تم: ' + label[mode] + ' (برای تغییر کلیک کنید)');
+            // دسترس‌پذیری: وضعیتِ فعلی باید برای صفحه‌خوان هم اعلام شود
+            button.setAttribute('aria-label', 'تغییر حالت نمایش، حالتِ کنونی: ' + label[mode]);
         };
 
         button.addEventListener('click', function () {

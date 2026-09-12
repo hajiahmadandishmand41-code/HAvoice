@@ -14,6 +14,8 @@ $cats  = categories();
 
 <section class="section section--tight">
     <div class="container container--narrow">
+        <?= breadcrumbs([['label'=>'درباره مدرس']]) ?>
+
         <!-- معرفی مدرس -->
         <div class="instructor" style="margin-bottom:2rem">
             <div class="instructor__media">
@@ -25,7 +27,7 @@ $cats  = categories();
                 <h1 class="instructor__name" style="margin-bottom:.4rem"><?= e($inst['name'] ?? HA_NAME) ?></h1>
                 <p class="instructor__bio"><?= e($inst['bio'] ?? '') ?></p>
                 <ul class="instructor__points">
-                    <?php foreach((array)($inst['points']??[]) as $pt): ?><li><span class="tick" aria-hidden="true">✓</span><span><?= e($pt) ?></span></li><?php endforeach; ?>
+                    <?php foreach((array)($inst['points']??[]) as $pt): ?><li><span class="tick" aria-hidden="true"><?= ha_icon('check', 12) ?></span><span><?= e($pt) ?></span></li><?php endforeach; ?>
                 </ul>
                 <?php if(!empty($inst['note'])): ?><p class="instructor__note"><?= e($inst['note']) ?></p><?php endif; ?>
             </div>
@@ -58,13 +60,13 @@ $cats  = categories();
             <section class="card">
                 <h2><?= e($about['who']['title'] ?? 'مخاطب ما') ?></h2>
                 <ul class="rich-list">
-                    <?php foreach((array)($about['who']['items']??[]) as $item): ?><li><span class="tick" aria-hidden="true">✓</span><span><?= e($item) ?></span></li><?php endforeach; ?>
+                    <?php foreach((array)($about['who']['items']??[]) as $item): ?><li><span class="tick" aria-hidden="true"><?= ha_icon('check', 12) ?></span><span><?= e($item) ?></span></li><?php endforeach; ?>
                 </ul>
             </section>
             <section class="card">
                 <h2><?= e($about['not_for']['title'] ?? 'خارج از حوزه‌ی ما') ?></h2>
                 <ul class="rich-list">
-                    <?php foreach((array)($about['not_for']['items']??[]) as $item): ?><li><span class="cross" aria-hidden="true">✕</span><span><?= e($item) ?></span></li><?php endforeach; ?>
+                    <?php foreach((array)($about['not_for']['items']??[]) as $item): ?><li><span class="cross"><?= ha_icon('close', 12) ?></span><span><?= e($item) ?></span></li><?php endforeach; ?>
                 </ul>
             </section>
         </div>

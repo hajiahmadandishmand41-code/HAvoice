@@ -32,9 +32,10 @@
 ```
 HAvoice/
 ├── index.php                  نقطه‌ی ورود (هاست همین فایل را در ریشه باز می‌کند)
-├── sitemap.php                نقشه‌ی سایت XML (خودکار از داده‌ها)
-├── robots.txt
-├── .htaccess                  امنیت + فشرده‌سازی + 404 + URL کوتاه (اختیاری)
+├── sitemap.php                نقشه‌ی سایت XML با نشانی مطلق + lastmod
+├── robots.php                 robots.txt پویا (خط Sitemap با دامنه‌ی واقعی)
+├── robots.txt                 نسخه‌ی ثابتِ پشتیبان (وقتی mod_rewrite نباشد)
+├── .htaccess                  امنیت + فشرده‌سازی + 404 + نگاشت robots/sitemap + URL کوتاه (اختیاری)
 ├── config/
 │   └── config.php             تنظیمات: نام، ایمیل، URL کوتاه، محدودیت فرم، حالت توسعه
 ├── includes/
@@ -42,6 +43,7 @@ HAvoice/
 │   ├── helpers.php            escape، url، داده‌ها، جستجو، CSRF، رندر بلوک‌ها
 │   ├── content.php            توابع دوره/درس/مقاله/تمرین (لایه‌ی محتوا)
 │   ├── ui.php                 اجزای مشترک: کارت مقاله، نکته، تمرین، نوار پیشرفت…
+│   ├── icons.php              مجموعه آیکون SVG محلی + چاپ sprite (جایگزین ایموجی)
 │   ├── meta.php               عنوان/توضیح/canonical/JSON-LD هر صفحه
 │   ├── header.php             <head> + هدر + ناوبری + بنر صفحه
 │   ├── footer.php             پاورقی + تنظیمات JS
@@ -58,13 +60,22 @@ HAvoice/
 │   ├── exercises.php          تمرین‌ها
 │   └── tips.php               نکته‌ها
 ├── assets/
-│   ├── css/style.css          کل استایل (متغیرها، RTL، حالت تاریک، چاپ)
+│   ├── css/style.css          کل استایل (توکن‌های رنگی WCAG، RTL، حالت تاریک، چاپ)
 │   ├── js/main.js             تم، منو، پیشرفت، تایمر، مودال، جستجوی زنده، فرم
-│   └── img/                   favicon.svg و og-cover.svg
+│   ├── js/theme.js            تعیین حالت تم پیش از رنگ‌آمیزی (بدون فلاش؛ سازگار با CSP)
+│   ├── fonts/vazirmatn-var.woff2   فونت وزیرمتنِ متغیر، میزبانیِ محلی (+ OFL.txt)
+│   └── img/                   favicon.svg و og-cover.png (۱۲۰۰×۶۳۰)
+├── tools/
+│   └── selfcheck.php          خودآزماییِ انتشار، بدون وابستگی (php tools/selfcheck.php)
 └── storage/                   پوشه‌ی نوشتنی (دسترسی وب بسته است)
     ├── messages/messages.csv  پیام‌های فرم تماس
-    └── rate-limit/            شمارنده‌ی ارسال
+    ├── rate-limit/            شمارنده‌ی ارسال (پنجره‌ی ثابت + GC)
+    └── sessions/              نشست‌ها، فقط اگر save_path پیش‌فرض هاست خراب باشد
 ```
+
+هر پوشه‌ی داخلی (`config/`, `data/`, `includes/`, `pages/`, `storage/`, `tools/`) یک
+`.htaccess` با `Require all denied` دارد؛ این لایه‌ی دومِ محافظت است و در نبودِ
+`.htaccess` ریشه هم کار می‌کند.
 
 **اصل معماری:** `data/` فقط داده، `includes/` فقط منطق و قالب، `pages/` فقط چیدمان صفحه.
 برای افزودن مقاله فقط یک قلم به `data/articles.php` اضافه کنید — فهرست، جستجو، منوی پاورقی، نقشه‌ی سایت و «مقاله‌های مرتبط» خودکار به‌روز می‌شوند.
@@ -86,7 +97,9 @@ HAvoice/
 6. **Control Panel ▸ Website ▸ PHP Version** را روی **PHP 8.1 یا 8.2** بگذارید و Save کنید.
 7. سایت را باز کنید: `https://yoursite.infinityfreeapp.com/` — صفحه‌ی اصلی باید نمایش داده شود.
 8. مجوزها: روی `storage` راست‌کلیک ▸ **Permissions** ▸ `755` (فایل‌ها `644`). اگر نوشتن پیام خطا داد، موقتاً `775` فقط روی `storage`.
-9. (توصیه‌شده) **SSL**: از بخش `SSL Certificates` گواهی رایگان بسازید؛ سپس در `.htaccess` سه خط بلوک «انتقال به https» را از کامنت خارج کنید.
+9. (توصیه‌شده) **SSL**: از بخش `SSL Certificates` گواهی رایگان بسازید؛ سپس در `.htaccess` بلوک «انتقال به https» را از کامنت خارج کنید و در `config/config.php` مقدار `HA_FORCE_HTTPS` را `true` بگذارید.
+10. **سئو:** در `config/config.php` مقدار `HA_SITE_URL` را با دامنه‌ی نهایی پر کنید (مثلاً `https://yoursite.infinityfreeapp.com`). تا وقتی خالی است، `canonical` و `og:url` از میزبانِ درخواست ساخته می‌شوند که برای دامنه‌های چندگانه مطمئن نیست.
+11. **خودآزمایی پس از نصب:** اگر روی هاست به خطِ فرمان دسترسی ندارید، موقتاً `HA_DEBUG` را `true` کنید و `tools/selfcheck.php` را از مرورگر باز کنید (سپس `HA_DEBUG` را به `false` برگردانید). در محیطِ محلی: `php tools/selfcheck.php --http`.
 
 ### نکته‌های مهمِ InfinityFree
 * **کش/OPcache:** اگر تغییرات را ندیدید، چند دقیقه صبر کنید و کش مرورگر را با `Ctrl+F5` بشکنید.
@@ -109,7 +122,14 @@ define('HA_STORE_MESSAGES', true);         // ذخیره‌ی پیام‌های 
 define('HA_SEND_MAIL',      false);        // روی InfinityFree false بماند
 define('HA_DEBUG',          false);        // true فقط برای تست محلی
 define('HA_PRETTY_URLS',    false);        // حالت URL کوتاه (پایین)
-define('HA_BASE_PATH',      '');          // نصب در پوشه‌ی فرعی: '/havoice'
+define('HA_BASE_PATH',      '');           // نصب در پوشه‌ی فرعی: '/havoice'
+define('HA_SITE_URL',       '');           // دامنه‌ی قطعی برای canonical/og:url/sitemap
+define('HA_FORCE_HTTPS',    false);        // پس از فعال‌سازی SSL: true
+define('HA_CSRF_TTL',       28800);        // عمر توکن CSRF (۸ ساعت)
+define('HA_RATE_LIMIT_MAX', 3);            // حداکثر پیام در هر پنجره
+define('HA_RATE_LIMIT_WINDOW', 600);       // طول پنجره (ثانیه)
+define('HA_RATE_LIMIT_MIN_INTERVAL', 20);  // حداقل فاصله‌ی دو ارسال (ضد رگبار)
+define('HA_RATE_LIMIT_MAX_FILES', 400);    // سقف فایل‌های شمارنده (inode هاست)
 ```
 
 ### URL کوتاه (اختیاری)
@@ -135,8 +155,19 @@ define('HA_BASE_PATH',      '');          // نصب در پوشه‌ی فرعی:
 * **خروجی‌ها** همه با `e()` (`htmlspecialchars` با `ENT_QUOTES|ENT_SUBSTITUTE`)؛ `slug` با `slugify()` به `[a-z0-9_-]` محدود و `param()` به ۲۰۰ نویسه کرپ‌د می‌شود.
 * **فرم تماس:** CSRF (`hash_equals`) + فیلد زنبوری + محدودیت نرخ بر پایه‌ی IP + اعتبارسنجی طول/قالب + حذف کاراکترهای کنترلی و تزریق سرصفحه + `flock` هنگام نوشتن CSV.
 * **جلسه (session)** فقط برای صفحه‌ی تماس شروع می‌شود (کوکی `HttpOnly`، `SameSite=Lax`، `Secure` روی HTTPS)؛ بقیه‌ی صفحه‌ها بی‌جلسه و کش‌پسندند.
-* **سرصفحه‌ها:** `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` + `Options -Indexes` + بستن دسترسی وب به `storage/`.
-* **بدون وابستگی:** بدون Composer، بدون jQuery، بدون دیتابیس، بدون مرحله‌ی build؛ فونت Vazirmatn از Google Fonts با فالبک `Tahoma`.
+* **سرصفحه‌ها:** `Content-Security-Policy` (با `script-src 'self'`)، `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` از سمت PHP و به‌عنوان لایه‌ی دوم در `.htaccess`؛ `X-Powered-By` حذف و `ServerSignature Off`.
+* **محدودیت نرخِ درست:** پنجره‌ی ثابت با بازنشانیِ واقعی پس از انقضا، حداقل فاصله‌ی بین دو ارسال، خواندن-تغییر-نوشتنِ اتمیک با `flock`، پاک‌سازی خودکارِ باکت‌های رهاشده و سقفِ تعداد فایل؛ اگر `storage` نوشتنی نباشد، **شکست به سمتِ بسته** (fail-closed) است.
+* **CSRF:** توکن با `hash_equals`، انقضای ۸ ساعته و بررسی هم‌مبدأ بودنِ `Origin`/`Referer`.
+* **نشست:** `use_strict_mode`، کوکی `HttpOnly`/`SameSite=Lax`/`Secure` روی HTTPS و مسیرِ نشستِ پشتیبان وقتی `session.save_path` هاست خالی یا غیرقابل‌نوشتن است.
+* **بدون وابستگی:** بدون Composer، بدون jQuery، بدون دیتابیس، بدون مرحله‌ی build و **بدون Node در محیط عملیاتی**؛ فونت Vazirmatn به‌صورت محلی میزبانی می‌شود (یک فایل woff2 متغیر، بدون درخواست به سرویس خارجی) و آیکون‌ها SVG درون‌خطی‌اند.
+
+### خودآزمایی (بدون وابستگی)
+```bash
+php tools/selfcheck.php            # محیط، پیکربندی، ذخیره‌سازی، دارایی‌ها، منطقِ محدودیت نرخ، کنتراست WCAG
+php tools/selfcheck.php --http     # + آزمونِ دودِ همه‌ی مسیرها، پویش XSS/LFI و سرصفحه‌های امنیتی
+```
+خروجی، PASS/FAIL است و کدِ خروج در صورتِ هر FAIL برابر ۱ می‌شود (قابل استفاده در CI).
+آخرین اجرا: **۱۲۲ PASS / ۰ FAIL** روی PHP 8.3.
 
 ### اجرای محلی
 ```bash

@@ -23,7 +23,7 @@ function article_card(array $article, bool $featured=false): string
     $href = url('article',['slug'=>(string)$article['slug']]);
     ob_start();
     ?>
-    <article class="card article-card<?= $featured?' article-card--featured':'' ?>" data-search-card data-hay="<?= e(mb_strtolower(strip_tags(article_text_index($article)),'UTF-8')) ?>">
+    <article class="card article-card<?= $featured?' article-card--featured':'' ?>" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
         <div class="article-card__top">
             <span class="badge"><?= e($article['category']??'عمومی') ?></span>
             <span class="meta-dot" aria-hidden="true"></span>
@@ -44,7 +44,7 @@ function tip_card(array $tip): string
 {
     ob_start(); ?>
     <article class="card tip-card" data-tip-id="<?= e($tip['id']??'') ?>">
-        <span class="tip-card__mark" aria-hidden="true">✦</span>
+        <span class="tip-card__mark"><?= ha_icon('sparkle', 18) ?></span>
         <p class="tip-card__text"><?= e($tip['text']) ?></p>
         <?php if(!empty($tip['try'])): ?><p class="tip-card__try"><strong>همین حالا:</strong> <?= e($tip['try']) ?></p><?php endif; ?>
         <footer class="tip-card__foot"><span class="badge badge--soft"><?= e($tip['category']??'عمومی') ?></span></footer>
@@ -121,7 +121,7 @@ function course_card(array $course): string
         foreach(($course['stages']??[]) as $st) foreach(($st['lessons']??[]) as $l) $minutes += (int)($l['minutes']??0);
     }
     ob_start(); ?>
-    <article class="card course-card--grid">
+    <article class="card course-card course-card--grid">
         <div class="course-card__top">
             <span class="badge" style="--badge-bg:<?= e($cat['color']??'#0d5c4d') ?>;--badge-accent:<?= e($cat['accent']??'#2ec4a6') ?>"><?= e($cat['short']?? $cat['title']?? $course['category']) ?></span>
             <span class="chip chip--ghost"><?= e($course['level']??'') ?></span>
@@ -148,7 +148,7 @@ function video_card(array $item): string
     ob_start(); ?>
     <article class="card media-card media-card--video">
         <div class="media-card__thumb">
-            <span class="media-card__play" aria-hidden="true">▶</span>
+            <span class="media-card__play"><?= ha_icon('play', 22) ?></span>
             <span class="media-card__duration"><?= format_duration((int)($item['seconds']??0)) ?></span>
         </div>
         <div class="media-card__body">
@@ -175,7 +175,7 @@ function audio_card(array $item): string
     ob_start(); ?>
     <article class="card media-card media-card--audio">
         <div class="media-card__thumb media-card__thumb--audio">
-            <span class="media-card__play" aria-hidden="true">🎧</span>
+            <span class="media-card__play"><?= ha_icon('headphones', 22) ?></span>
             <span class="media-card__duration"><?= format_duration((int)($item['seconds']??0)) ?></span>
         </div>
         <div class="media-card__body">
@@ -206,7 +206,7 @@ function book_card(array $book): string
     $cat = find_category($book['category']??'');
     ob_start(); ?>
     <article class="card book-card">
-        <div class="book-card__cover" aria-hidden="true"><span>📚</span></div>
+        <div class="book-card__cover" aria-hidden="true"><?= ha_icon('book', 28) ?></div>
         <div class="book-card__body">
             <div class="book-card__top">
                 <span class="badge badge--soft"><?= e($cat['short']?? $book['category']) ?></span>
@@ -258,7 +258,7 @@ function category_card(array $cat): string
     $href = url('category',['slug'=>$cat['slug']]);
     ob_start(); ?>
     <a class="card category-card" href="<?= e($href) ?>" style="--cat:<?= e($cat['color']) ?>;--cat-accent:<?= e($cat['accent']) ?>">
-        <span class="category-card__icon" data-cat-icon="<?= e($cat['icon']) ?>" aria-hidden="true"></span>
+        <span class="category-card__icon"><?= ha_icon((string)($cat['icon'] ?? 'compass'), 22) ?></span>
         <h3 class="category-card__title"><?= e($cat['title']) ?></h3>
         <p class="category-card__desc"><?= e($cat['description']) ?></p>
         <span class="link-arrow">ورود به حوزه</span>
@@ -266,11 +266,22 @@ function category_card(array $cat): string
     <?php return (string)ob_get_clean();
 }
 
-function progress_bar(int $percent, string $label=''): string
+/**
+ * نوارِ پیشرفت.
+ *
+ * دسترس‌پذیری: role="progressbar" بدونِ نامِ دسترس‌پذیر، از نظرِ
+ * WCAG 4.1.2 ناقص است (صفحه‌خوان فقط «۰ درصد» می‌خواند بدونِ اینکه
+ * بگوید پیشرفتِ چه چیزی). بنابراین aria-label اجباری است و اگر
+ * داده نشود، مقدارِ پیش‌فرضِ معنادار می‌گیرد.
+ */
+function progress_bar(int $percent, string $label='', string $ariaLabel='پیشرفت'): string
 {
     $percent = max(0,min(100,$percent));
     ob_start(); ?>
-    <div class="progress" role="progressbar" aria-valuenow="<?= (int)$percent ?>" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress" role="progressbar"
+         aria-label="<?= e($ariaLabel) ?>"
+         aria-valuenow="<?= (int)$percent ?>" aria-valuemin="0" aria-valuemax="100"
+         aria-valuetext="<?= e(fa_num($percent)) ?> درصد">
         <span class="progress__bar" style="--progress: <?= $percent ?>%"></span>
 <?php if($label!==''): ?><span class="progress__label"><?= e($label) ?></span><?php endif; ?>
     </div>
@@ -281,6 +292,7 @@ function empty_state(string $title, string $text, string $url='', string $label=
 {
     ob_start(); ?>
     <div class="empty-state">
+        <span class="empty-state__icon" aria-hidden="true"><?= ha_icon('search', 26) ?></span>
         <p class="empty-state__title"><?= e($title) ?></p>
         <p class="empty-state__text"><?= e($text) ?></p>
 <?php if($url!==''): ?><a class="btn btn--ghost btn--sm" href="<?= e($url) ?>"><?= e($label) ?></a><?php endif; ?>
@@ -316,7 +328,7 @@ function breadcrumbs(array $items): string
     <nav class="breadcrumbs" aria-label="مسیر صفحه">
         <a href="<?= e(url('home')) ?>">خانه</a>
         <?php foreach($items as $it): ?>
-            <span aria-hidden="true">/</span>
+            <span class="breadcrumbs__sep" aria-hidden="true"><?= ha_icon('chevron-left', 14) ?></span>
             <?php if(!empty($it['url'])): ?><a href="<?= e($it['url']) ?>"><?= e($it['label']) ?></a><?php else: ?><span aria-current="page"><?= e($it['label']) ?></span><?php endif; ?>
         <?php endforeach; ?>
     </nav>

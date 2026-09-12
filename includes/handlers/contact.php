@@ -31,31 +31,25 @@ if (trim((string) ($_POST['website'] ?? '')) !== '') {
     redirect($backUrl);
 }
 
-/* ۴) محدودیت نرخ بر پایه‌ی IP */
-$ipKey = substr(sha1((string) ($_SERVER['REMOTE_ADDR'] ?? 'na') . '|' . date('YmdH')), 0, 16);
-$rateDir = storage_dir('rate-limit');
-if (!is_dir($rateDir)) {
-    @mkdir($rateDir, 0755, true);
-}
-$bucket = $rateDir . '/' . $ipKey . '.json';
+/* ۴) محدودیت نرخ بر پایه‌ی IP — پنجره‌ی ثابت با بازنشانیِ درست */
+$ip    = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$limit = ha_rate_limit_acquire(
+    'contact',
+    $ip,
+    (int) HA_RATE_LIMIT_MAX,
+    (int) HA_RATE_LIMIT_WINDOW,
+    (int) HA_RATE_LIMIT_MIN_INTERVAL
+);
 
-if (is_file($bucket)) {
-    $stats = json_decode((string) @file_get_contents($bucket), true);
-    $count = is_array($stats) ? (int) ($stats['n'] ?? 0) : 0;
-    $time  = is_array($stats) ? (int) ($stats['t'] ?? 0) : 0;
-
-    if (time() - $time < HA_RATE_LIMIT_WINDOW && $count >= HA_RATE_LIMIT_MAX) {
-        flash('error', 'چند پیام پشت‌سرهم فرستادید. لطفاً ' . fa_num((int) ceil((HA_RATE_LIMIT_WINDOW - (time() - $time)) / 60)) . ' دقیقه‌ی دیگر دوباره تلاش کنید.');
-        redirect($backUrl);
+if (!$limit['ok']) {
+    if ($limit['error'] !== null) {
+        flash('error', 'سامانه‌ی ضداسپام موقتاً در دسترس نیست. لطفاً چند دقیقه‌ی دیگر دوباره تلاش کنید یا مستقیم ایمیل بزنید: ' . HA_EMAIL);
+    } else {
+        $minutes = max(1, (int) ceil($limit['retry'] / 60));
+        flash('error', 'تعداد پیام‌های شما در این بازه به سقف رسیده است. لطفاً ' . fa_num($minutes) . ' دقیقه‌ی دیگر دوباره تلاش کنید.');
     }
-
-    $count++;
-} else {
-    $count = 1;
-    $time  = time();
+    redirect($backUrl);
 }
-
-@file_put_contents($bucket, json_encode(['n' => $count, 't' => $time]), LOCK_EX);
 
 /* ۵) اعتبارسنجی ورودی‌ها */
 $name    = trim((string) ($_POST['name'] ?? ''));

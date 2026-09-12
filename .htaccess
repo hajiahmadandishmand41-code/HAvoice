@@ -1,44 +1,84 @@
 # ============================================================
-#  HAvoice 2.0 — Apache برای هاست اشتراکی
+#  HAvoice — Apache برای هاست اشتراکی (InfinityFree)
+#
+#  اصول:
+#  • هر Directive اختیاری داخل <IfModule> است تا نبودِ یک ماژول
+#    باعث خطای 500 روی کل سایت نشود.
+#  • پوشه‌های داخلی (config/data/includes/storage) از وب بسته‌اند؛
+#    لایه‌ی دومِ محافظت، .htaccess داخلِ همان پوشه‌هاست.
+#  • سرصفحه‌های امنیتی هم اینجا و هم از سمت PHP ارسال می‌شوند
+#    (includes/helpers.php: ha_security_headers) تا نبودِ mod_headers
+#    سایت را بی‌دفاع نگذارد.
 # ============================================================
 
-Options -Indexes
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+# امضای آپاچی در صفحه‌های خطا حذف شود (ServerTokens فقط در httpd.conf ممکن است)
+ServerSignature Off
 DirectoryIndex index.php index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # https redirect (فعال کنید پس از SSL)
+    # https redirect — پس از فعال‌سازی SSL روی هاست، کامنت را بردارید
+    # و در config/config.php نیز HA_FORCE_HTTPS را true کنید.
     # RewriteCond %{HTTPS} !=on
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+    # فایل/پوشه‌ی واقعی مستقیم سرو شود
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # URL کوتاه ==> index.php?r=… (HA_PRETTY_URLS = true)
-    # RewriteCond %{QUERY_STRING} (^|&)p=
-    # RewriteRule ^index\.php$ %{REQUEST_URI} [R=301,L]
+    # URL کوتاه ==> index.php?r=… (فقط وقتی HA_PRETTY_URLS = true)
     # RewriteRule ^([a-z0-9_\-/]+)/?$ index.php?r=$1 [QSA,L]
 
     # sitemap.xml -> sitemap.php
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+    # robots.txt -> robots.php (نسخه‌ی پویا با نشانیِ مطلقِ Sitemap)
+    RewriteRule ^robots\.txt$ robots.php [L]
 </IfModule>
 
 <IfModule mod_headers.c>
+    Header unset X-Powered-By
+    Header unset Server
     Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
-    Header set Permissions-Policy "geolocation=(), microphone=(self)"
-    <FilesMatch "\.(css|js|svg|woff2)$">
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()"
+    Header set Cross-Origin-Opener-Policy "same-origin"
+    # لایه‌ی دومِ CSP (نسخه‌ی اصلی از PHP ارسال می‌شود)
+    Header set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'self'; frame-src 'self' https://www.aparat.com https://player.vimeo.com https://www.youtube.com https://www.youtube-nocookie.com"
+
+    <FilesMatch "\.(css|js|svg|woff2|png|jpg|jpeg|webp)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(html|php)$">
+        Header set Cache-Control "no-cache, must-revalidate"
     </FilesMatch>
 </IfModule>
 
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml application/xml text/plain
 </IfModule>
 
-<FilesMatch "^(config|helpers|content|meta|header|footer|bootstrap)\.php$">
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/png "access plus 1 month"
+</IfModule>
+
+# ------------------------------------------------------------
+#  بستنِ دسترسیِ وب به فایل‌های داخلی
+# ------------------------------------------------------------
+
+# ۱) فایل‌های PHPِ حساس بر اساس نام (در هر پوشه‌ای باشند)
+<FilesMatch "^(config|helpers|content|meta|header|footer|bootstrap|icons|ui)\.php$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -48,4 +88,23 @@ DirectoryIndex index.php index.html
     </IfModule>
 </FilesMatch>
 
+# ۲) پوشه‌های داخلی — Apache 2.4
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|php\d|phtml|ini|log|json|csv|md)$">
+        # فقط در پوشه‌های داخلی توسط .htaccess خودشان بسته می‌شوند
+    </FilesMatch>
+</IfModule>
+
+# ۳) هرگز فایل‌های نقطه‌ای و پشتیبان سرو نشود
+<FilesMatch "^\.|~$|\.(bak|orig|save|swp|dist|sql|sh)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# صفحه‌ی 404 یکدست با سایت (مسیر نسبی به ریشه‌ی نصب)
 ErrorDocument 404 /index.php?p=404

@@ -1,6 +1,15 @@
 <?php
 /**
- * HAvoice 2.0 — متای سئو
+ * HAvoice — متادیتای سئو
+ *
+ * هر route یک آرایه‌ی متا می‌گیرد:
+ *   title, description, h1, crumb, banner, canonical, robots, image, og_type, jsonld[]
+ *
+ * نکته‌های مهم:
+ *  • jsonld همیشه «فهرستی از گراف‌ها» است تا بتوان چند schema در یک صفحه داد.
+ *  • banner=false یعنی خودِ صفحه <h1> می‌سازد؛ این از دو <h1> در یک صفحه
+ *    جلوگیری می‌کند (WCAG 1.3.1 و سئو).
+ *  • canonical نسبی ساخته می‌شود و در header.php با absolute_url() مطلق می‌شود.
  */
 
 if (!defined('HA_ROOT')) {
@@ -10,153 +19,329 @@ if (!defined('HA_ROOT')) {
 function all_articles_sorted(): array
 {
     $articles = data('articles');
-    usort($articles, static function(array $a,array $b){ return strcmp((string)($b['date']??''),(string)($a['date']??'')); });
+    usort($articles, static function (array $a, array $b) {
+        return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
+    });
     return $articles;
+}
+
+/** داده‌ی ساختاریافته‌ی «مسیر صفحه» برای گوگل. */
+function ha_breadcrumb_jsonld(array $items): array
+{
+    $list = [['name' => 'خانه', 'item' => absolute_url(url('home'))]];
+    foreach ($items as $it) {
+        if (empty($it['label'])) {
+            continue;
+        }
+        $entry = ['name' => (string) $it['label']];
+        if (!empty($it['url'])) {
+            $entry['item'] = absolute_url((string) $it['url']);
+        }
+        $list[] = $entry;
+    }
+    if (count($list) < 2) {
+        return [];
+    }
+    $elements = [];
+    foreach ($list as $i => $el) {
+        $elements[] = array_merge(['@type' => 'ListItem', 'position' => $i + 1], $el);
+    }
+    return [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => $elements,
+    ];
+}
+
+/** داده‌ی ساختاریافته‌ی «سایت + شخص» — فقط در صفحه‌ی اصلی. */
+function ha_website_jsonld(): array
+{
+    $root = absolute_url(url('home'));
+    $knows = [];
+    foreach (categories() as $c) {
+        $knows[] = (string) ($c['title'] ?? '');
+    }
+    return [
+        '@context' => 'https://schema.org',
+        '@graph'   => [
+            [
+                '@type'       => 'WebSite',
+                '@id'         => $root . '#website',
+                'url'         => $root,
+                'name'        => HA_BRAND_FULL,
+                'inLanguage'  => 'fa',
+                'description' => 'آموزش‌های تمرین‌محورِ ' . HA_NAME . ' در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی و مذاکره.',
+                'publisher'   => ['@id' => $root . '#person'],
+                'potentialAction' => [
+                    '@type'       => 'SearchAction',
+                    'target'      => [
+                        '@type'       => 'EntryPoint',
+                        'urlTemplate' => absolute_url(url('search')) . '&q={search_term_string}',
+                    ],
+                    'query-input' => 'required name=search_term_string',
+                ],
+            ],
+            [
+                '@type'      => 'Person',
+                '@id'        => $root . '#person',
+                'name'       => HA_NAME,
+                'jobTitle'   => HA_TAGLINE,
+                'email'      => 'mailto:' . HA_EMAIL,
+                'url'        => $root,
+                'knowsAbout' => array_values(array_filter($knows)),
+            ],
+        ],
+    ];
+}
+
+/** تصویرِ اشتراک‌گذاری. اگر PNG موجود نبود، به SVG برمی‌گردیم. */
+function ha_og_image(): string
+{
+    return is_file(HA_ROOT . '/assets/img/og-cover.png')
+        ? 'assets/img/og-cover.png'
+        : 'assets/img/og-cover.svg';
 }
 
 function ha_page_meta(string $route): array
 {
     $siteName = HA_NAME . ' | ' . HA_TAGLINE;
-    $default = [
-        'title'       => HA_BRAND_FULL . ' — مرکز آموزش مهارت‌های کاربردی',
-        'description' => 'آموزش‌های تمرین‌محورِ حاجی احمد صالحی: فن بیان، ارتباط مؤثر، روانشناسیِ کاربردی، رشد فردی، هدف‌گذاری، مذاکره، کتاب و پژوهش — با ویدیو، صوت، مقاله، تمرین و مسیرِ یادگیری.',
-        'image'       => 'assets/img/og-cover.svg',
+    $image    = ha_og_image();
+
+    $defaultDescription = 'آموزش‌های تمرین‌محورِ حاجی احمد صالحی: فن بیان، ارتباط مؤثر، روانشناسیِ کاربردی، رشد فردی، هدف‌گذاری، مذاکره، کتاب و پژوهش — با ویدیو، صوت، مقاله، تمرین و مسیرِ یادگیری.';
+
+    $base = [
+        'og_type' => 'website',
+        'jsonld'  => [],
+        'image'   => $image,
+        'banner'  => true,
+        'robots'  => 'index,follow',
+        'crumb'   => '',
     ];
 
+    /* ------------------------------ خانه ------------------------------ */
     if ($route === 'home') {
-        return [
-            'title'       => $default['title'],
-            'description' => $default['description'],
+        // برای صفحه‌ی اصلی، ریشه‌ی دامنه canonical است نه index.php?p=home
+        return array_merge($base, [
+            'title'       => HA_BRAND_FULL . ' — مرکز آموزش مهارت‌های کاربردی',
+            'description' => $defaultDescription,
             'h1'          => HA_NAME,
             'banner'      => false,
-            'canonical'   => url('home'),
-            'robots'      => 'index,follow',
-            'image'       => $default['image'],
-        ];
+            'canonical'   => '/',
+            'jsonld'      => [ha_website_jsonld()],
+        ]);
     }
+
+    /* ------------------------------ ۴۰۴ ------------------------------- */
     if ($route === '404') {
-        return [
+        return array_merge($base, [
             'title'       => 'صفحه پیدا نشد — ' . $siteName,
-            'description' => 'نشانی‌ای که دنبال آن بودید وجود ندارد.',
+            'description' => 'نشانی‌ای که دنبال آن بودید وجود ندارد. از حوزه‌ها یا جستجو ادامه دهید.',
             'h1'          => 'صفحه پیدا نشد',
-            'banner'      => true,
+            // صفحه‌ی ۴۰۴ خودش <h1> دارد ⇒ بنر خاموش تا دو <h1> نسازیم
+            'banner'      => false,
             'canonical'   => '',
             'robots'      => 'noindex,follow',
-            'image'       => $default['image'],
-        ];
+        ]);
     }
 
+    /* ----------------------------- مقاله ------------------------------ */
     if ($route === 'article') {
-        $found = find_by_slug(all_articles_sorted(), (string)$GLOBALS['HA_SLUG']);
-        if ($found[1]!==null){
-            $a=$found[1];
-            return [
-                'title'       => $a['title'].' | '.$siteName,
-                'description' => (string)($a['excerpt']??''),
-                'h1'          => (string)$a['title'],
-                'crumb'       => 'مقاله',
+        $found = find_by_slug(all_articles_sorted(), (string) $GLOBALS['HA_SLUG']);
+        if ($found[1] !== null) {
+            $a = $found[1];
+            return array_merge($base, [
+                'title'       => $a['title'] . ' | ' . $siteName,
+                'description' => (string) ($a['excerpt'] ?? ''),
+                'h1'          => (string) $a['title'],
+                'crumb'       => 'مقالات',
                 'banner'      => false,
-                'canonical'   => url('article',['slug'=>$a['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-                'jsonld'      => [
-                    '@context'=>'https://schema.org','@type'=>'Article',
-                    'headline'=>$a['title'],'description'=>$a['excerpt']??'','datePublished'=>$a['date']??'','inLanguage'=>'fa',
-                    'author'=>['@type'=>'Person','name'=>HA_NAME],'publisher'=>['@type'=>'Organization','name'=>HA_NAME],
-                ],
-            ];
+                'canonical'   => url('article', ['slug' => $a['slug']]),
+                'og_type'     => 'article',
+                'jsonld'      => array_values(array_filter([
+                    [
+                        '@context'         => 'https://schema.org',
+                        '@type'            => 'Article',
+                        'headline'         => (string) $a['title'],
+                        'description'      => (string) ($a['excerpt'] ?? ''),
+                        'datePublished'    => (string) ($a['date'] ?? ''),
+                        'dateModified'     => (string) ($a['date'] ?? ''),
+                        'inLanguage'       => 'fa',
+                        'author'           => ['@type' => 'Person', 'name' => HA_NAME],
+                        'publisher'        => ['@type' => 'Person', 'name' => HA_NAME],
+                        'mainEntityOfPage' => absolute_url(url('article', ['slug' => $a['slug']])),
+                        'image'            => absolute_url(asset($image)),
+                        'articleSection'   => (string) ($a['category'] ?? ''),
+                        'keywords'         => implode(', ', (array) ($a['tags'] ?? [])),
+                    ],
+                    ha_breadcrumb_jsonld([
+                        ['label' => 'مقالات', 'url' => url('articles')],
+                        ['label' => $a['title']],
+                    ]),
+                ])),
+            ]);
         }
     }
 
+    /* ------------------------------ درس ------------------------------- */
     if ($route === 'lesson') {
-        $lesson = course_find_lesson((string)$GLOBALS['HA_SLUG']);
-        if ($lesson!==null){
-            return [
-                'title'       => $lesson['lesson']['title'].' | '.HA_NAME,
-                'description' => (string)($lesson['lesson']['goal']??''),
-                'h1'          => (string)$lesson['lesson']['title'],
-                'crumb'       => (string)($lesson['stage']['title']??'دوره'),
+        $lesson = course_find_lesson((string) $GLOBALS['HA_SLUG']);
+        if ($lesson !== null) {
+            $courseTitle = (string) ($lesson['course']['title'] ?? ($lesson['stage']['title'] ?? 'دوره'));
+            $courseSlug  = (string) ($lesson['course']['slug'] ?? '');
+            return array_merge($base, [
+                'title'       => $lesson['lesson']['title'] . ' — ' . $courseTitle . ' | ' . HA_NAME,
+                'description' => (string) ($lesson['lesson']['goal'] ?? ''),
+                'h1'          => (string) $lesson['lesson']['title'],
+                'crumb'       => $courseTitle,
                 'banner'      => false,
-                'canonical'   => url('lesson',['slug'=>$lesson['lesson']['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-                'jsonld'      => [
-                    '@context'=>'https://schema.org','@type'=>'LearningResource',
-                    'name'=>$lesson['lesson']['title'],'inLanguage'=>'fa',
-                    'educationalLevel'=>$lesson['stage']['title']??'','provider'=>['@type'=>'Person','name'=>HA_NAME],
-                ],
-            ];
+                'canonical'   => url('lesson', ['slug' => $lesson['lesson']['slug']]),
+                'og_type'     => 'article',
+                'jsonld'      => array_values(array_filter([
+                    [
+                        '@context'             => 'https://schema.org',
+                        '@type'                => 'LearningResource',
+                        'name'                 => (string) $lesson['lesson']['title'],
+                        'description'          => (string) ($lesson['lesson']['goal'] ?? ''),
+                        'inLanguage'           => 'fa',
+                        'learningResourceType' => 'Lesson',
+                        'educationalLevel'     => (string) ($lesson['stage']['title'] ?? ''),
+                        'timeRequired'         => 'PT' . max(1, (int) ($lesson['lesson']['minutes'] ?? 10)) . 'M',
+                        'isPartOf'             => ['@type' => 'Course', 'name' => $courseTitle],
+                        'provider'             => ['@type' => 'Person', 'name' => HA_NAME],
+                    ],
+                    ha_breadcrumb_jsonld([
+                        ['label' => 'دوره‌ها', 'url' => url('courses')],
+                        ['label' => $courseTitle, 'url' => $courseSlug !== '' ? url('course', ['slug' => $courseSlug]) : ''],
+                        ['label' => $lesson['lesson']['title']],
+                    ]),
+                ])),
+            ]);
         }
     }
 
+    /* ----------------------------- دوره ------------------------------- */
     if ($route === 'course') {
-        $slug = (string)($GLOBALS['HA_SLUG'] ?? param('slug'));
+        $slug = (string) ($GLOBALS['HA_SLUG'] ?? param('slug'));
         $c = $slug ? find_course($slug) : null;
-        if ($c){
-            return [
-                'title'       => $c['title'].' | '.$siteName,
-                'description' => (string)($c['excerpt']??''),
-                'h1'          => (string)$c['title'],
+        if ($c) {
+            $lessonCount = 0;
+            $minutes = 0;
+            foreach ((array) ($c['stages'] ?? []) as $st) {
+                foreach ((array) ($st['lessons'] ?? []) as $l) {
+                    $lessonCount++;
+                    $minutes += (int) ($l['minutes'] ?? 0);
+                }
+            }
+            return array_merge($base, [
+                'title'       => $c['title'] . ' | ' . $siteName,
+                'description' => (string) ($c['excerpt'] ?? ''),
+                'h1'          => (string) $c['title'],
                 'crumb'       => 'دوره‌ها',
-                'banner'      => true,
-                'canonical'   => url('course',['slug'=>$c['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-            ];
+                'canonical'   => url('course', ['slug' => $c['slug']]),
+                'jsonld'      => array_values(array_filter([
+                    [
+                        '@context'         => 'https://schema.org',
+                        '@type'            => 'Course',
+                        'name'             => (string) $c['title'],
+                        'description'      => (string) ($c['excerpt'] ?? ''),
+                        'inLanguage'       => 'fa',
+                        'numberOfCredits'  => $lessonCount,
+                        'timeRequired'     => 'PT' . max(1, $minutes) . 'M',
+                        'educationalLevel' => (string) ($c['level'] ?? ''),
+                        'provider'         => ['@type' => 'Person', 'name' => HA_NAME],
+                        'hasCourseInstance' => [[
+                            '@type'          => 'CourseInstance',
+                            'courseMode'     => 'online',
+                            'courseWorkload' => 'PT' . max(1, (int) round($minutes / max(1, $lessonCount))) . 'M',
+                        ]],
+                    ],
+                    ha_breadcrumb_jsonld([
+                        ['label' => 'دوره‌ها', 'url' => url('courses')],
+                        ['label' => $c['title']],
+                    ]),
+                ])),
+            ]);
         }
     }
 
+    /* ----------------------------- حوزه ------------------------------- */
     if ($route === 'category') {
-        $slug = slugify((string)($GLOBALS['HA_SLUG'] ?? param('slug')));
+        $slug = slugify((string) ($GLOBALS['HA_SLUG'] ?? param('slug')));
         $cat = $slug ? find_category($slug) : null;
-        if ($cat){
-            return [
-                'title'       => $cat['title'].' | '.$siteName,
-                'description' => (string)($cat['description']??''),
-                'h1'          => (string)$cat['title'],
-                'crumb'       => 'حوزه‌ها',
-                'banner'      => true,
-                'canonical'   => url('category',['slug'=>$cat['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-            ];
+        if ($cat) {
+            return array_merge($base, [
+                'title'       => $cat['title'] . ' | ' . $siteName,
+                'description' => (string) ($cat['description'] ?? ''),
+                'h1'          => (string) $cat['title'],
+                // صفحه‌ی حوزه خودش <h1> و breadcrumb دارد ⇒ بنر خاموش
+                'banner'      => false,
+                'canonical'   => url('category', ['slug' => $cat['slug']]),
+                'jsonld'      => [[
+                    '@context'    => 'https://schema.org',
+                    '@type'       => 'CollectionPage',
+                    'name'        => (string) $cat['title'],
+                    'description' => (string) ($cat['description'] ?? ''),
+                    'inLanguage'  => 'fa',
+                ]],
+            ]);
         }
     }
 
-    if ($route === 'books' && param('slug')!=='') {
+    /* ------------------------------ کتاب ------------------------------ */
+    if ($route === 'books' && param('slug') !== '') {
         $b = find_book(param('slug'));
-        if ($b){
-            return [
-                'title'       => $b['title'].' — '.$b['author'].' | '.$siteName,
-                'description' => (string)($b['excerpt']??''),
-                'h1'          => (string)$b['title'],
+        if ($b) {
+            return array_merge($base, [
+                'title'       => $b['title'] . ' — ' . $b['author'] . ' | ' . $siteName,
+                'description' => (string) ($b['excerpt'] ?? ''),
+                'h1'          => (string) $b['title'],
                 'crumb'       => 'کتاب‌ها',
                 'banner'      => false,
-                'canonical'   => url('books',['slug'=>$b['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-                'jsonld'      => ['@context'=>'https://schema.org','@type'=>'Book','name'=>$b['title'],'author'=>$b['author'],'inLanguage'=>'fa'],
-            ];
+                'canonical'   => url('books', ['slug' => $b['slug']]),
+                'og_type'     => 'book',
+                'jsonld'      => [[
+                    '@context'    => 'https://schema.org',
+                    '@type'       => 'Book',
+                    'name'        => (string) $b['title'],
+                    'author'      => ['@type' => 'Person', 'name' => (string) ($b['author'] ?? '')],
+                    'inLanguage'  => 'fa',
+                    'description' => (string) ($b['excerpt'] ?? ''),
+                    'review'      => [
+                        '@type'      => 'Review',
+                        'author'     => ['@type' => 'Person', 'name' => HA_NAME],
+                        'reviewBody' => (string) ($b['summary'] ?? ($b['excerpt'] ?? '')),
+                    ],
+                ]],
+            ]);
         }
     }
 
-    if ($route === 'research' && param('slug')!=='') {
+    /* ----------------------------- پژوهش ------------------------------ */
+    if ($route === 'research' && param('slug') !== '') {
         $r = find_research(param('slug'));
-        if ($r){
-            return [
-                'title'       => $r['title'].' | '.$siteName,
-                'description' => (string)($r['summary']??''),
-                'h1'          => (string)$r['title'],
+        if ($r) {
+            return array_merge($base, [
+                'title'       => $r['title'] . ' | ' . $siteName,
+                'description' => (string) ($r['summary'] ?? ''),
+                'h1'          => (string) $r['title'],
                 'crumb'       => 'پژوهش',
                 'banner'      => false,
-                'canonical'   => url('research',['slug'=>$r['slug']]),
-                'robots'      => 'index,follow',
-                'image'       => $default['image'],
-                'jsonld'      => ['@context'=>'https://schema.org','@type'=>'ScholarlyArticle','headline'=>$r['title'],'description'=>$r['summary']??'','inLanguage'=>'fa','author'=>['@type'=>'Person','name'=>HA_NAME]],
-            ];
+                'canonical'   => url('research', ['slug' => $r['slug']]),
+                'og_type'     => 'article',
+                'jsonld'      => [[
+                    '@context'      => 'https://schema.org',
+                    '@type'         => 'ScholarlyArticle',
+                    'headline'      => (string) $r['title'],
+                    'description'   => (string) ($r['summary'] ?? ''),
+                    'inLanguage'    => 'fa',
+                    'datePublished' => (string) ($r['date'] ?? ''),
+                    'author'        => ['@type' => 'Person', 'name' => HA_NAME],
+                ]],
+            ]);
         }
     }
 
+    /* --------------------------- فهرست‌ها ------------------------------ */
     $titles = [
         'courses'   => 'دوره‌های آموزشی',
         'course'    => 'دوره‌های آموزشی',
@@ -167,10 +352,10 @@ function ha_page_meta(string $route): array
         'research'  => 'تحقیقات و پژوهش',
         'category'  => 'حوزه‌های آموزشی',
         'exercises' => 'تمرین‌های عملی',
-        'tips'      => 'نکات کوتاه',
-        'about'     => 'درباره حاجی احمد صالحی',
+        'tips'      => 'نکات کوتاه و کاربردی',
+        'about'     => 'درباره‌ی حاجی احمد صالحی',
         'contact'   => 'تماس با ما',
-        'search'    => 'جستجو',
+        'search'    => 'جستجو در همه‌ی محتوا',
     ];
     $descriptions = [
         'courses'   => 'دوره‌های مرحله‌ای و تمرین‌محور در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی، زمان و مذاکره.',
@@ -181,24 +366,36 @@ function ha_page_meta(string $route): array
         'books'     => 'خلاصه و برداشتِ کاربردی از کتاب‌های شاخصِ هر حوزه.',
         'research'  => 'یادداشت‌های پژوهشی با ذکرِ منبع و قابلیتِ راستی‌آزمایی.',
         'category'  => 'همه‌ی حوزه‌های آموزشیِ HAvoice در یک نگاه.',
-        'exercises' => 'تمرین‌های روزانه با تایمر و شمارنده.',
+        'exercises' => 'تمرین‌های روزانه با تایمر، چک‌لیست و تولیدگرِ موضوعِ بداهه.',
         'tips'      => 'نکته‌های کوتاه برای استفاده‌ی فوری در جلسه و گفت‌وگو.',
-        'about'     => 'معرفیِ حاجی احمد صالحی، رویکردِ آموزشی و مسیرِ یادگیری.',
+        'about'     => 'معرفیِ حاجی احمد صالحی، رویکردِ آموزشی، حوزه‌ها و سؤالاتِ متداول.',
         'contact'   => 'پرسش، پیشنهاد و همکاری؛ پاسخ‌گویی تا دو روزِ کاری.',
         'search'    => 'جستجو در تمامِ محتوا: مقاله، درس، کتاب، پژوهش، ویدیو و صوت.',
     ];
     $shortTitles = [
-        'courses'=>'دوره‌ها','course'=>'دوره','articles'=>'مقالات','videos'=>'ویدیو','audios'=>'پادکست','books'=>'کتاب‌ها','research'=>'پژوهش','category'=>'حوزه‌ها','exercises'=>'تمرین‌ها','tips'=>'نکته‌ها','about'=>'درباره مدرس','contact'=>'تماس با ما','search'=>'جستجو',
+        'courses'   => 'دوره‌ها',
+        'course'    => 'دوره',
+        'articles'  => 'مقالات',
+        'videos'    => 'ویدیو',
+        'audios'    => 'پادکست',
+        'books'     => 'کتاب‌ها',
+        'research'  => 'پژوهش',
+        'category'  => 'حوزه‌ها',
+        'exercises' => 'تمرین‌ها',
+        'tips'      => 'نکته‌ها',
+        'about'     => 'درباره‌ی حاجی احمد صالحی',
+        'contact'   => 'تماس با ما',
+        'search'    => 'جستجو',
     ];
-    $bannerless = ['contact'];
+    // صفحه‌هایی که <h1> خودشان را می‌سازند ⇒ بنر (و <h1> دوم) خاموش
+    $bannerless = ['contact', 'about'];
 
-    return [
-        'title'       => (isset($titles[$route])?$titles[$route]:HA_NAME).' | '.$siteName,
-        'description' => $descriptions[$route] ?? $default['description'],
+    return array_merge($base, [
+        'title'       => (isset($titles[$route]) ? $titles[$route] : HA_NAME) . ' | ' . $siteName,
+        'description' => $descriptions[$route] ?? $defaultDescription,
         'h1'          => $shortTitles[$route] ?? HA_NAME,
-        'banner'      => !in_array($route,$bannerless,true),
+        'banner'      => !in_array($route, $bannerless, true),
         'canonical'   => url($route),
-        'robots'      => $route==='search' ? 'noindex,follow' : 'index,follow',
-        'image'       => $default['image'],
-    ];
+        'robots'      => $route === 'search' ? 'noindex,follow' : 'index,follow',
+    ]);
 }
