@@ -1,6 +1,13 @@
 <?php
 /**
- * HAvoice 2.0 — بوت‌استرپ
+ * HAvoice — بوت‌استرپ
+ *
+ * جریان کار: config → helpers → content → ui → meta
+ *          → route → session → security headers → POST handler
+ *          → header.php → pages/*.php → footer.php
+ *
+ * همه‌ی include‌ها از فهرست سفیدِ routes() می‌آیند؛ هیچ مسیر کاربری
+ * مستقیماً به require نمی‌رسد (LFI/path-traversal بسته است).
  */
 
 if (!defined('HA_ROOT')) {
@@ -9,6 +16,7 @@ if (!defined('HA_ROOT')) {
 
 require HA_ROOT . '/config/config.php';
 require HA_ROOT . '/includes/helpers.php';
+require HA_ROOT . '/includes/icons.php';
 require HA_ROOT . '/includes/content.php';
 require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/meta.php';
@@ -17,73 +25,149 @@ error_reporting(E_ALL);
 ini_set('display_errors', HA_DEBUG ? '1' : '0');
 ini_set('log_errors', '1');
 
-function ha_resolve_route(): array
+/* ------------------------------------------------------------------ */
+/*  Routing                                                           */
+/* ------------------------------------------------------------------ */
+
+/** فهرست سفیدِ route‌ها؛ هرچه اینجا نباشد ⇒ ۴۰۴ */
+function ha_known_routes(): array
 {
-    $route='home'; $slug='';
-    if (HA_PRETTY_URLS && isset($_GET['r']) && is_string($_GET['r'])) {
-        $path = trim((string)preg_replace('#[^A-Za-z0-9_/\-]#','',$_GET['r']),'/');
-        $parts = $path===''?[]:explode('/',$path);
-        $first = $parts[0]??''; $second=$parts[1]??'';
-        $known=['home','courses','course','lesson','articles','videos','audios','books','research','category','exercises','tips','about','contact','search'];
-        if ($first==='articles' && $second!==''){ $route='article'; $slug=slugify($second); }
-        elseif ($first==='lesson' && $second!==''){ $route='lesson'; $slug=slugify($second); }
-        elseif ($first==='course' && $second!==''){ $route='course'; $slug=slugify($second); }
-        elseif ($first==='category' && $second!==''){ $route='category'; $slug=slugify($second); }
-        elseif ($first==='books' && $second!==''){ $route='books'; $slug=slugify($second); $_GET['slug']=$slug; }
-        elseif ($first==='research' && $second!==''){ $route='research'; $slug=slugify($second); $_GET['slug']=$slug; }
-        else { $route = in_array($first,$known,true) ? $first : 'home'; }
-        if($slug!=='') $_GET['slug']=$slug;
-    } else {
-        $raw = isset($_GET['p']) && is_string($_GET['p']) ? $_GET['p'] : '';
-        $route = slugify($raw);
-        $route = route_exists($route) ? $route : ($route===''?'home':'');
-    }
-    if ($route!=='' && !route_exists($route)) $route='';
-    if ($slug==='' && isset($_GET['slug']) && is_string($_GET['slug'])) $slug=slugify($_GET['slug']);
-    // also category slug via slug param
-    if ($route==='category' && $slug==='') $slug=slugify(param('slug'));
-    if ($route==='course' && $slug==='') $slug=slugify(param('slug'));
-    return [$route,$slug];
+    return ['home','courses','course','lesson','articles','article','videos','audios','books',
+            'research','category','exercises','tips','about','contact','search','404'];
 }
 
-[$route,$slug]=ha_resolve_route();
+function ha_resolve_route(): array
+{
+    $route = '';
+    $slug  = '';
 
-if ($route==='') { http_response_code(404); $route='404'; }
+    if (HA_PRETTY_URLS && isset($_GET['r']) && is_string($_GET['r'])) {
+        $path  = trim((string) preg_replace('#[^A-Za-z0-9_/\-]#', '', $_GET['r']), '/');
+        $parts = $path === '' ? [] : explode('/', $path);
+        $first = $parts[0] ?? '';
+        $second = $parts[1] ?? '';
 
-// 404 checks
-if ($route==='article' && find_by_slug(all_articles_sorted(), $slug)[1]===null){ $route='404'; http_response_code(404); }
-elseif ($route==='lesson' && course_find_lesson($slug)===null){ $route='404'; http_response_code(404); }
-elseif ($route==='category' && $slug!=='' && find_category($slug)===null){ $route='404'; http_response_code(404); }
-elseif ($route==='course' && $slug!=='' && find_course($slug)===null){ $route='404'; http_response_code(404); }
+        if ($first === 'articles' && $second !== '')      { $route = 'article';  $slug = slugify($second); }
+        elseif ($first === 'lesson' && $second !== '')    { $route = 'lesson';   $slug = slugify($second); }
+        elseif ($first === 'course' && $second !== '')    { $route = 'course';   $slug = slugify($second); }
+        elseif ($first === 'category' && $second !== '')  { $route = 'category'; $slug = slugify($second); }
+        elseif ($first === 'books' && $second !== '')     { $route = 'books';    $slug = slugify($second); }
+        elseif ($first === 'research' && $second !== '')  { $route = 'research'; $slug = slugify($second); }
+        elseif ($first === '' )                           { $route = 'home'; }
+        elseif (route_exists($first))                     { $route = $first; }
+        else                                              { $route = ''; } // ناشناخته ⇒ ۴۰۴ واقعی
+    } else {
+        $raw   = isset($_GET['p']) && is_string($_GET['p']) ? $_GET['p'] : '';
+        $route = slugify($raw);
+        if ($route === '') {
+            $route = 'home';
+        } elseif (!route_exists($route)) {
+            $route = ''; // ناشناخته ⇒ ۴۰۴ واقعی، نه صفحه‌ی اصلی
+        }
+    }
 
-$GLOBALS['HA_ROUTE']=$route;
-$GLOBALS['HA_SLUG']=$slug;
+    if ($slug === '' && isset($_GET['slug']) && is_string($_GET['slug'])) {
+        $slug = slugify($_GET['slug']);
+    }
+    if ($slug !== '') {
+        $_GET['slug'] = $slug;
+    }
 
-if ((bool)route_meta($route,'session',false) && session_status()!==PHP_SESSION_ACTIVE && !headers_sent()){
+    return [$route, $slug];
+}
+
+[$route, $slug] = ha_resolve_route();
+
+if ($route === '') {
+    $route = '404';
+    http_response_code(404);
+}
+
+/* ۴۰۴ برای slug نامعتبر — بدون soft-404 */
+if ($route === 'article' && find_by_slug(all_articles_sorted(), $slug)[1] === null) {
+    $route = '404'; http_response_code(404);
+} elseif ($route === 'lesson' && course_find_lesson($slug) === null) {
+    $route = '404'; http_response_code(404);
+} elseif ($route === 'category' && $slug !== '' && find_category($slug) === null) {
+    $route = '404'; http_response_code(404);
+} elseif ($route === 'course' && $slug !== '' && find_course($slug) === null) {
+    $route = '404'; http_response_code(404);
+} elseif (($route === 'books' || $route === 'research') && $slug !== '') {
+    $found = $route === 'books' ? find_book($slug) : find_research($slug);
+    if ($found === null) { $route = '404'; http_response_code(404); }
+}
+
+$GLOBALS['HA_ROUTE'] = $route;
+$GLOBALS['HA_SLUG']  = $slug;
+
+/* ------------------------------------------------------------------ */
+/*  انتقال به HTTPS (پیش از هر خروجی)                                  */
+/* ------------------------------------------------------------------ */
+
+if (HA_FORCE_HTTPS && !ha_is_https() && !headers_sent()) {
+    $host = ha_request_host();
+    if ($host !== '') {
+        $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
+        // فقط مسیرهای نسبی مجازند؛ از redirect به بیرون جلوگیری می‌شود
+        if ($uri === '' || $uri[0] !== '/') { $uri = '/'; }
+        header('Location: https://' . $host . $uri, true, 301);
+        header('Cache-Control: no-store');
+        exit;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Session (فقط برای route‌هایی که لازم دارند)                        */
+/* ------------------------------------------------------------------ */
+
+if ((bool) route_meta($route, 'session', false) && session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
+    ini_set('session.use_strict_mode', '1');   // جلوگیری از session fixation با SID تحمیلی
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.cookie_httponly', '1');
+
     session_name('HAVOICE');
-    session_set_cookie_params(['lifetime'=>0,'path'=>HA_BASE_PATH==='' ? '/' : HA_BASE_PATH,'httponly'=>true,'samesite'=>'Lax','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!== 'off']);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => HA_BASE_PATH === '' ? '/' : HA_BASE_PATH,
+        'domain'   => '',
+        'secure'   => ha_is_https(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 
-if (!headers_sent()){
+/* ------------------------------------------------------------------ */
+/*  سرصفحه‌های امنیتی                                                  */
+/* ------------------------------------------------------------------ */
+
+if (HA_SECURITY_HEADERS && !headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
-    header('X-Content-Type-Options: nosniff');
-    header('X-Frame-Options: SAMEORIGIN');
-    header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('X-XSS-Protection: 0');
-    if (HA_FORCE_HTTPS && !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS']==='off'){
-        header('Location: https://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'],true,301); exit;
+    foreach (ha_security_headers() as $name => $value) {
+        header($name . ': ' . $value);
     }
 }
 
-if ($route==='contact' && ($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
+/* ------------------------------------------------------------------ */
+/*  پردازش POST (الگوی PRG — پیش از رندر قالب)                         */
+/* ------------------------------------------------------------------ */
+
+if ($route === 'contact' && (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
     require HA_ROOT . '/includes/handlers/contact.php';
 }
 
-$GLOBALS['HA_META']=ha_page_meta($route);
+/* ------------------------------------------------------------------ */
+/*  رندر                                                              */
+/* ------------------------------------------------------------------ */
+
+$GLOBALS['HA_META'] = ha_page_meta($route);
 
 require HA_ROOT . '/includes/header.php';
-$pageFile = HA_ROOT . '/pages/' . route_meta($route,'file','404.php');
-if (!is_file($pageFile)) $pageFile = HA_ROOT . '/pages/404.php';
+
+$pageFile = HA_ROOT . '/pages/' . basename((string) route_meta($route, 'file', '404.php'));
+if (!is_file($pageFile)) {
+    $pageFile = HA_ROOT . '/pages/404.php';
+}
 require $pageFile;
+
 require HA_ROOT . '/includes/footer.php';
