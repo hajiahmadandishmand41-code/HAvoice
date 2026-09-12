@@ -1,7 +1,5 @@
 # ============================================================
-#  HAvoice — تنظیمات Apache برای InfinityFree (htdocs)
-#  اگر بعد از روشن کردن HA_PRETTY_URLS، 404 گرفتید،
-#  بلوک rewrite را کامنت کنید و در config مقدار را false بگذارید.
+#  HAvoice 2.0 — Apache برای هاست اشتراکی
 # ============================================================
 
 Options -Indexes
@@ -10,22 +8,23 @@ DirectoryIndex index.php index.html
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # انتقال به https (وقتی گواهی SSL را از VistaPanel فعال کردید، این سه خط را باز کنید)
+    # https redirect (فعال کنید پس از SSL)
     # RewriteCond %{HTTPS} !=on
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
-    # مسیرهای واقعی (فایل/پوشه) دست‌نخورده می‌مانند
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # URL کوتاه  ==>  index.php?r=…   (برای فعال‌سازی: HA_PRETTY_URLS = true)
+    # URL کوتاه ==> index.php?r=… (HA_PRETTY_URLS = true)
     # RewriteCond %{QUERY_STRING} (^|&)p=
     # RewriteRule ^index\.php$ %{REQUEST_URI} [R=301,L]
     # RewriteRule ^([a-z0-9_\-/]+)/?$ index.php?r=$1 [QSA,L]
+
+    # sitemap.xml -> sitemap.php
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
 </IfModule>
 
-# --- سرصفحه‌های بهینگی و امنیت ---
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
@@ -39,7 +38,6 @@ DirectoryIndex index.php index.html
     AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
 
-# --- محافظت از فایل‌های PHP داخلی (در صورت مستقیم باز نشوند) ---
 <FilesMatch "^(config|helpers|content|meta|header|footer|bootstrap)\.php$">
     <IfModule mod_authz_core.c>
         Require all denied
