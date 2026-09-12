@@ -30,7 +30,7 @@ $havoiceCats = categories();
 
 <section class="section section--tight">
     <div class="container">
-        <form class="filter-bar" method="get" action="index.php" role="search" data-search-url="<?= e(url('search')) ?>">
+        <form class="filter-bar" method="get" action="<?= e(url('articles')) ?>" role="search" data-live-filter-form data-search-url="<?= e(url('search')) ?>">
             <input type="hidden" name="p" value="articles">
             <label class="sr-only" for="live-filter">جستجو در عنوان و متن مقاله‌ها</label>
             <div class="filter-bar__field">
@@ -58,6 +58,8 @@ $havoiceCats = categories();
             <?php endforeach; ?>
         </nav>
         <?php endif; ?>
+
+        <h2 class="sr-only">فهرست مقاله‌ها</h2>
 
         <?php if($featured!==null && $current===''): ?>
             <div class="featured reveal" data-filter-item><?= article_card($featured,true) ?></div>

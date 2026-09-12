@@ -43,6 +43,7 @@ $lessonsInCat = lessons_by_category($catSlug);
 <section class="section section--tight">
     <div class="container">
         <div class="card" style="border-inline-start:4px solid <?= e($cat['color']) ?>; background:linear-gradient(135deg, var(--surface), var(--surface-2))">
+            <?= breadcrumbs([['label'=>'حوزه‌ها','url'=>url('category')],['label'=>$cat['title']]]) ?>
             <p class="eyebrow">حوزه‌ی آموزشی</p>
             <h1 style="margin:.2rem 0 .4rem"><?= e($cat['title']) ?></h1>
             <p class="lead"><?= e($cat['description']) ?></p>

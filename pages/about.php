@@ -14,6 +14,8 @@ $cats  = categories();
 
 <section class="section section--tight">
     <div class="container container--narrow">
+        <?= breadcrumbs([['label'=>'درباره مدرس']]) ?>
+
         <!-- معرفی مدرس -->
         <div class="instructor" style="margin-bottom:2rem">
             <div class="instructor__media">
@@ -22,7 +24,7 @@ $cats  = categories();
             </div>
             <div>
                 <p class="instructor__role"><?= e($inst['role'] ?? '') ?></p>
-                <h1 class="instructor__name" style="margin-bottom:.4rem"><?= e($inst['name'] ?? HA_NAME) ?></h1>
+                <h2 class="instructor__name" style="margin-bottom:.4rem"><?= e($inst['name'] ?? HA_NAME) ?></h2>
                 <p class="instructor__bio"><?= e($inst['bio'] ?? '') ?></p>
                 <ul class="instructor__points">
                     <?php foreach((array)($inst['points']??[]) as $pt): ?><li><span class="tick" aria-hidden="true">✓</span><span><?= e($pt) ?></span></li><?php endforeach; ?>
@@ -64,7 +66,7 @@ $cats  = categories();
             <section class="card">
                 <h2><?= e($about['not_for']['title'] ?? 'خارج از حوزه‌ی ما') ?></h2>
                 <ul class="rich-list">
-                    <?php foreach((array)($about['not_for']['items']??[]) as $item): ?><li><span class="cross" aria-hidden="true">✕</span><span><?= e($item) ?></span></li><?php endforeach; ?>
+                    <?php foreach((array)($about['not_for']['items']??[]) as $item): ?><li><span class="cross"><?= ha_icon('close', 12) ?></span><span><?= e($item) ?></span></li><?php endforeach; ?>
                 </ul>
             </section>
         </div>

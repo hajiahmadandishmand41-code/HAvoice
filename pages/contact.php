@@ -13,7 +13,8 @@ $channels = (array)($contact['channels'] ?? []);
 $flash    = flash();
 $errors   = isset($_SESSION['ha_errors']) && is_array($_SESSION['ha_errors']) ? $_SESSION['ha_errors'] : [];
 if ($errors!==[]) unset($_SESSION['ha_errors']);
-$action = HA_PRETTY_URLS ? (rtrim(HA_BASE_PATH,'/').'/contact') : (HA_BASE_PATH.'/index.php?p=contact');
+/* نشانیِ نسبی تا در نصبِ زیرپوشه‌ای هم درست بماند */
+$action = url('contact');
 ?>
 
 <section class="section section--tight contact-top">
