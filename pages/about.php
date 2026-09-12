@@ -24,7 +24,7 @@ $cats  = categories();
             </div>
             <div>
                 <p class="instructor__role"><?= e($inst['role'] ?? '') ?></p>
-                <h2 class="instructor__name" style="margin-bottom:.4rem"><?= e($inst['name'] ?? HA_NAME) ?></h2>
+                <h1 class="instructor__name" style="margin-bottom:.4rem"><?= e($inst['name'] ?? HA_NAME) ?></h1>
                 <p class="instructor__bio"><?= e($inst['bio'] ?? '') ?></p>
                 <ul class="instructor__points">
                     <?php foreach((array)($inst['points']??[]) as $pt): ?><li><span class="tick" aria-hidden="true">✓</span><span><?= e($pt) ?></span></li><?php endforeach; ?>

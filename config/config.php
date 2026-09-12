@@ -90,4 +90,7 @@ define('HA_RATE_LIMIT_MIN_INTERVAL', 20);
  */
 define('HA_RATE_LIMIT_MAX_FILES', 400);
 
+/** عمر توکن CSRF (ثانیه). پس از انقضا، توکن تازه ساخته می‌شود. */
+define('HA_CSRF_TTL', 28800);
+
 define('HA_VERSION', '2.1.0');

@@ -318,7 +318,12 @@ function minutes_label(int $minutes): string
 function csrf_token(): string
 {
     if (session_status() !== PHP_SESSION_ACTIVE) return '';
-    if (empty($_SESSION['ha_csrf'])) $_SESSION['ha_csrf'] = bin2hex(random_bytes(16));
+    /* توکن ۸ ساعت اعتبار دارد؛ پس از آن تازه می‌شود تا توکنِ لو رفته
+       برای همیشه قابل استفاده نماند. */
+    if (empty($_SESSION['ha_csrf']) || (time() - (int) ($_SESSION['ha_csrf_t'] ?? 0)) > HA_CSRF_TTL) {
+        $_SESSION['ha_csrf']   = bin2hex(random_bytes(16));
+        $_SESSION['ha_csrf_t'] = time();
+    }
     return $_SESSION['ha_csrf'];
 }
 function csrf_field(): string
@@ -328,7 +333,38 @@ function csrf_field(): string
 function csrf_verify(): bool
 {
     $sent = isset($_POST['csrf_token']) && is_string($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
-    return $sent !== '' && session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['ha_csrf']) && hash_equals($_SESSION['ha_csrf'], $sent);
+    if ($sent === '' || session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['ha_csrf'])) {
+        return false;
+    }
+    if (!hash_equals((string) $_SESSION['ha_csrf'], $sent)) {
+        return false;
+    }
+    if ((time() - (int) ($_SESSION['ha_csrf_t'] ?? time())) > HA_CSRF_TTL) {   // انقضای توکن
+        return false;
+    }
+    return ha_is_same_origin();          // لایه‌ی دوم: رد کردن cross-origin
+}
+
+/**
+ * آیا مبدأِ درخواست با میزبانِ سایت یکی است؟
+ * Origin/Referer را مرورگر کنترل می‌کند و جعل‌شدنی نیست.
+ */
+function ha_is_same_origin(): bool
+{
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $host = (string) preg_replace('/:\d+$/', '', $host);
+    if ($host === '') {
+        return true;
+    }
+    foreach (['HTTP_ORIGIN', 'HTTP_REFERER'] as $key) {
+        $raw = trim((string) ($_SERVER[$key] ?? ''));
+        if ($raw === '') {
+            continue;
+        }
+        $h = strtolower((string) (parse_url($raw, PHP_URL_HOST) ?: ''));
+        return $h !== '' && $h === $host;
+    }
+    return true;   // مرورگرِ قدیمی بدونِ این سرصفحه‌ها
 }
 
 /* ------------------------------------------------------------------ */

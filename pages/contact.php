@@ -13,6 +13,16 @@ $channels = (array)($contact['channels'] ?? []);
 $flash    = flash();
 $errors   = isset($_SESSION['ha_errors']) && is_array($_SESSION['ha_errors']) ? $_SESSION['ha_errors'] : [];
 if ($errors!==[]) unset($_SESSION['ha_errors']);
+/* دسترس‌پذیری: اگر فیلدی خطا دارد، هم aria-invalid و هم ارتباط با
+   متنِ خطا (aria-describedby) لازم است تا صفحه‌خوان آن را اعلام کند. */
+$errAttrs = static function (string $f) use ($errors): string {
+    if (!isset($errors[$f])) return '';
+    return ' aria-invalid="true" aria-describedby="err-' . $f . '"';
+};
+$errText = static function (string $f) use ($errors): string {
+    if (!isset($errors[$f])) return '';
+    return '<p class="field__error" id="err-' . $f . '" role="alert">' . e((string) $errors[$f]) . '</p>';
+};
 /* نشانیِ نسبی تا در نصبِ زیرپوشه‌ای هم درست بماند */
 $action = url('contact');
 ?>
@@ -39,7 +49,7 @@ $action = url('contact');
         </div>
 
         <?php if($flash!==[] && !empty($flash['message'])): ?>
-            <div class="alert alert--<?= e($flash['type']==='success'?'success':'error') ?>" role="status">
+            <div class="alert alert--<?= e($flash['type']==='success'?'success':'error') ?>" role="<?= $flash['type']==='success'?'status':'alert' ?>">
                 <span class="alert__icon" aria-hidden="true"><?= $flash['type']==='success'?'✓':'!' ?></span>
                 <p><?= e($flash['message']) ?></p>
             </div>
@@ -54,28 +64,29 @@ $action = url('contact');
 
                 <div class="field">
                     <label for="f-name">نام و نام خانوادگی <span class="req">*</span></label>
-                    <input class="input<?= field_error('name',$errors) ?>" type="text" id="f-name" name="name" value="<?= e(old('name')) ?>" required maxlength="60" autocomplete="name">
-                    <?php if(isset($errors['name'])): ?><p class="field__error" id="err-name"><?= e($errors['name']) ?></p><?php endif; ?>
+                    <input class="input<?= field_error('name',$errors) ?>" type="text" id="f-name" name="name" value="<?= e(old('name')) ?>" required maxlength="60" autocomplete="name"<?= $errAttrs('name') ?>>
+                    <?= $errText('name') ?>
                 </div>
                 <div class="field">
                     <label for="f-email">ایمیل <span class="req">*</span></label>
-                    <input class="input<?= field_error('email',$errors) ?>" type="email" id="f-email" name="email" value="<?= e(old('email')) ?>" required maxlength="120" autocomplete="email" dir="ltr">
-                    <?php if(isset($errors['email'])): ?><p class="field__error"><?= e($errors['email']) ?></p><?php endif; ?>
+                    <input class="input<?= field_error('email',$errors) ?>" type="email" id="f-email" name="email" value="<?= e(old('email')) ?>" required maxlength="120" autocomplete="email" dir="ltr"<?= $errAttrs('email') ?>>
+                    <?= $errText('email') ?>
                 </div>
                 <div class="field">
                     <label for="f-subject">موضوع</label>
-                    <select class="input<?= field_error('subject',$errors) ?>" id="f-subject" name="subject">
+                    <select class="input<?= field_error('subject',$errors) ?>" id="f-subject" name="subject"<?= $errAttrs('subject') ?>>
                         <?php foreach($subjects as $value=>$label): ?><option value="<?= e($value) ?>"<?= old('subject')=== $value?' selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select>
+                    <?= $errText('subject') ?>
                 </div>
                 <div class="field">
                     <label for="f-message">پیام شما <span class="req">*</span></label>
-                    <textarea class="input<?= field_error('message',$errors) ?>" id="f-message" name="message" rows="7" required maxlength="2000" data-counter><?= e(old('message')) ?></textarea>
+                    <textarea class="input<?= field_error('message',$errors) ?>" id="f-message" name="message" rows="7" required maxlength="2000" data-counter<?= $errAttrs('message') ?>><?= e(old('message')) ?></textarea>
                     <p class="field__help"><span data-counter-left>۲۰۰۰</span> نویسه باقی‌مانده</p>
-                    <?php if(isset($errors['message'])): ?><p class="field__error"><?= e($errors['message']) ?></p><?php endif; ?>
+                    <?= $errText('message') ?>
                 </div>
-                <label class="check"><input type="checkbox" name="consent" value="1" required><span>موافقم پیامم برای پاسخ‌گویی نگه داشته شود.</span></label>
-                <?php if(isset($errors['consent'])): ?><p class="field__error"><?= e($errors['consent']) ?></p><?php endif; ?>
+                <label class="check"><input type="checkbox" id="f-consent" name="consent" value="1" required<?= $errAttrs('consent') ?>><span>موافقم پیامم برای پاسخ‌گویی نگه داشته شود.</span></label>
+                <?= $errText('consent') ?>
                 <div class="btn-row">
                     <button class="btn btn--primary btn--lg" type="submit">ارسال پیام</button>
                     <span class="muted-sm">پاسخ‌گویی: شنبه تا چهارشنبه</span>

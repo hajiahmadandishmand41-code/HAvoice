@@ -125,6 +125,20 @@ if ((bool) route_meta($route, 'session', false) && session_status() !== PHP_SESS
     ini_set('session.use_only_cookies', '1');
     ini_set('session.cookie_httponly', '1');
 
+    /* مسیرِ نشست: روی برخی هاست‌های اشتراکی session.save_path پیش‌فرض
+       خالی یا غیرقابل‌نوشتن است و session_start() بی‌صدا شکست می‌خورد؛
+       در نتیجه توکن CSRF خالی می‌ماند و فرم تماس هرگز کار نمی‌کند.
+       بنابراین مسیرِ امنِ خودمان را (زیر storage/ که از وب بسته است)
+       تضمین می‌کنیم و فقط در صورتِ شکستِ مسیرِ پیش‌فرض جایگزین می‌کنیم. */
+    $sessDir = storage_dir('sessions');
+    if (!is_dir($sessDir)) {
+        @mkdir($sessDir, 0700, true);
+    }
+    $current = (string) ini_get('session.save_path');
+    if (is_dir($sessDir) && ($current === '' || !is_writable($current))) {
+        ini_set('session.save_path', $sessDir);
+    }
+
     session_name('HAVOICE');
     session_set_cookie_params([
         'lifetime' => 0,
