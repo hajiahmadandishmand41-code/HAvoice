@@ -5,6 +5,7 @@ storage/sessions/*
 !storage/messages/index.html
 !storage/rate-limit/index.html
 !storage/sessions/index.html
+!storage/sessions/.htaccess
 !storage/.htaccess
 
 # فایل‌های سیستمی
