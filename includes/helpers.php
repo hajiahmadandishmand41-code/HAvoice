@@ -602,10 +602,12 @@ function ha_dir_files(string $dir, string $ext = 'json'): array
  * بی‌نهايت رشد می‌کند و روی هاستِ اشتراکی (که سقف inode دارد) باعث
  * خرابیِ کلِ سایت می‌شود. این تابع یک‌بار در هر درخواست اجرا می‌شود.
  */
-function ha_rate_limit_gc(string $dir): void
+function ha_rate_limit_gc(string $dir, bool $force = false): void
 {
+    /* در هر درخواست فقط یک بار اجرا می‌شود (هزینه‌ی I/O)؛ ابزارِ
+       خودآزمایی می‌تواند با $force آن را مجبور به اجرا کند. */
     static $ran = false;
-    if ($ran) {
+    if ($ran && !$force) {
         return;
     }
     $ran = true;
@@ -646,9 +648,9 @@ function ha_rate_limit_gc(string $dir): void
  *
  * @return array{ok:bool, retry:int, error:?string}
  */
-function ha_rate_limit_acquire(string $scope, string $ip, int $max, int $window, int $minInterval = 0): array
+function ha_rate_limit_acquire(string $scope, string $ip, int $max, int $window, int $minInterval = 0, ?string $dir = null): array
 {
-    $dir = storage_dir('rate-limit');
+    $dir = $dir ?? storage_dir('rate-limit');
     if (!is_dir($dir)) {
         @mkdir($dir, 0755, true);
     }
@@ -702,7 +704,7 @@ function ha_rate_limit_acquire(string $scope, string $ip, int $max, int $window,
     flock($fp, LOCK_UN);
     fclose($fp);
 
-    return ['ok' => $ok, 'retry' => $retry, 'error' => null];
+    return ['ok' => $ok, 'retry' => $retry, 'error' => null, 'count' => $count];
 }
 
 /* ------------------------------------------------------------------ */

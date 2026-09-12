@@ -160,6 +160,11 @@ if (HA_SECURITY_HEADERS && !headers_sent()) {
     foreach (ha_security_headers() as $name => $value) {
         header($name . ': ' . $value);
     }
+
+    /* نسخه‌ی PHP را از سرصفحه‌ها پاک کن (اطلاعاتِ کمکی برای مهاجم).
+       expose_php در php.ini بهتر است Off باشد؛ این لایه‌ی دوم است و در
+       .htaccess هم با Header unset پشتیبانی می‌شود. */
+    header_remove('X-Powered-By');
 }
 
 /* ------------------------------------------------------------------ */

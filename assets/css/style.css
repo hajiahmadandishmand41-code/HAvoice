@@ -53,6 +53,7 @@
        تیره است، این‌ها روی سطحِ روشن کنتراستِ WCAG AA می‌سازند. */
     --brand-strong: #0f7a63;   /* متن/لینک روی سطح روشن — 5.27:1 */
     --brand-3: #17806a;        /* انتهای گرادیان با متن سفید — 4.85:1 */
+    --on-brand: #ffffff;       /* متن روی سطحِ برند (دکمه‌ی اصلی) */
     --accent-strong: #a15c00;  /* متن/آیکون کهربایی روی روشن — 5.19:1 */
     --focus: #0d5c4d;          /* حلقه‌ی فوکوس روی روشن — 7.91:1 */
 
@@ -98,6 +99,7 @@
     --brand-3: #35c9a8;
     --accent-strong: #f0b95a;
     --focus: #6ee7c8;
+    --on-brand: #08211c;       /* روی فیروزه‌ی روشن، متن باید تیره باشد */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -124,6 +126,7 @@
         --brand-3: #35c9a8;
         --accent-strong: #f0b95a;
         --focus: #6ee7c8;
+        --on-brand: #08211c;       /* روی فیروزه‌ی روشن، متن باید تیره باشد */
     }
 }
 
@@ -466,16 +469,11 @@ body.nav-open { overflow: hidden; }
 }
 .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .btn:active { transform: translateY(0); }
-.btn--primary { background: linear-gradient(135deg, var(--brand), var(--brand-3)); border-color: transparent; color: #fff; }
-/* روی پس‌زمینه‌ی تیره، فیروزه‌ای روشن است؛ پس متن باید تیره باشد (WCAG 1.4.3) */
-[data-theme="dark"] .btn--primary,
-[data-theme="dark"] .hero__avatar,
-[data-theme="dark"] .instructor__avatar { color: var(--bg-ink); }
-@media (prefers-color-scheme: dark) {
-    [data-theme="auto"] .btn--primary,
-    [data-theme="auto"] .hero__avatar,
-    [data-theme="auto"] .instructor__avatar { color: var(--bg-ink); }
-}
+.btn--primary { background: linear-gradient(135deg, var(--brand), var(--brand-3)); border-color: transparent; color: var(--on-brand); }
+/* رنگِ متن از توکنِ --on-brand می‌آید تا در هر دو حالت کنتراستِ AA بدهد
+   و نیازی به قاعده‌های تکراریِ [data-theme="dark"] نباشد. */
+.hero__avatar,
+.instructor__avatar { color: var(--on-brand); }
 .btn--primary:hover { filter: brightness(1.05); }
 .btn--ghost { background: transparent; border-color: var(--border-strong); }
 .btn--ghost:hover { border-color: var(--brand); color: var(--brand); box-shadow: none; }
