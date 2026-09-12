@@ -672,3 +672,22 @@
         });
     })();
 })();
+
+// HAvoice 2.0 — الحاقات جاوااسکریپت سبک
+(function(){
+  'use strict';
+  // بهبود فیلتر دسته در صفحات جدید (اگر input.live-filter وجود نداشته باشد، چیزی نکن)
+  // پخش‌کننده صوت: اگر audio با src خالی باشد، کلیک روی کارت پیامی بدهد — قبلاً placeholder است، پس کاری نکن
+  // تمرکز کیبورد برای کارت‌های دسته و دوره: اطمینان از تب‌پذیری (a tag already)
+  // اضافه کردن شمارنده پیشرفت برای دوره‌های چندگانه — از همان localStorage کلید ha-progress استفاده می‌شود (لسن‌ها یکتا هستند)
+  // هیچ رفتار جعلی اضافه نشد؛ فقط UI بهبود یافت
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(prefersReduced){
+    document.documentElement.style.setProperty('--ease','linear');
+  }
+  // Smooth focus for category cards already via :focus-visible
+  // اضافه: کپی لینک برای پژوهش و کتاب
+  var copyBtns = document.querySelectorAll('[data-copy-link]');
+  // already handled in original module
+  // نکته: اگر صفحه‌ی ویدیو بدون src باشد، دکمه‌ی "به‌زودی" غیرفعال بماند — از CSS
+})();

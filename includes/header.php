@@ -1,7 +1,6 @@
 <?php
 /**
- * HAvoice — سرصفحه‌ی مشترک: <head> + هدر + ناوبری + بنر صفحه.
- * داده‌ها از bootstrap در $GLOBALS['HA_META'] قرار می‌گیرد.
+ * HAvoice 2.0 — سرصفحه
  */
 
 if (!defined('HA_ROOT')) {
@@ -11,6 +10,7 @@ if (!defined('HA_ROOT')) {
 $meta  = $GLOBALS['HA_META'];
 $route = $GLOBALS['HA_ROUTE'];
 $site  = data('site');
+$cats  = categories();
 ?><!DOCTYPE html>
 <html lang="fa" dir="rtl" data-theme="auto">
 <head>
@@ -22,10 +22,9 @@ $site  = data('site');
 <?php if (!empty($meta['canonical'])): ?>
     <link rel="canonical" href="<?= e($meta['canonical']) ?>">
 <?php endif; ?>
-
     <meta name="theme-color" content="#0d5c4d">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="<?= e(HA_NAME) ?>">
+    <meta property="og:site_name" content="<?= e(HA_BRAND_FULL) ?>">
     <meta property="og:title" content="<?= e($meta['title']) ?>">
     <meta property="og:description" content="<?= e($meta['description']) ?>">
     <meta property="og:locale" content="fa_IR">
@@ -35,18 +34,14 @@ $site  = data('site');
 <?php if (!empty($meta['jsonld'])): ?>
     <script type="application/ld+json"><?= json_encode($meta['jsonld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 <?php endif; ?>
-
     <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
     <script>
-        /* تم را قبل از رندر ست می‌کنیم تا پرش رنگ (FOUC) رخ ندهد */
         (function () {
-            try {
-                document.documentElement.dataset.theme = localStorage.getItem('ha-theme') || 'auto';
-            } catch (err) {}
+            try { document.documentElement.dataset.theme = localStorage.getItem('ha-theme') || 'auto'; } catch (err) {}
         })();
     </script>
 </head>
@@ -55,7 +50,7 @@ $site  = data('site');
 
 <header class="site-header" data-header>
     <div class="container site-header__inner">
-        <a class="brand" href="<?= e(url('home')) ?>" aria-label="<?= e(HA_NAME) ?>، صفحه اصلی">
+        <a class="brand" href="<?= e(url('home')) ?>" aria-label="<?= e(HA_BRAND_FULL) ?>، صفحه اصلی">
             <span class="brand__mark" aria-hidden="true">
                 <svg viewBox="0 0 32 32" width="32" height="32" role="presentation" focusable="false">
                     <defs>
@@ -75,7 +70,7 @@ $site  = data('site');
             </span>
             <span class="brand__text">
                 <strong><?= e(HA_NAME) ?></strong>
-                <small><?= e($site['brand_sub'] ?? 'هنرِ بیان مؤثر') ?></small>
+                <small><?= e(HA_TAGLINE) ?> · HAvoice</small>
             </span>
         </a>
 
@@ -85,26 +80,30 @@ $site  = data('site');
                 <li><a href="<?= e($item['url']) ?>"<?= is_current($item['route']) ? ' class="is-active" aria-current="page"' : '' ?>><?= e($item['label']) ?></a></li>
 <?php endforeach; ?>
             </ul>
+
+            <div class="main-nav__mega" aria-label="حوزه‌های آموزشی">
+                <p class="main-nav__mega-title">حوزه‌ها</p>
+                <ul class="main-nav__mega-list">
+<?php foreach ($cats as $cat): ?>
+                    <li><a href="<?= e(url('category',['slug'=>$cat['slug']])) ?>"><?= e($cat['title']) ?></a></li>
+<?php endforeach; ?>
+                </ul>
+            </div>
+
             <div class="main-nav__cta">
-                <a class="btn btn--primary btn--block" href="<?= e(url('course')) ?>"><?= e($site['cta_start'] ?? 'شروع مسیر آموزشی') ?></a>
+                <a class="btn btn--primary btn--block" href="<?= e(url('courses')) ?>"><?= e($site['cta_start'] ?? 'شروع یادگیری') ?></a>
             </div>
         </nav>
 
         <div class="header-actions">
-            <a class="icon-btn" href="<?= e(url('search')) ?>" aria-label="جستجوی مقالات">
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.7-3.7"/>
-                </svg>
+            <a class="icon-btn" href="<?= e(url('search')) ?>" aria-label="جستجو">
+                <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.7-3.7"/></svg>
             </a>
-            <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="تغییر تم روشن یا تاریک">
-                <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-                </svg>
-                <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>
-                </svg>
+            <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="تغییر تم">
+                <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.2 8.2 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
             </button>
-            <a class="btn btn--primary header-actions__cta" href="<?= e(url('course')) ?>"><?= e($site['cta_start'] ?? 'شروع دوره') ?></a>
+            <a class="btn btn--primary header-actions__cta" href="<?= e(url('courses')) ?>">دوره‌ها</a>
             <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-controls="main-nav" aria-expanded="false" aria-label="باز و بسته کردن منو">
                 <span class="nav-toggle__bars" aria-hidden="true"></span>
             </button>
@@ -120,7 +119,7 @@ $site  = data('site');
                 <a href="<?= e(url('home')) ?>">خانه</a>
 <?php if (!empty($meta['crumb']) && $meta['crumb'] !== ($meta['h1'] ?? '')): ?>
                 <span aria-hidden="true">/</span>
-                <a href="<?= e(url($route === 'article' ? 'articles' : 'course')) ?>"><?= e($meta['crumb']) ?></a>
+                <a href="<?= e(url($route === 'article' ? 'articles' : ($route === 'lesson' || $route==='course' ? 'courses' : $route))) ?>"><?= e($meta['crumb']) ?></a>
 <?php endif; ?>
                 <span aria-hidden="true">/</span>
                 <span aria-current="page"><?= e($meta['h1'] ?? '') ?></span>

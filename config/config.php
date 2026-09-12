@@ -1,7 +1,7 @@
 <?php
 /**
  * HAvoice — تنظیمات اصلی سایت
- * تنها فایلی که در میزبانی‌های مختلف معمولاً باید ویرایش شود.
+ * برند: حاجی احمد صالحی | مدرس و پژوهشگر
  */
 
 if (!defined('HA_ROOT')) {
@@ -12,44 +12,27 @@ if (!defined('HA_ROOT')) {
 /*  مسیر و حالت آدرس‌دهی                                               */
 /* ------------------------------------------------------------------ */
 
-/** آدرس پوشه‌ی نصب نسبت به ریشه‌ی هاست. خالی بگذارید اگر سایت روی ریشه است. */
 define('HA_BASE_PATH', '');
-
-/**
- * آدرس‌های کوتاه (مثل /articles/power-of-pause) :
- *   false -> index.php?p=articles&slug=...   (پیش‌فرض، روی همه هاست‌ها کار می‌کند)
- *   true  -> /articles/power-of-pause        (نیازمند فعال بودن mod_rewrite)
- */
 define('HA_PRETTY_URLS', false);
 
 /* ------------------------------------------------------------------ */
 /*  اطلاعات هویتی                                                     */
 /* ------------------------------------------------------------------ */
 
-define('HA_NAME',  'های‌ویس');
+define('HA_NAME',  'حاجی احمد صالحی');
 define('HA_LEGAL', 'HAvoice');
+define('HA_TAGLINE', 'مدرس و پژوهشگر');
+define('HA_BRAND_FULL', 'حاجی احمد صالحی | مدرس و پژوهشگر');
 define('HA_EMAIL', 'info@havoice.ir');
 define('HA_PHONE', '۰۲۱ ۹۱۰۰ ۰۰۰۰');
 define('HA_HOTLINE', '+989120000000');
 
-/** فعال/غیرفعال کردن ذخیره پیام‌های فرم تماس */
 define('HA_STORE_MESSAGES', true);
-
-/** ارسال ایمیل به مدیر (روی InfinityFree معمولاً غیرفعال است) */
-define('HA_SEND_MAIL', false);
-
-/** false -> نمایش خطا به کاربر خاموش می‌شود (تولید). true فقط برای محیط توسعه */
-define('HA_DEBUG', false);
-
-/** انتقال خودکار از http به https (روشن کنید وقتی گواهی SSL فعال شد) */
+define('HA_SEND_MAIL',      false);
+define('HA_DEBUG',          false);
 define('HA_FORCE_HTTPS', false);
 
-/** حداکثر ارسال پیام از یک IP در هر بازه (ضد هرزنامه) */
 define('HA_RATE_LIMIT_MAX',  3);
-define('HA_RATE_LIMIT_WINDOW', 600); // ثانیه
+define('HA_RATE_LIMIT_WINDOW', 600);
 
-/**
- * کلید حالت «تاریک/روشن» و نسخه فایل‌ها (برای کش مرورگر).
- * با هر ویرایش CSS/JS مقدار را عوض کنید.
- */
-define('HA_VERSION', '1.0.0');
+define('HA_VERSION', '2.0.0');
