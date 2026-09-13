@@ -8,4 +8,5 @@ $item = ['type'=>'video','slug'=>$slug,'title'=>$title,'category'=>trim((string)
 $orig = (string)($_POST['original_slug'] ?? ''); $found = false;
 foreach ($items as $i => $m) { if (($m['slug'] ?? '') === $orig || ($m['slug'] ?? '') === $slug) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;
-admin_store('media', $items); flash('success','ویدیو ذخیره شد.'); redirect(url('admin_videos'));
+if (!admin_store('media', $items)) { flash('error','ذخیره‌سازی ویدیو ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_videos')); }
+flash('success','ویدیو ذخیره شد.'); redirect(url('admin_videos'));
