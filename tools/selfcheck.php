@@ -375,6 +375,9 @@ $routes = [
     'lesson'        => '/index.php?p=lesson&slug=breathing-foundations',
     'category'      => '/index.php?p=category&slug=public-speaking',
     'article'       => '/index.php?p=article&slug=power-of-pause',
+    'login'         => '/index.php?p=login',
+    'register'      => '/index.php?p=register',
+    'logout'        => '/index.php?p=logout',
     'not-found'     => '/index.php?p=__nope__',
 ];
 
