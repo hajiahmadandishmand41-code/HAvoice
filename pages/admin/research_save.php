@@ -8,4 +8,5 @@ $item = ['slug'=>$slug,'title'=>$title,'category'=>trim((string)($_POST['categor
 $orig = (string)($_POST['original_slug'] ?? ''); $found = false;
 foreach ($items as $i => $r) { if (($r['slug'] ?? '') === $orig || ($r['slug'] ?? '') === $slug) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;
-admin_store('research', $items); flash('success','پژوهش ذخیره شد.'); redirect(url('admin_research'));
+if (!admin_store('research', $items)) { flash('error','ذخیره‌سازی پژوهش ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_research')); }
+flash('success','پژوهش ذخیره شد.'); redirect(url('admin_research'));
