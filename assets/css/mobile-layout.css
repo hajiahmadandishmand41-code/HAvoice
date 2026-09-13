@@ -2,7 +2,13 @@
 
 :root { --ha-header-h: var(--header-h, 64px); }
 
-/* Shared homepage presentation: calm hierarchy, compact cards, mobile-first rhythm. */
+/* Shared presentation layer: the same mobile shell is used by every route. */
+.site-header,
+.site-main,
+.site-footer { inline-size: 100%; max-inline-size: 100%; min-inline-size: 0; }
+.site-main > *,
+.site-footer > * { min-inline-size: 0; }
+
 .route-home .hero--premium { isolation: isolate; }
 .route-home .section { position: relative; }
 .route-home .section > .container { position: relative; z-index: 1; }
@@ -28,7 +34,27 @@
 }
 
 @media (max-width: 1119.98px) {
-    html, body { max-inline-size: 100%; }
+    html, body { max-inline-size: 100%; min-inline-size: 0; }
+    body { inline-size: 100%; }
+
+    /* Hard mobile-width contract: no page can accidentally render as a
+       half-width column on a phone. */
+    .container,
+    .site-header__inner,
+    .site-main,
+    .site-footer,
+    .page-banner > .container,
+    .site-main > .container,
+    .site-footer > .container {
+        inline-size: 100%;
+        max-inline-size: 100%;
+        min-inline-size: 0;
+    }
+    .container {
+        margin-inline: 0;
+        padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+    }
+
     .site-header__inner {
         position: static;
         min-inline-size: 0;
@@ -71,15 +97,15 @@
     .brand { min-inline-size: 0; max-inline-size: 100%; justify-self: center; overflow: hidden; }
     .header-actions { min-inline-size: 0; max-inline-size: 100%; justify-self: end; }
 
-    /* Compact drawer: intentionally leaves visible breathing room on the
-       opposite side instead of behaving like a full-screen panel. */
+    /* Compact drawer: keeps visible space on the opposite side while still
+       leaving enough width for all navigation labels and account actions. */
     .main-nav {
         position: fixed;
         inset-block-start: var(--ha-header-h);
         inset-inline-end: 0;
         inset-inline-start: auto;
         inset-block-end: 0;
-        inline-size: min(78vw, 300px);
+        inline-size: min(68vw, 280px);
         max-inline-size: calc(100vw - 18px);
         block-size: auto;
         max-block-size: none;
@@ -149,8 +175,13 @@
 }
 
 @media (max-width: 767.98px) {
-    .header-actions__auth, .header-actions__admin { display: none; }
-    .header-actions { gap: 2px; }
+    /* Keep search + theme + login in the top bar on phones. */
+    .header-actions__auth,
+    .header-actions .theme-toggle { display: grid; }
+    .header-actions__admin { display: none; }
+    .header-actions__cta { display: none; }
+    .header-actions { gap: 2px; min-inline-size: 0; }
+
     .route-home .hero--premium {
         padding-block: .9rem 1.25rem;
         background: linear-gradient(180deg, var(--bg-soft), var(--bg));
@@ -184,17 +215,63 @@
     .route-home .hero__instructor { padding: .65rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
     .route-home .site-footer { margin-top: 0; }
     .route-home .hero, .route-home .section, .route-home .topic-strip, .route-home .site-main { max-inline-size: 100%; }
+
+    /* Universal mobile rules shared by inner pages. */
+    .page-banner { overflow: clip; }
+    .page-banner__title { font-size: clamp(1.5rem, 7vw, 2rem); }
+    .page-banner__lead { font-size: var(--fs-sm); line-height: 1.8; }
+    .detail-grid,
+    .course-layout,
+    .article__grid,
+    .account-grid,
+    .contact-grid,
+    .contact-hero,
+    .two-col { min-inline-size: 0; max-inline-size: 100%; }
+    .detail-grid > *,
+    .course-layout > *,
+    .article__grid > *,
+    .account-grid > *,
+    .contact-grid > *,
+    .contact-hero > *,
+    .two-col > * { min-inline-size: 0; max-inline-size: 100%; }
+    .card,
+    .stage-card,
+    .result,
+    .info-box,
+    .topic-hero,
+    .auth-card,
+    .contact-form,
+    .admin-card,
+    .admin-main,
+    .lesson,
+    .book-detail { min-inline-size: 0; max-inline-size: 100%; }
+    .card-media,
+    .media-card__thumb,
+    .book-card__cover { max-inline-size: 100%; }
+    .card__excerpt,
+    .article-card__excerpt,
+    .course-card__excerpt,
+    .media-card__excerpt,
+    .result__text,
+    .channel__value,
+    .account-profile__email { overflow-wrap: anywhere; }
+    .btn-row { width: 100%; }
+    .btn-row .btn { max-inline-size: 100%; }
+    .filter-tabs { max-inline-size: 100%; }
 }
 
 @media (max-width: 479.98px) {
     .brand__text small { display: none; }
-    .header-actions .theme-toggle { display: none; }
     .site-header__inner { column-gap: .2rem; }
-    .main-nav { inline-size: min(76vw, 290px); max-inline-size: calc(100vw - 16px); padding-inline: .68rem; }
+    .header-actions { gap: 1px; }
+    .header-actions .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+    .main-nav { inline-size: min(68vw, 270px); max-inline-size: calc(100vw - 16px); padding-inline: .68rem; }
 }
 
 @media (max-width: 359.98px) {
-    .main-nav { inline-size: 76vw; max-inline-size: calc(100vw - 12px); }
+    .main-nav { inline-size: 68vw; max-inline-size: calc(100vw - 12px); }
+    .header-actions .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
+    .nav-toggle { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
     .route-home .hero--premium { padding-block-start: .8rem; }
 }
 
@@ -204,4 +281,5 @@
     .nav-backdrop { display: none !important; }
 }
 
-@media (prefers-reduced-motion: reduce) { .main-nav, .nav-backdrop { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .main-nav, .nav-backdrop { transition: none !important; }
+}
