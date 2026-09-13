@@ -16,14 +16,11 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-function all_articles_sorted(): array
-{
-    $articles = articles();
-    usort($articles, static function (array $a, array $b) {
-        return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
-    });
-    return $articles;
-}
+/*
+ * نکته: all_articles_sorted() در includes/content.php تعریف شده است.
+ * تعریفِ دومِ همان تابع در این فایل باعثِ «Cannot redeclare» و مرگِ کاملِ
+ * سایت می‌شد (bootstrap هر دو فایل را require می‌کند). تعریفِ تکراری حذف شد.
+ */
 
 /** داده‌ی ساختاریافته‌ی «مسیر صفحه» برای گوگل. */
 function ha_breadcrumb_jsonld(array $items): array

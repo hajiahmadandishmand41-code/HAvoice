@@ -22,6 +22,14 @@ function data(string $name): array
     return $cache[$name];
 }
 
+/**
+ * ناوبریِ اصلیِ هدر.
+ *
+ * چرا فقط ۸ قلم؟ نسخه‌ی پیشین ۱۰ قلم داشت و در عرض‌های میانی
+ * (۱۰۸۰ تا ۱۲۴۰ پیکسل) از کادرِ هدر بیرون می‌زد. سه قلمِ کمتر‌مراجعه
+ * (نکته‌ها، درباره‌ی مدرس، تماس) به منویِ «بیشتر» منتقل شدند؛ همان
+ * منو حوزه‌های آموزشی را هم نشان می‌دهد.
+ */
 function nav_items(): array
 {
     $routes = [
@@ -33,12 +41,25 @@ function nav_items(): array
         'books'     => 'کتاب‌ها',
         'research'  => 'پژوهش',
         'exercises' => 'تمرین‌ها',
-        'about'     => 'درباره مدرس',
-        'contact'   => 'تماس',
     ];
     $out = [];
     foreach ($routes as $route => $label) {
         $out[] = ['route' => $route, 'label' => $label, 'url' => url($route)];
+    }
+    return $out;
+}
+
+/** قلم‌های «بیشتر» — داخلِ مگا‌منو و انتهایِ کشویِ موبایل. */
+function nav_more_items(): array
+{
+    $routes = [
+        'tips'    => ['نکته‌های کوتاه', 'sparkle'],
+        'about'   => ['درباره‌ی مدرس', 'user'],
+        'contact' => ['تماس با ما', 'mail'],
+    ];
+    $out = [];
+    foreach ($routes as $route => [$label, $icon]) {
+        $out[] = ['route' => $route, 'label' => $label, 'icon' => $icon, 'url' => url($route)];
     }
     return $out;
 }
@@ -772,6 +793,71 @@ function find_category(string $slug): ?array {
 function category_label(string $slug, string $fallback=''): string {
     $c = find_category($slug);
     return $c ? $c['title'] : ($fallback ?: $slug);
+}
+
+/**
+ * پیدا کردنِ «حوزه» از روی نامِ فارسیِ موضوع.
+ *
+ * چرا لازم است؟ مقاله‌ها/کتاب‌ها/پژوهش‌ها در داده‌ها یک موضوعِ فارسیِ
+ * آزاد دارند (مثل «صدا و نفس») نه slugِ حوزه. برای اینکه هر کارت رنگ و
+ * آیکونِ هماهنگِ همان حوزه را بگیرد، این تابع:
+ *   ۱) تطبیقِ دقیق با title یا shortِ حوزه‌ها
+ *   ۲) نگاشتِ کلیدواژه‌ایِ موضوع → حوزه
+ *   ۳) در غیر این صورت یک انتخابِ پایدار (هشِ موضوع) از فهرستِ حوزه‌ها
+ * را برمی‌گرداند تا رنگِ کارت‌ها بینِ بارگذاری‌ها یکسان بماند.
+ */
+function find_category_by_title(string $label): ?array
+{
+    $label = trim($label);
+    if ($label === '') {
+        return null;
+    }
+    $cats = categories();
+    if ($cats === []) {
+        return null;
+    }
+
+    /* ۱) تطبیقِ دقیق */
+    foreach ($cats as $cat) {
+        if (($cat['title'] ?? '') === $label || ($cat['short'] ?? '') === $label) {
+            return $cat;
+        }
+    }
+    $bySlug = find_category($label);
+    if ($bySlug !== null) {
+        return $bySlug;
+    }
+
+    /* ۲) نگاشتِ کلیدواژه‌ای */
+    static $map = [
+        'public-speaking' => ['صدا', 'نفس', 'تنفس', 'بیان', 'سخنوری', 'زبان بدن', 'ساختار کلام', 'کلام', 'مکث', 'بداهه'],
+        'communication'   => ['گوش', 'ارتباط', 'همدلی', 'بازخورد', 'گفت‌وگو', 'پیام'],
+        'psychology'      => ['اضطراب', 'استرس', 'اعتمادبه‌نفس', 'اعتماد به نفس', 'روان', 'هیجان', 'خودشناسی', 'ذهن'],
+        'success'         => ['عادت', 'انضباط', 'رشد', 'تمرین', 'بازخورد', 'تاب‌آوری', 'پیشرفت'],
+        'goals-time'      => ['هدف', 'زمان', 'برنامه', 'اولویت', 'تمرکز'],
+        'negotiation'     => ['مذاکره', 'جلسه', 'متقاعد', 'چانه'],
+        'career'          => ['کار', 'شغل', 'حرفه', 'رزومه', 'مصاحبه', 'سازمان'],
+        'research'        => ['پژوهش', 'تحقیق', 'مطالعه', 'منبع'],
+        'books'           => ['کتاب', 'خلاصه'],
+        'podcast'         => ['پادکست', 'صوت'],
+        'video'           => ['ویدیو', 'فیلم'],
+        'life-skills'     => ['زندگی', 'تصمیم', 'حل مسئله', 'مسئله'],
+    ];
+    foreach ($map as $slug => $keys) {
+        foreach ($keys as $key) {
+            if (mb_strpos($label, $key, 0, 'UTF-8') !== false) {
+                $hit = find_category($slug);
+                if ($hit !== null) {
+                    return $hit;
+                }
+                break;
+            }
+        }
+    }
+
+    /* ۳) انتخابِ پایدار بر اساسِ هشِ موضوع */
+    $index = (int) (hexdec(substr(md5($label), 0, 6)) % count($cats));
+    return $cats[$index];
 }
 
 /* ------------------------------------------------------------------ */

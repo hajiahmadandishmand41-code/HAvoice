@@ -29,8 +29,8 @@ $flash = flash();
 <div class="field"><label>عنوان کوتاه</label><input class="input" type="text" name="short" value="<?= e($item['short'] ?? '') ?>"></div>
 <div class="field"><label>توضیحات</label><textarea class="input" name="description" rows="3"><?= e($item['description'] ?? '') ?></textarea></div>
 <div class="field"><label>آیکون</label><input class="input" type="text" name="icon" value="<?= e($item['icon'] ?? 'compass') ?>" dir="ltr"></div>
-<div class="field"><label>رنگ اصلی</label><input class="input" type="color" name="color" value="<?= e($item['color'] ?? '#0d5c4d') ?>"></div>
-<div class="field"><label>رنگ فرعی</label><input class="input" type="color" name="accent" value="<?= e($item['accent'] ?? '#2ec4a6') ?>"></div>
+<div class="field"><label>رنگ اصلی</label><input class="input" type="color" name="color" value="<?= e($item['color'] ?? '#1A3A7C') ?>"></div>
+<div class="field"><label>رنگ فرعی</label><input class="input" type="color" name="accent" value="<?= e($item['accent'] ?? '#4F46E5') ?>"></div>
 <div class="admin-form-actions"><button class="btn btn--primary" type="submit">ذخیره</button><a class="btn btn--ghost" href="<?= e(url('admin_categories')) ?>">بازگشت</a></div>
 </form>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>
@@ -42,7 +42,7 @@ if (!csrf_verify()) { flash('error','نشست تمام شده.'); redirect(url('
 $slug = slugify((string)($_POST['slug'] ?? '')); $title = trim((string)($_POST['title'] ?? ''));
 if ($title === '' || $slug === '') { flash('error','عنوان و نامک الزامی.'); redirect(url('admin_category_edit')); }
 $items = admin_load('categories');
-$item = ['slug'=>$slug,'title'=>$title,'short'=>trim((string)($_POST['short']??'')),'description'=>trim((string)($_POST['description']??'')),'icon'=>trim((string)($_POST['icon']??'compass')),'color'=>trim((string)($_POST['color']??'#0d5c4d')),'accent'=>trim((string)($_POST['accent']??'#2ec4a6'))];
+$item = ['slug'=>$slug,'title'=>$title,'short'=>trim((string)($_POST['short']??'')),'description'=>trim((string)($_POST['description']??'')),'icon'=>trim((string)($_POST['icon']??'compass')),'color'=>trim((string)($_POST['color']??'#1A3A7C')),'accent'=>trim((string)($_POST['accent']??'#4F46E5'))];
 $orig = (string)($_POST['original_slug'] ?? ''); $found = false;
 foreach ($items as $i => $c) { if (($c['slug'] ?? '') === $orig || ($c['slug'] ?? '') === $slug) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;

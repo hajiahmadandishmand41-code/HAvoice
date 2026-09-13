@@ -109,7 +109,7 @@ $action = url('contact');
                 </div>
                 <div class="card side-card">
                     <h2>حوزه‌ها</h2>
-                    <ul class="chip-row" style="margin:0">
+                    <ul class="chip-row mt-0">
                         <?php foreach(array_slice(categories(),0,6) as $cat): ?><li><a class="chip chip--ghost" href="<?= e(url('category',['slug'=>$cat['slug']])) ?>"><?= e($cat['short']) ?></a></li><?php endforeach; ?>
                     </ul>
                 </div>

@@ -37,7 +37,7 @@ if ($slug!=='') {
             <div class="prose">
                 <?= render_blocks((array)($item['blocks'] ?? [])) ?>
                 <?php if(!empty($item['refs'])): ?>
-                    <section class="card" style="margin-top:1.6rem; background:var(--surface-2)">
+                    <section class="card side-card mt-md">
                         <h2>منابع</h2>
                         <ol class="rich-list rich-list--num">
                             <?php foreach((array)$item['refs'] as $ref): ?><li><?= e($ref) ?></li><?php endforeach; ?>
@@ -99,7 +99,7 @@ $list = $filter ? array_values(array_filter($all, fn($r)=>($r['category']??'')==
             </div>
         <?php endif; ?>
 
-        <div class="card" style="margin-top:2rem">
+        <div class="info-box">
             <h2>الگوی نگارشِ پژوهشی</h2>
             <p class="muted-sm">هر پژوهش شامل: عنوان، خلاصه، متنِ بلوک‌بندی‌شده، منابعِ قابلِ راستی‌آزمایی، تاریخِ انتشار و موضوع است — همان‌طور که در <code>data/research.php</code> تعریف شده.</p>
         </div>

@@ -1,11 +1,13 @@
-# پیام‌های فرم تماس و محدودیت نرخ — نباید در مخزن قرار بگیرد
+# پیام‌های فرم تماس، محدودیت نرخ و داده‌ی زمانِ اجرایِ پنل — نباید در مخزن باشد
 storage/messages/*
 storage/rate-limit/*
 storage/sessions/*
+storage/admin/*
 !storage/messages/index.html
 !storage/rate-limit/index.html
 !storage/sessions/index.html
 !storage/sessions/.htaccess
+!storage/admin/index.html
 !storage/.htaccess
 
 # حساب‌های کاربری (هشِ رمزها) — داده‌ی زمانِ اجراست و نباید در مخزن بیاید

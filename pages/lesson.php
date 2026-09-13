@@ -62,7 +62,7 @@ if(count($relatedArticles)<2) $relatedArticles = latest_articles(2);
 
             <!-- تمرین‌های مرتبط -->
             <?php if(!empty($data['drill'])): ?>
-            <div class="card" style="margin-top:1.4rem; background:var(--surface-2)">
+            <div class="card side-card mt-md">
                 <h2>بعد از درس — تمرینِ پیشنهادی</h2>
                 <p class="muted-sm">این درس را با تایمر و چک‌لیست در صفحه‌ی تمرین‌ها کامل کنید.</p>
                 <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">رفتن به تمرین‌ها</a>
@@ -71,7 +71,7 @@ if(count($relatedArticles)<2) $relatedArticles = latest_articles(2);
 
             <!-- منابع مرتبط -->
             <?php if($relatedVideos || $relatedAudios): ?>
-            <div class="card" style="margin-top:1.2rem">
+            <div class="card side-card mt-md">
                 <h2>منابعِ مرتبط همین درس</h2>
                 <ul class="rich-list">
                     <?php foreach($relatedVideos as $v): ?><li><strong>ویدیو:</strong> <?= e($v['title']) ?> — <span class="muted-sm"><?= format_duration((int)($v['seconds']??0)) ?></span></li><?php endforeach; ?>

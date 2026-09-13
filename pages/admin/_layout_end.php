@@ -5,20 +5,14 @@
 ?>
     </div><!-- /.admin-main -->
 </div><!-- /.admin-layout -->
-<script>
-(function(){
-    'use strict';
-    var toggle = document.querySelector('[data-admin-toggle]');
-    var sidebar = document.getElementById('admin-sidebar');
-    var overlay = document.getElementById('admin-overlay');
-    if (!toggle || !sidebar) return;
-    var setOpen = function(open) {
-        document.body.classList.toggle('admin-nav-open', open);
-        if (overlay) overlay.hidden = !open;
-    };
-    toggle.addEventListener('click', function(){ setOpen(!document.body.classList.contains('admin-nav-open')); });
-    if (overlay) overlay.addEventListener('click', function(){ setOpen(false); });
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape') setOpen(false); });
-    window.addEventListener('resize', function(){ if(window.innerWidth>940) setOpen(false); });
-})();
-</script>
+<?php
+/*
+ * پیش‌تر اسکریپتِ باز/بسته‌شدنِ سایدبارِ پنل به‌صورتِ <script> درون‌خطی
+ * اینجا بود. چون Content-Security-Policy سایت «script-src 'self'» است و
+ * 'unsafe-inline' ندارد، مرورگر آن را کامل بلاک می‌کرد؛ در نتیجه منوی
+ * مدیریت روی موبایل هرگز باز نمی‌شد.
+ *
+ * همان منطق به assets/js/main.js منتقل شد (ماژولِ adminNavModule) تا هم
+ * CSP رعایت شود و هم همه‌ی جاوااسکریپتِ سایت یک‌جا و کش‌شونده بماند.
+ */
+?>

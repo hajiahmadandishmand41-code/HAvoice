@@ -243,7 +243,28 @@ $GLOBALS['HA_META'] = ha_page_meta($route);
 
 require HA_ROOT . '/includes/header.php';
 
-$pageFile = HA_ROOT . '/pages/' . basename((string) route_meta($route, 'file', '404.php'));
+/*
+ * resolving فایلِ صفحه.
+ *
+ * پیش‌تر از basename() استفاده می‌شد که زیرپوشه را دور می‌ریخت:
+ *   'admin/dashboard.php' → 'dashboard.php'
+ * در نتیجه «همه‌ی» ۳۸ مسیرِ پنلِ مدیریت به pages/404.php می‌افتادند و
+ * کلِ پنل غیرقابلِ دسترس بود.
+ *
+ * اکنون یک زیرپوشه مجاز است، اما چون مقدارِ 'file' فقط از جدولِ سخت‌کدشده‌ی
+ * routes() می‌آید (نه از ورودیِ کاربر) و افزون بر آن با الگویِ سفید
+ * اعتبارسنجی می‌شود، path-traversal همچنان بسته است.
+ */
+$relPage = str_replace('\\', '/', (string) route_meta($route, 'file', '404.php'));
+$relPage = ltrim($relPage, '/');
+if ($relPage === ''
+    || strpos($relPage, '..') !== false
+    || !preg_match('#^[A-Za-z0-9_\-]+(/[A-Za-z0-9_\-]+)?\.php$#', $relPage)
+) {
+    $relPage = '404.php';
+}
+
+$pageFile = HA_ROOT . '/pages/' . $relPage;
 if (!is_file($pageFile)) {
     $pageFile = HA_ROOT . '/pages/404.php';
 }

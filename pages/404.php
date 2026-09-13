@@ -23,9 +23,9 @@ $cats = array_slice(categories(),0,4);
             <a class="btn btn--ghost" href="<?= e(url('search')) ?>">جستجو</a>
         </div>
 
-        <div class="card" style="margin-top:2rem; text-align:start">
+        <div class="card mt-lg text-start">
             <h2>حوزه‌ها را ببینید</h2>
-            <div class="chip-row" style="margin-top:.6rem">
+            <div class="chip-row mt-sm">
                 <?php foreach($cats as $cat): ?><a class="chip" href="<?= e(url('category',['slug'=>$cat['slug']])) ?>"><?= e($cat['title']) ?></a><?php endforeach; ?>
                 <a class="chip chip--soft" href="<?= e(url('courses')) ?>">همه‌ی دوره‌ها</a>
             </div>

@@ -50,11 +50,24 @@ $totalLessons = 0; $totalMinutes=0;
 foreach ($stages as $st) { $totalLessons+= count($st['lessons']??[]); foreach(($st['lessons']??[]) as $l) $totalMinutes+=(int)($l['minutes']??0); }
 
 // محتوای مرتبط
-$relatedArticles = [];
-foreach (latest_articles(6) as $a) {
-    // ساده: اگر دسته مقاله با دسته دوره مرتبط باشد، نمایش بده — فعلاً 3 تا
-    if (count($relatedArticles)>=3) break;
-    $relatedArticles[]=$a;
+/* مقاله‌های مرتبط با همین حوزه.
+   نسخه‌ی پیشین هیچ فیلتری نداشت (کامنت می‌گفت «اگر دسته مرتبط باشد» ولی
+   کد فقط سه مقاله‌ی آخر را برمی‌داشت). اکنون موضوعِ فارسیِ مقاله با
+   find_category_by_title() به حوزه نگاشت می‌شود و واقعاً فیلتر می‌شود؛
+   اگر به حدِ نصاب نرسید، با تازه‌ترین‌ها کامل می‌شود. */
+$courseCatSlug = (string) ($courseData['category'] ?? '');
+$relatedArticles = array_values(array_filter(all_articles_sorted(), static function ($a) use ($courseCatSlug) {
+    $mapped = find_category_by_title((string) ($a['category'] ?? ''));
+    return $mapped !== null && (string) ($mapped['slug'] ?? '') === $courseCatSlug;
+}));
+$relatedArticles = array_slice($relatedArticles, 0, 3);
+if (count($relatedArticles) < 3) {
+    foreach (latest_articles(6) as $a) {
+        if (count($relatedArticles) >= 3) { break; }
+        $dup = false;
+        foreach ($relatedArticles as $r) { if (($r['slug'] ?? '') === ($a['slug'] ?? '')) { $dup = true; break; } }
+        if (!$dup) { $relatedArticles[] = $a; }
+    }
 }
 $videosRelated = array_slice(array_filter(videos(), fn($v)=>($v['category']??'')===($courseData['category']??'')),0,2);
 $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')===($courseData['category']??'')),0,2);
@@ -62,7 +75,7 @@ $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')
 
 <section class="section section--tight">
     <div class="container">
-        <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem">
+        <div class="chip-row">
             <?php if($cat): ?><span class="badge"><?= e($cat['title']) ?></span><?php endif; ?>
             <span class="chip chip--ghost"><?= e($courseData['level']??'') ?></span>
             <span class="muted-sm"><?= fa_num($totalLessons) ?> درس · <?= minutes_label($totalMinutes) ?></span>
@@ -87,7 +100,7 @@ $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')
                     <ul class="rich-list">
                         <?php foreach((array)($courseData['how_to']??[]) as $line): ?><li><?= e($line) ?></li><?php endforeach; ?>
                     </ul>
-                    <?php if(!empty($courseData['excerpt'])): ?><p class="muted-sm" style="margin-top:.8rem"><?= e($courseData['excerpt']) ?></p><?php endif; ?>
+                    <?php if(!empty($courseData['excerpt'])): ?><p class="muted-sm mt-sm"><?= e($courseData['excerpt']) ?></p><?php endif; ?>
                 </div>
 
                 <?php if($videosRelated || $audiosRelated): ?>
@@ -138,9 +151,9 @@ $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')
                 </div>
 
                 <?php if($relatedArticles): ?>
-                <section class="section section--tight" style="padding-block:2rem 0">
-                    <h2>مقالاتِ مرتبط با این دوره</h2>
-                    <div class="grid grid--3" style="margin-top:1rem">
+                <section class="sub-section">
+                    <div class="sub-section__head"><h2 class="sub-section__title">مقاله‌های مرتبط با این دوره</h2></div>
+                    <div class="grid grid--3">
                         <?php foreach(array_slice($relatedArticles,0,3) as $art): ?><div><?= article_card($art) ?></div><?php endforeach; ?>
                     </div>
                 </section>
