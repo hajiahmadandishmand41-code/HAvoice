@@ -2,6 +2,34 @@
 
 :root { --ha-header-h: var(--header-h, 64px); }
 
+/* --------------------------------------------------------------------------
+   Shared homepage presentation: calmer hierarchy, compact cards, better rhythm
+   -------------------------------------------------------------------------- */
+.route-home .hero--premium { isolation: isolate; }
+.route-home .section { position: relative; }
+.route-home .section > .container { position: relative; z-index: 1; }
+.route-home .card,
+.route-home .stage-card,
+.route-home .course-summary,
+.route-home .practice-card,
+.route-home .hero__instructor {
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast) var(--ease);
+}
+.route-home .card:hover,
+.route-home .stage-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--sh-md);
+    transform: translateY(-2px);
+}
+.route-home .section--soft { background: var(--bg-soft); }
+.route-home .section--ink { position: relative; overflow: hidden; }
+.route-home .topic-strip {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--surface) 92%, var(--brand-soft));
+    box-shadow: var(--sh-sm);
+}
+
 @media (max-width: 1119.98px) {
     html, body { max-inline-size: 100%; }
     .site-header__inner {
@@ -12,6 +40,7 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
     }
+
     .nav-toggle {
         display: grid;
         place-items: center;
@@ -22,9 +51,31 @@
         flex: none;
         position: relative;
         z-index: calc(var(--z-overlay) + 2);
+        color: var(--text);
+        background: var(--surface);
     }
+    .nav-toggle__bars,
+    .nav-toggle__bars::before,
+    .nav-toggle__bars::after {
+        content: "";
+        display: block;
+        width: 19px;
+        height: 2px;
+        border-radius: var(--r-full);
+        background: currentColor;
+        transition: transform var(--dur) var(--ease), opacity var(--dur-fast), width var(--dur) var(--ease);
+    }
+    .nav-toggle__bars { position: relative; }
+    .nav-toggle__bars::before { position: absolute; inset-inline: 0; top: -6px; }
+    .nav-toggle__bars::after { position: absolute; inset-inline: 0; top: 6px; }
+    .nav-toggle[aria-expanded="true"] .nav-toggle__bars { background: transparent; }
+    .nav-toggle[aria-expanded="true"] .nav-toggle__bars::before { transform: translateY(6px) rotate(45deg); }
+    .nav-toggle[aria-expanded="true"] .nav-toggle__bars::after { transform: translateY(-6px) rotate(-45deg); }
+    .nav-toggle[aria-expanded="true"] { color: var(--brand); background: var(--brand-softer); border-color: var(--brand-200); }
+
     .brand { min-inline-size: 0; max-inline-size: 100%; justify-self: center; overflow: hidden; }
     .header-actions { min-inline-size: 0; max-inline-size: 100%; justify-self: end; }
+
     .main-nav {
         position: fixed;
         top: var(--ha-header-h);
@@ -79,6 +130,7 @@
 @media (max-width: 767.98px) {
     .header-actions__auth, .header-actions__admin { display: none; }
     .header-actions { gap: 2px; }
+
     .route-home .hero--premium {
         padding-block: 1.25rem 1.75rem;
         background: radial-gradient(420px 220px at 100% 0%, rgba(79,70,229,.10), transparent 70%), linear-gradient(180deg, var(--bg-soft), var(--bg));
@@ -111,6 +163,7 @@
     .route-home .grid, .route-home .grid > *, .route-home .card, .route-home .stage-card, .route-home .course-summary, .route-home .hero__instructor { min-inline-size: 0; max-inline-size: 100%; }
     .route-home .course-summary { margin-top: 1rem; }
     .route-home .hero__instructor { padding: .8rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+    .route-home .section--soft { background: var(--bg-soft); }
     .route-home .site-footer { margin-top: 0; }
     .route-home .hero, .route-home .section, .route-home .topic-strip, .route-home .site-main { max-inline-size: 100%; }
 }
