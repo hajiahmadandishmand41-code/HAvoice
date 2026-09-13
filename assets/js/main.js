@@ -177,6 +177,31 @@
         if (backdrop) { backdrop.hidden = true; }
     })();
 
+    /* ---------------- تأییدِ عملیاتِ خطرناک ----------------
+       پیش‌تر فرم‌های حذف در پنل از onsubmit="return confirm(...)" استفاده
+       می‌کردند. ولی CSP سایت «script-src 'self'» است و بدونِ 'unsafe-inline'
+       همه‌ی event handlerهای درون‌خطی «بلاک» می‌شوند؛ یعنی آن ۹ تأیید هرگز
+       نمایش داده نمی‌شدند و حذف بدونِ هیچ پرسشی انجام می‌شد.
+       اکنون به‌جایش صفتِ data-confirm و یک delegated listener اینجاست
+       (اسکریپتِ بیرونی ⇒ سازگار با CSP). */
+    (function confirmModule() {
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+            if (!form || !form.getAttribute) { return; }
+            var message = form.getAttribute('data-confirm');
+            if (!message) { return; }
+            // پرسشِ بومی؛ اگر کاربر لغو کرد، ارسال متوقف می‌شود
+            if (!window.confirm(message)) { event.preventDefault(); }
+        }, true);
+
+        // دکمه‌های حذف با data-confirm روی خودِ دکمه
+        document.addEventListener('click', function (event) {
+            var el = event.target.closest ? event.target.closest('[data-confirm-click]') : null;
+            if (!el) { return; }
+            if (!window.confirm(el.getAttribute('data-confirm-click'))) { event.preventDefault(); }
+        });
+    })();
+
     /* ---------------- ماشه‌ی «بیشتر» (مگامنو) ----------------
        hover و focus-within در CSS مدیریت می‌شوند. این ماژول فقط چیزی را
        اضافه می‌کند که CSS نمی‌تواند: باز/بسته‌شدن با «کلیک و لمس»

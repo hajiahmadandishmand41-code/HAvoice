@@ -65,9 +65,9 @@ function ha_website_jsonld(): array
                 '@type'       => 'WebSite',
                 '@id'         => $root . '#website',
                 'url'         => $root,
-                'name'        => HA_BRAND_FULL,
+                'name'        => ha_brand_full(),
                 'inLanguage'  => 'fa',
-                'description' => 'آموزش‌های تمرین‌محورِ ' . HA_NAME . ' در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی و مذاکره.',
+                'description' => 'آموزش‌های تمرین‌محورِ ' . ha_site_name() . ' در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی و مذاکره.',
                 'publisher'   => ['@id' => $root . '#person'],
                 'potentialAction' => [
                     '@type'       => 'SearchAction',
@@ -81,8 +81,8 @@ function ha_website_jsonld(): array
             [
                 '@type'      => 'Person',
                 '@id'        => $root . '#person',
-                'name'       => HA_NAME,
-                'jobTitle'   => HA_TAGLINE,
+                'name'       => ha_site_name(),
+                'jobTitle'   => ha_site_tagline(),
                 'email'      => 'mailto:' . HA_EMAIL,
                 'url'        => $root,
                 'knowsAbout' => array_values(array_filter($knows)),
@@ -101,10 +101,10 @@ function ha_og_image(): string
 
 function ha_page_meta(string $route): array
 {
-    $siteName = HA_NAME . ' | ' . HA_TAGLINE;
+    $siteName = ha_site_name() . ' | ' . ha_site_tagline();
     $image    = ha_og_image();
 
-    $defaultDescription = 'آموزش‌های تمرین‌محورِ حاجی احمد صالحی: فن بیان، ارتباط مؤثر، روانشناسیِ کاربردی، رشد فردی، هدف‌گذاری، مذاکره، کتاب و پژوهش — با ویدیو، صوت، مقاله، تمرین و مسیرِ یادگیری.';
+    $defaultDescription = 'آموزش‌های تمرین‌محورِ ' . ha_site_name() . ': فن بیان، ارتباط مؤثر، روانشناسیِ کاربردی، رشد فردی، هدف‌گذاری، مذاکره، کتاب و پژوهش — با ویدیو، صوت، مقاله، تمرین و مسیرِ یادگیری.';
 
     $base = [
         'og_type' => 'website',
@@ -119,9 +119,9 @@ function ha_page_meta(string $route): array
     if ($route === 'home') {
         // برای صفحه‌ی اصلی، ریشه‌ی دامنه canonical است نه index.php?p=home
         return array_merge($base, [
-            'title'       => HA_BRAND_FULL . ' — مرکز آموزش مهارت‌های کاربردی',
+            'title'       => ha_brand_full() . ' — مرکز آموزش مهارت‌های کاربردی',
             'description' => $defaultDescription,
-            'h1'          => HA_NAME,
+            'h1'          => ha_site_name(),
             'banner'      => false,
             'canonical'   => '/',
             'jsonld'      => [ha_website_jsonld()],
@@ -163,8 +163,8 @@ function ha_page_meta(string $route): array
                         'datePublished'    => (string) ($a['date'] ?? ''),
                         'dateModified'     => (string) ($a['date'] ?? ''),
                         'inLanguage'       => 'fa',
-                        'author'           => ['@type' => 'Person', 'name' => HA_NAME],
-                        'publisher'        => ['@type' => 'Person', 'name' => HA_NAME],
+                        'author'           => ['@type' => 'Person', 'name' => ha_site_name()],
+                        'publisher'        => ['@type' => 'Person', 'name' => ha_site_name()],
                         'mainEntityOfPage' => absolute_url(url('article', ['slug' => $a['slug']])),
                         'image'            => absolute_url(asset($image)),
                         'articleSection'   => (string) ($a['category'] ?? ''),
@@ -186,7 +186,7 @@ function ha_page_meta(string $route): array
             $courseTitle = (string) ($lesson['course']['title'] ?? ($lesson['stage']['title'] ?? 'دوره'));
             $courseSlug  = (string) ($lesson['course']['slug'] ?? '');
             return array_merge($base, [
-                'title'       => $lesson['lesson']['title'] . ' — ' . $courseTitle . ' | ' . HA_NAME,
+                'title'       => $lesson['lesson']['title'] . ' — ' . $courseTitle . ' | ' . ha_site_name(),
                 'description' => (string) ($lesson['lesson']['goal'] ?? ''),
                 'h1'          => (string) $lesson['lesson']['title'],
                 'crumb'       => $courseTitle,
@@ -204,7 +204,7 @@ function ha_page_meta(string $route): array
                         'educationalLevel'     => (string) ($lesson['stage']['title'] ?? ''),
                         'timeRequired'         => 'PT' . max(1, (int) ($lesson['lesson']['minutes'] ?? 10)) . 'M',
                         'isPartOf'             => ['@type' => 'Course', 'name' => $courseTitle],
-                        'provider'             => ['@type' => 'Person', 'name' => HA_NAME],
+                        'provider'             => ['@type' => 'Person', 'name' => ha_site_name()],
                     ],
                     ha_breadcrumb_jsonld([
                         ['label' => 'دوره‌ها', 'url' => url('courses')],
@@ -245,7 +245,7 @@ function ha_page_meta(string $route): array
                         'numberOfCredits'  => $lessonCount,
                         'timeRequired'     => 'PT' . max(1, $minutes) . 'M',
                         'educationalLevel' => (string) ($c['level'] ?? ''),
-                        'provider'         => ['@type' => 'Person', 'name' => HA_NAME],
+                        'provider'         => ['@type' => 'Person', 'name' => ha_site_name()],
                         'hasCourseInstance' => [[
                             '@type'          => 'CourseInstance',
                             'courseMode'     => 'online',
@@ -305,7 +305,7 @@ function ha_page_meta(string $route): array
                     'description' => (string) ($b['excerpt'] ?? ''),
                     'review'      => [
                         '@type'      => 'Review',
-                        'author'     => ['@type' => 'Person', 'name' => HA_NAME],
+                        'author'     => ['@type' => 'Person', 'name' => ha_site_name()],
                         'reviewBody' => (string) ($b['summary'] ?? ($b['excerpt'] ?? '')),
                     ],
                 ]],
@@ -332,7 +332,7 @@ function ha_page_meta(string $route): array
                     'description'   => (string) ($r['summary'] ?? ''),
                     'inLanguage'    => 'fa',
                     'datePublished' => (string) ($r['date'] ?? ''),
-                    'author'        => ['@type' => 'Person', 'name' => HA_NAME],
+                    'author'        => ['@type' => 'Person', 'name' => ha_site_name()],
                 ]],
             ]);
         }
@@ -350,7 +350,7 @@ function ha_page_meta(string $route): array
         'category'  => 'حوزه‌های آموزشی',
         'exercises' => 'تمرین‌های عملی',
         'tips'      => 'نکات کوتاه و کاربردی',
-        'about'     => 'درباره‌ی حاجی احمد صالحی',
+        'about'     => 'درباره‌ی ما',
         'contact'   => 'تماس با ما',
         'search'    => 'جستجو در همه‌ی محتوا',
         'login'     => 'ورود به حساب کاربری',
@@ -361,7 +361,7 @@ function ha_page_meta(string $route): array
     $descriptions = [
         'courses'   => 'دوره‌های مرحله‌ای و تمرین‌محور در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی، زمان و مذاکره.',
         'course'    => 'مسیرِ مرحله‌ای هر دوره با درس، تمرین و پیشرفتِ قابلِ اندازه‌گیری.',
-        'articles'  => 'مقالاتِ کاربردیِ حاجی احمد صالحی با تمرینِ مشخص در پایانِ هر متن.',
+        'articles'  => 'مقالاتِ کاربردیِ ' . ha_site_name() . ' با تمرینِ مشخص در پایانِ هر متن.',
         'videos'    => 'ویدیوهای کوتاه و تمرین‌محور؛ هر ویدیو یک مهارتِ قابلِ اجرا.',
         'audios'    => 'پادکست‌های کوتاه برای یادگیری در مسیر؛ مرورِ روزانه بدونِ نیاز به نگاه.',
         'books'     => 'خلاصه و برداشتِ کاربردی از کتاب‌های شاخصِ هر حوزه.',
@@ -369,7 +369,7 @@ function ha_page_meta(string $route): array
         'category'  => 'همه‌ی حوزه‌های آموزشیِ HAvoice در یک نگاه.',
         'exercises' => 'تمرین‌های روزانه با تایمر، چک‌لیست و تولیدگرِ موضوعِ بداهه.',
         'tips'      => 'نکته‌های کوتاه برای استفاده‌ی فوری در جلسه و گفت‌وگو.',
-        'about'     => 'معرفیِ حاجی احمد صالحی، رویکردِ آموزشی، حوزه‌ها و سؤالاتِ متداول.',
+        'about'     => 'معرفیِ ' . ha_site_name() . '، رویکردِ آموزشی، حوزه‌ها و سؤالاتِ متداول.',
         'contact'   => 'پرسش، پیشنهاد و همکاری؛ پاسخ‌گویی تا دو روزِ کاری.',
         'search'    => 'جستجو در تمامِ محتوا: مقاله، درس، کتاب، پژوهش، ویدیو و صوت.',
         'login'     => 'ورود به حساب کاربری HAvoice برای پیگیریِ مسیر یادگیری.',
@@ -388,7 +388,7 @@ function ha_page_meta(string $route): array
         'category'  => 'حوزه‌ها',
         'exercises' => 'تمرین‌ها',
         'tips'      => 'نکته‌ها',
-        'about'     => 'درباره‌ی حاجی احمد صالحی',
+        'about'     => 'درباره‌ی ما',
         'contact'   => 'تماس با ما',
         'search'    => 'جستجو',
         'login'     => 'ورود',
@@ -427,9 +427,9 @@ function ha_page_meta(string $route): array
     }
 
     return array_merge($base, [
-        'title'       => (isset($titles[$route]) ? $titles[$route] : HA_NAME) . ' | ' . $siteName,
+        'title'       => (isset($titles[$route]) ? $titles[$route] : ha_site_name()) . ' | ' . $siteName,
         'description' => $descriptions[$route] ?? $defaultDescription,
-        'h1'          => $shortTitles[$route] ?? HA_NAME,
+        'h1'          => $shortTitles[$route] ?? ha_site_name(),
         'banner'      => !in_array($route, $bannerless, true),
         'canonical'   => url($route),
         'robots'      => in_array($route, ['search', 'login', 'register', 'account', 'logout'], true) ? 'noindex,follow' : 'index,follow',

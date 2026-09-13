@@ -26,7 +26,7 @@ if ($slug!=='') {
                 <h1 class="article__title"><?= e($item['title']) ?></h1>
                 <p class="article__excerpt"><?= e($item['summary'] ?? '') ?></p>
                 <div class="article__meta">
-                    <span class="chip chip--soft"><?= e(HA_NAME) ?></span>
+                    <span class="chip chip--soft"><?= e(ha_site_name()) ?></span>
                     <time datetime="<?= e($item['date_fa']??'') ?>"><?= e($item['date_fa']??'') ?></time>
                     <span class="meta-dot" aria-hidden="true"></span>
                     <span><?= e($cat['title']??'') ?></span>

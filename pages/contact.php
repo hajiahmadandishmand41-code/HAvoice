@@ -7,7 +7,7 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$contact = data('site')['contact'] ?? [];
+$contact = ha_site()['contact'] ?? [];
 $subjects = (array)($contact['subjects'] ?? []);
 $channels = (array)($contact['channels'] ?? []);
 $flash    = flash();
@@ -32,7 +32,7 @@ $action = url('contact');
         <div class="contact-hero">
             <div class="contact-hero__text">
                 <p class="eyebrow">پشتیبانی و همکاری</p>
-                <h1 class="contact-hero__title">با <?= e(HA_NAME) ?> در تماس باشید</h1>
+                <h1 class="contact-hero__title">با <?= e(ha_site_name()) ?> در تماس باشید</h1>
                 <p class="lead"><?= e($contact['lead'] ?? '') ?></p>
             </div>
             <ul class="channel-list">

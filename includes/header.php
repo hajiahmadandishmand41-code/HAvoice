@@ -19,7 +19,7 @@ if (!defined('HA_ROOT')) {
 
 $meta  = $GLOBALS['HA_META'];
 $route = $GLOBALS['HA_ROUTE'];
-$site  = data('site');
+$site  = ha_site();
 $cats  = categories();
 $currentUser = auth_current_user();
 
@@ -35,7 +35,7 @@ $themeDark = '#0B1B3F';
     <title><?= e($meta['title']) ?></title>
     <meta name="description" content="<?= e($meta['description']) ?>">
     <meta name="robots" content="<?= e($meta['robots'] ?? 'index,follow') ?>">
-    <meta name="author" content="<?= e(HA_NAME) ?>">
+    <meta name="author" content="<?= e(ha_site_name()) ?>">
     <meta name="generator" content="HAvoice <?= e(HA_VERSION) ?> (hand-written PHP)">
 <?php if ($canonical !== ''): ?>
     <link rel="canonical" href="<?= e($canonical) ?>">
@@ -45,7 +45,7 @@ $themeDark = '#0B1B3F';
     <meta name="theme-color" content="<?= e($themeDark) ?>" media="(prefers-color-scheme: dark)">
 
     <meta property="og:type" content="<?= e($meta['og_type'] ?? 'website') ?>">
-    <meta property="og:site_name" content="<?= e(HA_BRAND_FULL) ?>">
+    <meta property="og:site_name" content="<?= e(ha_brand_full()) ?>">
     <meta property="og:title" content="<?= e($meta['title']) ?>">
     <meta property="og:description" content="<?= e($meta['description']) ?>">
     <meta property="og:locale" content="fa_IR">
@@ -54,7 +54,7 @@ $themeDark = '#0B1B3F';
 <?php endif; ?>
 <?php if ($ogImage !== ''): ?>
     <meta property="og:image" content="<?= e($ogImage) ?>">
-    <meta property="og:image:alt" content="<?= e(HA_BRAND_FULL) ?>">
+    <meta property="og:image:alt" content="<?= e(ha_brand_full()) ?>">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?= e($meta['title']) ?>">
     <meta name="twitter:description" content="<?= e($meta['description']) ?>">
@@ -82,7 +82,7 @@ $themeDark = '#0B1B3F';
             <span class="nav-toggle__bars" aria-hidden="true"></span>
         </button>
 
-        <a class="brand" href="<?= e(url('home')) ?>" aria-label="<?= e(HA_BRAND_FULL) ?>، صفحه اصلی">
+        <a class="brand" href="<?= e(url('home')) ?>" aria-label="<?= e(ha_brand_full()) ?>، صفحه اصلی">
             <span class="brand__mark" aria-hidden="true">
                 <svg viewBox="0 0 32 32" width="34" height="34" role="presentation" focusable="false">
                     <defs>
@@ -101,8 +101,8 @@ $themeDark = '#0B1B3F';
                 </svg>
             </span>
             <span class="brand__text">
-                <strong><?= e(HA_NAME) ?></strong>
-                <small><?= e(HA_TAGLINE) ?> · HAvoice</small>
+                <strong><?= e(ha_site_name()) ?></strong>
+                <small><?= e(ha_site_tagline()) ?> · HAvoice</small>
             </span>
         </a>
 

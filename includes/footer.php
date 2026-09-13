@@ -7,7 +7,7 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$site = data('site');
+$site = ha_site();
 $adminCfg = admin_settings();
 if (!empty($adminCfg['footer_about'])) $site['footer_about'] = $adminCfg['footer_about'];
 if (!empty($adminCfg['work_hours'])) $site['work_hours'] = $adminCfg['work_hours'];
@@ -22,7 +22,7 @@ $currentUser = auth_current_user();
     <div class="container site-footer__grid">
         <div class="site-footer__col site-footer__about">
             <a class="brand brand--footer" href="<?= e(url('home')) ?>">
-                <span class="brand__text"><strong><?= e(HA_NAME) ?></strong><small><?= e(HA_TAGLINE) ?></small></span>
+                <span class="brand__text"><strong><?= e(ha_site_name()) ?></strong><small><?= e(ha_site_tagline()) ?></small></span>
             </a>
             <p><?= e($site['footer_about'] ?? '') ?></p>
             <ul class="social-list">
@@ -80,7 +80,7 @@ foreach ($socialLinks as $s) {
     </div>
 
     <div class="container site-footer__bottom">
-        <p>© <?= fa_num(date('Y')) ?> <?= e(HA_NAME) ?> · HAvoice. <?= e($site['footer_rights'] ?? 'همه‌ی حقوق محفوظ است.') ?></p>
+        <p>© <?= fa_num(date('Y')) ?> <?= e(ha_site_name()) ?> · HAvoice. <?= e($site['footer_rights'] ?? 'همه‌ی حقوق محفوظ است.') ?></p>
         <p class="site-footer__note"><?= e($site['footer_disclaimer'] ?? '') ?></p>
     </div>
 </footer>

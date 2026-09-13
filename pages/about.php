@@ -7,8 +7,8 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$about = data('site')['about'] ?? [];
-$inst  = data('site')['instructor'] ?? [];
+$about = ha_site()['about'] ?? [];
+$inst  = ha_site()['instructor'] ?? [];
 $cats  = categories();
 ?>
 
@@ -20,11 +20,11 @@ $cats  = categories();
         <div class="instructor">
             <div class="instructor__media">
                 <div class="instructor__avatar" aria-hidden="true">ح</div>
-                <span class="instructor__badge"><?= e($inst['role'] ?? HA_TAGLINE) ?></span>
+                <span class="instructor__badge"><?= e($inst['role'] ?? ha_site_tagline()) ?></span>
             </div>
             <div>
                 <p class="instructor__role"><?= e($inst['role'] ?? '') ?></p>
-                <h1 class="instructor__name"><?= e($inst['name'] ?? HA_NAME) ?></h1>
+                <h1 class="instructor__name"><?= e($inst['name'] ?? ha_site_name()) ?></h1>
                 <p class="instructor__bio"><?= e($inst['bio'] ?? '') ?></p>
                 <ul class="instructor__points">
                     <?php foreach((array)($inst['points']??[]) as $pt): ?><li><span class="tick" aria-hidden="true"><?= ha_icon('check', 12) ?></span><span><?= e($pt) ?></span></li><?php endforeach; ?>

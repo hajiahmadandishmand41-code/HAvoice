@@ -21,7 +21,7 @@ $admin_is = static function (string $prefix) use ($adminRoute): bool {
     <aside class="admin-sidebar" id="admin-sidebar">
         <div class="admin-sidebar__brand">
             <?= ha_icon('shield', 20) ?>
-            <div>پنل مدیریت<small><?= e(HA_NAME) ?></small></div>
+            <div>پنل مدیریت<small><?= e(ha_site_name()) ?></small></div>
         </div>
         <nav class="admin-nav" aria-label="ناوبریِ پنل مدیریت">
             <a href="<?= e(url('admin')) ?>"<?= $adminRoute === 'admin' ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('home', 16) ?> داشبورد</a>

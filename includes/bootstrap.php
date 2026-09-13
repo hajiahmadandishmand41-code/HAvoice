@@ -30,25 +30,16 @@ ini_set('log_errors', '1');
 /*  Routing                                                           */
 /* ------------------------------------------------------------------ */
 
-/** فهرست سفیدِ route‌ها؛ هرچه اینجا نباشد ⇒ ۴۰۴ */
-function ha_known_routes(): array
-{
-    return ['home','courses','course','lesson','articles','article','videos','audios','books',
-            'research','category','exercises','tips','about','contact','search','404',
-            'login','register','logout','account',
-            'admin','admin_courses','admin_course_edit','admin_course_save','admin_course_delete',
-            'admin_articles','admin_article_edit','admin_article_save','admin_article_delete',
-            'admin_videos','admin_video_edit','admin_video_save','admin_video_delete',
-            'admin_audios','admin_audio_edit','admin_audio_save','admin_audio_delete',
-            'admin_books','admin_book_edit','admin_book_save','admin_book_delete',
-            'admin_research','admin_research_edit','admin_research_save','admin_research_delete',
-            'admin_exercises','admin_exercise_edit','admin_exercise_save','admin_exercise_delete',
-            'admin_tips','admin_tip_edit','admin_tip_save','admin_tip_delete',
-            'admin_categories','admin_category_edit','admin_category_save','admin_category_delete',
-            'admin_users','admin_user_edit','admin_user_save','admin_user_delete',
-            'admin_messages','admin_message_view','admin_message_delete',
-            'admin_settings','admin_settings_save'];
-}
+/*
+ * تنها منبعِ حقیقت برایِ فهرستِ مسیرها routes() در includes/helpers.php است
+ * (route_exists() و route_meta() از همان می‌خوانند).
+ *
+ * پیش‌تر اینجا یک تابعِ ha_known_routes() هم فهرستِ مسیرها را «دوباره» و
+ * سخت‌کدشده نگه می‌داشت، ولی هیچ‌جا صدا زده نمی‌شد. دو فهرستِ موازی یعنی
+ * هر مسیرِ تازه باید در دو جا ثبت می‌شد و اگر یکی فراموش می‌شد، مسیر
+ * بی‌صدا ۴۰۴ می‌شد — دقیقاً همان دسته‌باگی که پیش‌تر کلِ پنلِ مدیریت را
+ * از کار انداخته بود. حذف شد تا این رانش دیگر ممکن نباشد.
+ */
 
 function ha_resolve_route(): array
 {
@@ -241,6 +232,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $GLOBALS['HA_META'] = ha_page_meta($route);
 
+/*
+ * بافر کردنِ کلِ خروجی.
+ *
+ * چرا لازم است؟ هدرِ سایت «پیش از» فایلِ صفحه رندر می‌شود، و بررسیِ
+ * دسترسیِ پنل (auth_require_admin) داخلِ خودِ صفحه‌ی admin انجام می‌شود.
+ * بدونِ بافر، در آن لحظه headers_sent() راست است، پس redirect() دیگر
+ * نمی‌تواند header('Location: …') بفرستد و فقط exit می‌کند — نتیجه برایِ
+ * کاربرِ واردنشده یک پاسخِ ۲۰۰ با هدرِ سایت و بدنه‌ی خالی بود: نه redirect
+ * به صفحه‌ی ورود، نه پیام. عملاً یک صفحه‌ی شکسته.
+ *
+ * با بافر، هیچ بایتی تا پایانِ رندر به کلاینت نمی‌رود، پس redirect در هر
+ * نقطه‌ای از صفحه می‌تواند بافر را دور بریزد و سرصفحه‌ی درست بفرستد.
+ * روی میزبانیِ اشتراکی هم به‌صرفه است: خروجی یک‌جا فرستاده می‌شود.
+ */
+if (!headers_sent()) {
+    ob_start();
+}
+
 require HA_ROOT . '/includes/header.php';
 
 /*
@@ -271,3 +280,27 @@ if (!is_file($pageFile)) {
 require $pageFile;
 
 require HA_ROOT . '/includes/footer.php';
+
+/*
+ * بستنِ صریحِ نشست.
+ *
+ * به‌طورِ ضمنی PHP نشست را در خاموشیِ اسکریپت می‌نویسد، ولی تکیه بر آن
+ * شکننده است: در برخی SAPIها/میزبانی‌های اشتراکی (و در محیطِ آزمایشِ
+ * PHP.wasm که اینجا با آن راستی‌آزمایی می‌کنیم) مرحله‌ی خاموشی داده‌ی نشست
+ * را فلاش نمی‌کند و فایلِ نشست «صفر بایت» می‌ماند — یعنی ورودِ کاربر
+ * هرگز ثبت نمی‌شود و هر درخواست بعدی او را به صفحه‌ی ورود برمی‌گرداند.
+ *
+ * فراخوانیِ صریح دو سودِ دیگر هم دارد: نوشتنِ قطعیِ flash/old/progress
+ * پیش از پایانِ پاسخ، و آزاد شدنِ قفلِ نشست تا درخواست‌های موازیِ همان
+ * کاربر (مثلاً چند منبعِ هم‌زمان در یک صفحه) پشتِ هم صف نشوند.
+ */
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_write_close();
+}
+
+/* پایانِ بافرِ رندر: خروجی یک‌جا به کلاینت می‌رود. اگر صفحه‌ای پیش‌تر
+   redirect کرده باشد هرگز به اینجا نمی‌رسیم (redirect بافر را دور
+   می‌ریزد و exit می‌کند). */
+while (ob_get_level() > 0) {
+    ob_end_flush();
+}

@@ -23,7 +23,7 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$site     = data('site');
+$site     = ha_site();
 $hero     = (array) ($site['hero'] ?? []);
 $cats     = categories();
 $instructor = (array) ($site['instructor'] ?? []);
@@ -125,10 +125,10 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
             </div>
 
             <div class="hero__instructor">
-                <div class="hero__avatar" aria-hidden="true"><?= e(mb_substr((string) ($instructor['name'] ?? HA_NAME), 0, 1, 'UTF-8')) ?></div>
+                <div class="hero__avatar" aria-hidden="true"><?= e(mb_substr((string) ($instructor['name'] ?? ha_site_name()), 0, 1, 'UTF-8')) ?></div>
                 <div>
-                    <h3><?= e($instructor['name'] ?? HA_NAME) ?></h3>
-                    <p><?= e($instructor['role'] ?? HA_TAGLINE) ?></p>
+                    <h3><?= e($instructor['name'] ?? ha_site_name()) ?></h3>
+                    <p><?= e($instructor['role'] ?? ha_site_tagline()) ?></p>
                 </div>
             </div>
 
@@ -280,12 +280,12 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
     <div class="container">
         <div class="instructor reveal">
             <div class="instructor__media">
-                <div class="instructor__avatar" aria-hidden="true"><?= e(mb_substr((string) ($instructor['name'] ?? HA_NAME), 0, 1, 'UTF-8')) ?></div>
-                <span class="instructor__badge"><?= e($instructor['role'] ?? HA_TAGLINE) ?></span>
+                <div class="instructor__avatar" aria-hidden="true"><?= e(mb_substr((string) ($instructor['name'] ?? ha_site_name()), 0, 1, 'UTF-8')) ?></div>
+                <span class="instructor__badge"><?= e($instructor['role'] ?? ha_site_tagline()) ?></span>
             </div>
             <div class="instructor__text">
                 <p class="instructor__role"><?= e($instructor['role'] ?? '') ?></p>
-                <h2 class="instructor__name"><?= e($instructor['name'] ?? HA_NAME) ?></h2>
+                <h2 class="instructor__name"><?= e($instructor['name'] ?? ha_site_name()) ?></h2>
                 <p class="instructor__bio"><?= e($instructor['bio'] ?? '') ?></p>
                 <?php if (!empty($instructor['points'])): ?>
                     <ul class="instructor__points">

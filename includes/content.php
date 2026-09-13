@@ -11,13 +11,28 @@ if (!defined('HA_ROOT')) {
 /*  دوره‌ها                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * همه‌ی دوره‌ها: داده‌ی فایل + دوره‌های ساخته‌شده در پنل.
+ *
+ * پیش‌تر فقط data('course') خوانده می‌شد و هیچ ادغامی با admin_load()
+ * وجود نداشت — برخلافِ مقاله‌ها/کتاب‌ها/تمرین‌ها که همه ادغام می‌شدند.
+ * به همین دلیل course_save.php یک stub بود که فقط پیامِ «دوره‌ها را در
+ * فایل ویرایش کنید» می‌داد و عملاً ساختِ دوره از پنل ناممکن بود.
+ *
+ * ترتیب مهم است: دوره‌های پنل «بعد» از دوره‌های فایل می‌آیند تا اگر
+ * slug یکسانی ساخته شد، دوره‌ی پنل در find_course() برنده شود (همان
+ * الگویی که برای بقیه‌ی محتواها استفاده شده و ویرایشِ رویِ داده‌ی فایل
+ * را ممکن می‌کند).
+ */
 function courses(): array
 {
     $raw = data('course');
-    if (isset($raw['courses']) && is_array($raw['courses'])) return $raw['courses'];
+    if (isset($raw['courses']) && is_array($raw['courses'])) {
+        return array_merge($raw['courses'], admin_courses());
+    }
     // fallback: legacy single course
     if (isset($raw['stages'])) {
-        return [[
+        return array_merge([[
             'slug'     => 'public-speaking-fundamentals',
             'title'    => $raw['title'] ?? 'مسیر آموزشی',
             'category' => 'public-speaking',
@@ -27,10 +42,17 @@ function courses(): array
             'how_to'   => $raw['how_to'] ?? [],
             'stages'   => $raw['stages'] ?? [],
             'featured' => true,
-        ]];
+        ]], admin_courses());
     }
-    return [];
+    return admin_courses();
 }
+
+/** فقط دوره‌هایی که از پنلِ مدیریت ذخیره شده‌اند. */
+function admin_courses(): array
+{
+    return admin_load('courses');
+}
+
 
 function course(): array { return data('course'); }
 

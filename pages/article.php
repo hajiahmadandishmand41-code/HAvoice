@@ -28,7 +28,7 @@ foreach(categories() as $c){ if(mb_strpos($article['category']??'',$c['short'])!
             <h1 class="article__title"><?= e($article['title']) ?></h1>
             <p class="article__excerpt"><?= e($article['excerpt']) ?></p>
             <div class="article__meta">
-                <span class="chip chip--soft"><?= e(HA_NAME) ?></span>
+                <span class="chip chip--soft"><?= e(ha_site_name()) ?></span>
                 <time datetime="<?= e($article['date']??'') ?>"><?= e($article['date_fa']??'') ?></time>
                 <span class="meta-dot" aria-hidden="true"></span>
                 <span><?= e(minutes_label((int)($article['minutes']??5))) ?> مطالعه</span>

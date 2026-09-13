@@ -362,3 +362,287 @@ function admin_settings(): array
 {
     return admin_load('settings');
 }
+
+/**
+ * نامِ مدرس/برند — مقدارِ ذخیره‌شده در پنل بر ثابتِ پیکربندی اولویت دارد.
+ *
+ * چرا این لایه لازم بود؟ فرمِ «تنظیمات» فیلدهای name و tagline را
+ * ذخیره می‌کرد، ولی هیچ‌کجای سایت آن‌ها را نمی‌خواند: هدر، فوتر،
+ * meta/JSON-LD و صفحه‌های درباره/تماس/خانه همه مستقیماً از ثابت‌های
+ * HA_NAME و HA_TAGLINE استفاده می‌کردند. یعنی مدیر نام را عوض می‌کرد،
+ * پیامِ «ذخیره شد» می‌گرفت و هیچ تغییری در سایت نمی‌دید — یک کنترلِ
+ * ناقص. اکنون هر دو از اینجا می‌آیند.
+ *
+ * کشِ static: این تابع در ده‌ها نقطه از یک صفحه صدا زده می‌شود و
+ * admin_load() هر بار فایل را از دیسک می‌خواند؛ یک بار در هر درخواست
+ * کافی است (تنظیمات وسطِ درخواست عوض نمی‌شود — handler بلافاصله
+ * redirect می‌کند).
+ */
+function ha_site_name(): string
+{
+    static $cached = null;
+    if ($cached === null) {
+        $value = trim((string) (admin_settings()['name'] ?? ''));
+        $cached = $value !== '' ? $value : HA_NAME;
+    }
+    return $cached;
+}
+
+/** عنوان/شغلِ مدرس — همان منطقِ ha_site_name(). */
+function ha_site_tagline(): string
+{
+    static $cached = null;
+    if ($cached === null) {
+        $value = trim((string) (admin_settings()['tagline'] ?? ''));
+        $cached = $value !== '' ? $value : HA_TAGLINE;
+    }
+    return $cached;
+}
+
+/**
+ * برندِ کامل: «نام | عنوان».
+ *
+ * معادلِ پویایِ ثابتِ HA_BRAND_FULL. آن ثابت از مقدارِ پیش‌فرضِ
+ * config ساخته می‌شد و با تغییرِ name/tagline در پنل به‌روز نمی‌شد، پس
+ * og:site_name، og:image:alt، aria-label برند، نامِ JSON-LD و <title>
+ * صفحه‌ی اصلی همه روی نامِ قدیم می‌ماندند در حالی که هدر و فوتر نامِ
+ * تازه را نشان می‌دادند — ناسازگاریِ دیده‌شدنی.
+ */
+function ha_brand_full(): string
+{
+    return ha_site_name() . ' | ' . ha_site_tagline();
+}
+
+/**
+ * داده‌ی سایت با هویتِ اعمال‌شده از پنل.
+ *
+ * data/site.php متنِ نویسه‌شده است و نامِ مدرس در چند جای آن «داخلِ
+ * جمله» آمده (abریوِ هیرو، عنوانِ بخشِ «چرا»، برچسبِ دکمه‌ی «درباره»،
+ * footer_about). وقتی مدیر نام را در پنل عوض می‌کرد، هدر/فوتر/meta به
+ * نامِ تازه می‌رفتند ولی این متن‌ها روی نامِ قدیم می‌ماندند ⇒ یک صفحه‌ی
+ * واحد با دو نامِ متفاوت.
+ *
+ * راه‌حل: جایگزینیِ «دقیقِ» نامِ پیش‌فرض (HA_NAME) با نامِ مؤثر، به‌اضافه‌ی
+ * بازنویسیِ صریحِ فیلدهای ساخت‌یافته‌ی هویت. چون فقط همان رشته‌ی ثابتِ
+ * پیش‌فرض جایگزین می‌شود، بقیه‌ی متن دست‌نخورده و قابلِ پیش‌بینی می‌ماند
+ * (مثلاً عبارتِ «مدرس و پژوهشگر» داخلِ بیوگرافی عوض نمی‌شود). اگر در پنل
+ * چیزی ذخیره نشده باشد، ha_site_name() === HA_NAME و این تابع عملاً
+ * همان data('site') را برمی‌گرداند.
+ *
+ * @return array<string, mixed>
+ */
+function ha_site(): array
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $site = data('site');
+    $name = ha_site_name();
+    $role = ha_site_tagline();
+
+    if ($name !== HA_NAME) {
+        /* جایگزینیِ نام در متن‌های نویسه‌شده — بازگشتی روی کلِ درخت. */
+        $walk = static function ($node) use (&$walk, $name) {
+            if (is_string($node)) {
+                return str_replace(HA_NAME, $name, $node);
+            }
+            if (is_array($node)) {
+                foreach ($node as $k => $v) {
+                    $node[$k] = $walk($v);
+                }
+            }
+            return $node;
+        };
+        $site = $walk($site);
+    }
+
+    /* فیلدهای ساخت‌یافته‌ی هویت: صریح و بدونِ ابهام */
+    if (isset($site['instructor']) && is_array($site['instructor'])) {
+        $site['instructor']['name'] = $name;
+        $site['instructor']['role'] = $role;
+    }
+    if (isset($site['hero']) && is_array($site['hero']) && !empty($site['hero']['eyebrow'])) {
+        $site['hero']['eyebrow'] = $name . ' — ' . $role;
+    }
+
+    return $cached = $site;
+}
+
+/* ------------------------------------------------------------------ */
+/*  پیام‌های تماس                                                       */
+/*                                                                    */
+/*  چرا این لایه لازم بود؟ پیام‌ها در «دو» جا ذخیره می‌شوند: فرمِ تماس   */
+/*  در storage/messages/messages.csv می‌نویسد (append-only) و پنل در     */
+/*  storage/admin/messages.json. صفحه‌ی فهرست این دو را به هم می‌چسباند  */
+/*  و بعد array_reverse() می‌کرد، ولی «همان» شمارنده‌ی معکوس را به‌عنوان   */
+/*  شناسه به message_view و message_delete می‌فرستاد. آن دو فایل یکی      */
+/*  آرایه‌ی «بدونِ reverse» را ایندکس می‌زد و دیگری فقط آرایه‌ی پنل را —    */
+/*  پس «مشاهده» پیامِ اشتباه را باز می‌کرد و «حذف» رکوردِ اشتباه را        */
+/*  می‌برد (یا هیچ). اکنون هر پیام یک ref پایدار دارد: csv-N یا pan-N.   */
+/*  از خطِ تیره استفاده می‌کنیم نه دونقطه، چون در حالتِ HA_PRETTY_URLS   */
+/*  فیلترِ bootstrap کاراکترهای غیرِ [A-Za-z0-9_/\-] را از مسیر پاک      */
+/*  می‌کند و دونقطه باعثِ شکستنِ پیوندِ مشاهده می‌شد.                    */
+/* ------------------------------------------------------------------ */
+
+/** مسیرِ فایلِ CSV پیام‌های تماس. */
+function contact_messages_file(): string
+{
+    return storage_dir('messages') . '/messages.csv';
+}
+
+/** خواندنِ پیام‌های CSV به‌صورتِ آرایه‌ی انجمنی. در هر خرابی: آرایه‌ی خالی. */
+function contact_messages_read(): array
+{
+    $file = contact_messages_file();
+    if (!is_file($file) || !is_readable($file)) {
+        return [];
+    }
+    $fp = @fopen($file, 'r');
+    if ($fp === false) {
+        return [];
+    }
+    $out = [];
+    $header = fgetcsv($fp);            // ردیفِ سرستون
+    if (is_array($header)) {
+        while (($row = fgetcsv($fp)) !== false) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $out[] = [
+                'time'    => (string) ($row[0] ?? ''),
+                'subject' => (string) ($row[1] ?? ''),
+                'name'    => (string) ($row[2] ?? ''),
+                'email'   => (string) ($row[3] ?? ''),
+                'message' => (string) ($row[4] ?? ''),
+                'ip'      => (string) ($row[5] ?? ''),
+                'source'  => 'csv',
+            ];
+        }
+    }
+    fclose($fp);
+    return $out;
+}
+
+/**
+ * همه‌ی پیام‌ها با شناسه‌ی پایدار.
+ * ترتیب: تازه‌ترین اول (بر اساسِ time)، ولی ref به ترتیبِ ذخیره وابسته است
+ * نه به ترتیبِ نمایش — پس جابه‌جاییِ نمایش، حذف را خراب نمی‌کند.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function admin_messages_all(): array
+{
+    $all = [];
+    foreach (contact_messages_read() as $i => $m) {
+        $m['ref'] = 'csv-' . $i;
+        $all[] = $m;
+    }
+    foreach (admin_load('messages') as $i => $m) {
+        if (!is_array($m)) {
+            continue;
+        }
+        $m['ref']    = 'pan-' . $i;
+        $m['source'] = 'panel';
+        $all[] = $m;
+    }
+    usort($all, static function (array $a, array $b): int {
+        return strcmp((string) ($b['time'] ?? ''), (string) ($a['time'] ?? ''));
+    });
+    return $all;
+}
+
+/** اعتبارسنجیِ ref — فقط دو قالبِ csv-N و pan-N پذیرفته می‌شود. */
+function admin_message_parse_ref(string $ref): ?array
+{
+    if (!preg_match('/^(csv|pan)-(\d{1,6})$/', $ref, $m)) {
+        return null;
+    }
+    return ['source' => $m[1], 'index' => (int) $m[2]];
+}
+
+/** پیدا کردنِ یک پیام با ref. */
+function admin_message_find(string $ref): ?array
+{
+    $parsed = admin_message_parse_ref($ref);
+    if ($parsed === null) {
+        return null;
+    }
+    $list = $parsed['source'] === 'csv' ? contact_messages_read() : admin_load('messages');
+    $item = $list[$parsed['index']] ?? null;
+    if (!is_array($item)) {
+        return null;
+    }
+    $item['ref']    = $ref;
+    $item['source'] = $parsed['source'] === 'csv' ? 'csv' : 'panel';
+    return $item;
+}
+
+/**
+ * حذفِ یک پیام از منبعِ درستِ خودش.
+ * برای CSV کلِ فایل با قفلِ انحصاری بازنویسی می‌شود (بدونِ آن ردیف).
+ */
+function admin_message_delete(string $ref): bool
+{
+    $parsed = admin_message_parse_ref($ref);
+    if ($parsed === null) {
+        return false;
+    }
+
+    if ($parsed['source'] === 'pan') {
+        $messages = admin_load('messages');
+        if (!isset($messages[$parsed['index']])) {
+            return false;
+        }
+        array_splice($messages, $parsed['index'], 1);
+        return admin_store('messages', $messages);
+    }
+
+    $file = contact_messages_file();
+    if (!is_file($file)) {
+        return false;
+    }
+    $fp = @fopen($file, 'r');
+    if ($fp === false) {
+        return false;
+    }
+    $rows = [];
+    $header = fgetcsv($fp);
+    while (($row = fgetcsv($fp)) !== false) {
+        $rows[] = $row;
+    }
+    fclose($fp);
+    if (!isset($rows[$parsed['index']])) {
+        return false;
+    }
+    array_splice($rows, $parsed['index'], 1);
+
+    $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
+    $out = @fopen($tmp, 'w');
+    if ($out === false) {
+        return false;
+    }
+    $ok = true;
+    if (flock($out, LOCK_EX)) {
+        if (is_array($header)) {
+            $ok = $ok && fputcsv($out, $header) !== false;
+        }
+        foreach ($rows as $row) {
+            $ok = $ok && fputcsv($out, (array) $row) !== false;
+        }
+        flock($out, LOCK_UN);
+    } else {
+        $ok = false;
+    }
+    fclose($out);
+    if (!$ok) {
+        @unlink($tmp);
+        return false;
+    }
+    if (!@rename($tmp, $file)) {
+        @unlink($tmp);
+        return false;
+    }
+    return true;
+}
+
