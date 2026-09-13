@@ -6,12 +6,19 @@
     },
     "api/sitemap.php": {
       "runtime": "vercel-php@0.9.0"
+    },
+    "api/robots.php": {
+      "runtime": "vercel-php@0.9.0"
+    },
+    "api/asset.php": {
+      "runtime": "vercel-php@0.9.0"
     }
   },
   "routes": [
-    { "src": "/assets/(.*)", "continue": true },
-    { "src": "/robots.txt", "continue": true },
-    { "src": "/sitemap.php", "dest": "/api/sitemap.php" },
+    { "src": "/sitemap\\.xml", "dest": "/api/sitemap.php" },
+    { "src": "/sitemap\\.php", "dest": "/api/sitemap.php" },
+    { "src": "/robots\\.txt", "dest": "/api/robots.php" },
+    { "src": "/assets/(.*)", "dest": "/api/asset.php?path=$1" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }

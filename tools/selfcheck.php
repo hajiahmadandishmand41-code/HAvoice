@@ -112,7 +112,9 @@ check('allow_url_fopen (برای آزمونِ HTTP)', (bool) ini_get('allow_url_
 group('۲. پیکربندی');
 $consts = ['HA_NAME', 'HA_TAGLINE', 'HA_EMAIL', 'HA_HOTLINE', 'HA_SITE_URL', 'HA_DEBUG', 'HA_PRETTY_URLS',
            'HA_FORCE_HTTPS', 'HA_RATE_LIMIT_MAX', 'HA_RATE_LIMIT_WINDOW', 'HA_RATE_LIMIT_MIN_INTERVAL',
-           'HA_RATE_LIMIT_MAX_FILES', 'HA_CSRF_TTL', 'HA_VERSION'];
+           'HA_RATE_LIMIT_MAX_FILES', 'HA_CSRF_TTL', 'HA_VERSION', 'HA_STORAGE_PATH',
+           'HA_AUTH_MIN_PASSWORD', 'HA_AUTH_LOGIN_RATE_LIMIT_MAX', 'HA_AUTH_REGISTER_RATE_LIMIT_MAX',
+           'HA_AUTH_RATE_LIMIT_WINDOW'];
 foreach ($consts as $c) {
     check("ثابت {$c}", defined($c));
 }
@@ -373,6 +375,9 @@ $routes = [
     'lesson'        => '/index.php?p=lesson&slug=breathing-foundations',
     'category'      => '/index.php?p=category&slug=public-speaking',
     'article'       => '/index.php?p=article&slug=power-of-pause',
+    'login'         => '/index.php?p=login',
+    'register'      => '/index.php?p=register',
+    'logout'        => '/index.php?p=logout',
     'not-found'     => '/index.php?p=__nope__',
 ];
 

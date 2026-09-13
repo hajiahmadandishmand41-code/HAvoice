@@ -20,6 +20,7 @@ $meta  = $GLOBALS['HA_META'];
 $route = $GLOBALS['HA_ROUTE'];
 $site  = data('site');
 $cats  = categories();
+$currentUser = auth_current_user();
 
 $canonical = !empty($meta['canonical']) ? absolute_url((string) $meta['canonical']) : '';
 $ogImage   = !empty($meta['image']) ? absolute_url(asset((string) $meta['image'])) : '';
@@ -115,6 +116,18 @@ $themeDark = '#0b1512';
 
             <div class="main-nav__cta">
                 <a class="btn btn--primary btn--block" href="<?= e(url('courses')) ?>"><?= e($site['cta_start'] ?? 'شروع یادگیری') ?></a>
+                <div class="main-nav__auth">
+<?php if ($currentUser !== null): ?>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('account')) ?>"><?= ha_icon('user', 16) ?> حساب کاربری</a>
+                    <form method="post" action="<?= e(url('logout')) ?>">
+                        <?= csrf_field() ?>
+                        <button class="btn btn--ghost btn--block" type="submit"><?= ha_icon('external', 16) ?> خروج</button>
+                    </form>
+<?php else: ?>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('login')) ?>"><?= ha_icon('user', 16) ?> ورود</a>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('register')) ?>">ثبت‌نام</a>
+<?php endif; ?>
+                </div>
             </div>
         </nav>
 
@@ -126,6 +139,16 @@ $themeDark = '#0b1512';
                 <span class="theme-toggle__icon theme-toggle__icon--sun"><?= ha_icon('sun', 19) ?></span>
                 <span class="theme-toggle__icon theme-toggle__icon--moon"><?= ha_icon('moon', 19) ?></span>
             </button>
+<?php if ($currentUser !== null): ?>
+            <a class="account-chip" href="<?= e(url('account')) ?>" title="حساب کاربری">
+                <span class="account-chip__avatar" aria-hidden="true"><?= e(auth_initial((string) $currentUser['name'])) ?></span>
+                <span class="account-chip__name"><?= e(mb_strimwidth((string) $currentUser['name'], 0, 12, '…', 'UTF-8')) ?></span>
+            </a>
+<?php else: ?>
+            <a class="icon-btn" href="<?= e(url('login')) ?>" aria-label="ورود به حساب کاربری">
+                <?= ha_icon('user', 19) ?>
+            </a>
+<?php endif; ?>
             <a class="btn btn--primary header-actions__cta" href="<?= e(url('courses')) ?>">دوره‌ها</a>
             <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-controls="main-nav" aria-expanded="false" aria-label="باز و بسته کردن منو">
                 <span class="nav-toggle__bars" aria-hidden="true"></span>

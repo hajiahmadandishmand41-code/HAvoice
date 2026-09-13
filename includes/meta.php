@@ -356,6 +356,10 @@ function ha_page_meta(string $route): array
         'about'     => 'درباره‌ی حاجی احمد صالحی',
         'contact'   => 'تماس با ما',
         'search'    => 'جستجو در همه‌ی محتوا',
+        'login'     => 'ورود به حساب کاربری',
+        'register'  => 'ساخت حساب کاربری',
+        'account'   => 'حساب کاربری',
+        'logout'    => 'خروج از حساب',
     ];
     $descriptions = [
         'courses'   => 'دوره‌های مرحله‌ای و تمرین‌محور در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی، زمان و مذاکره.',
@@ -371,6 +375,10 @@ function ha_page_meta(string $route): array
         'about'     => 'معرفیِ حاجی احمد صالحی، رویکردِ آموزشی، حوزه‌ها و سؤالاتِ متداول.',
         'contact'   => 'پرسش، پیشنهاد و همکاری؛ پاسخ‌گویی تا دو روزِ کاری.',
         'search'    => 'جستجو در تمامِ محتوا: مقاله، درس، کتاب، پژوهش، ویدیو و صوت.',
+        'login'     => 'ورود به حساب کاربری HAvoice برای پیگیریِ مسیر یادگیری.',
+        'register'  => 'ساخت حساب رایگان در HAvoice و دنبال کردنِ پیشرفتِ درس‌ها و تمرین‌ها.',
+        'account'   => 'داشبورد کاربری HAvoice: مشخصات، پیشرفت و دسترسی سریع به یادگیری.',
+        'logout'    => 'خروج امن از حساب کاربری HAvoice.',
     ];
     $shortTitles = [
         'courses'   => 'دوره‌ها',
@@ -386,9 +394,13 @@ function ha_page_meta(string $route): array
         'about'     => 'درباره‌ی حاجی احمد صالحی',
         'contact'   => 'تماس با ما',
         'search'    => 'جستجو',
+        'login'     => 'ورود',
+        'register'  => 'ثبت‌نام',
+        'account'   => 'حساب کاربری',
+        'logout'    => 'خروج',
     ];
     // صفحه‌هایی که <h1> خودشان را می‌سازند ⇒ بنر (و <h1> دوم) خاموش
-    $bannerless = ['contact', 'about'];
+    $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout'];
 
     return array_merge($base, [
         'title'       => (isset($titles[$route]) ? $titles[$route] : HA_NAME) . ' | ' . $siteName,
@@ -396,6 +408,6 @@ function ha_page_meta(string $route): array
         'h1'          => $shortTitles[$route] ?? HA_NAME,
         'banner'      => !in_array($route, $bannerless, true),
         'canonical'   => url($route),
-        'robots'      => $route === 'search' ? 'noindex,follow' : 'index,follow',
+        'robots'      => in_array($route, ['search', 'login', 'register', 'account', 'logout'], true) ? 'noindex,follow' : 'index,follow',
     ]);
 }

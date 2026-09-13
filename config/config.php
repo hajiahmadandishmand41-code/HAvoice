@@ -18,6 +18,17 @@ if (!defined('HA_ROOT')) {
 /** زیرپوشه‌ی نصب نسبت به ریشه‌ی دامنه. برای نصب در ریشه: '' */
 define('HA_BASE_PATH', '');
 
+/**
+ * مسیرِ ذخیره‌سازی (پیام‌ها، نشست‌ها، کاربران، محدودیت نرخ).
+ *
+ * مقدار خالی '' ⇒ پیش‌فرض: HA_ROOT/storage
+ * روی پلتفرم‌های read-only مثل Vercel، اگر storage موجود اما نوشتنی نباشد،
+ * به‌صورت خودکار از پوشه‌ی موقتِ سیستم استفاده می‌شود (به storage_dir() مراجعه کنید).
+ * می‌توانید با تنظیمِ این ثابت، مسیرِ دلخواه بدهید؛ مثلاً روی Vercel:
+ *   define('HA_STORAGE_PATH', '/tmp/havoice-storage');
+ */
+define('HA_STORAGE_PATH', '');
+
 /** آدرس‌های کوتاه (/courses) به‌جای (?p=courses). نیاز به mod_rewrite دارد. */
 define('HA_PRETTY_URLS', false);
 
@@ -39,9 +50,9 @@ define('HA_NAME',  'حاجی احمد صالحی');
 define('HA_LEGAL', 'HAvoice');
 define('HA_TAGLINE', 'مدرس و پژوهشگر');
 define('HA_BRAND_FULL', 'حاجی احمد صالحی | مدرس و پژوهشگر');
-define('HA_EMAIL', 'info@havoice.ir');
-define('HA_PHONE', '۰۲۱ ۹۱۰۰ ۰۰۰۰');
-define('HA_HOTLINE', '+989120000000');
+define('HA_EMAIL', 'hajiahmads299@gmail.com');
+define('HA_PHONE', '۰۷۶ ۶۴۸ ۶۲۹۹');
+define('HA_HOTLINE', '+98766486299');
 
 /* ------------------------------------------------------------------ */
 /*  فرم تماس                                                          */
@@ -93,4 +104,24 @@ define('HA_RATE_LIMIT_MAX_FILES', 400);
 /** عمر توکن CSRF (ثانیه). پس از انقضا، توکن تازه ساخته می‌شود. */
 define('HA_CSRF_TTL', 28800);
 
-define('HA_VERSION', '2.1.0');
+/* ------------------------------------------------------------------ */
+/*  حساب کاربری (ورود / ثبت‌نام)                                      */
+/*                                                                    */
+/*  کاربران در storage/users.json به‌صورت file-based ذخیره می‌شوند    */
+/*  (بدون دیتابیس). رمز عبور فقط به‌صورت هش password_hash() نگهداری   */
+/*  می‌شود و هرگز plaintext ذخیره نمی‌شود.                            */
+/* ------------------------------------------------------------------ */
+
+/** کمینه‌ی طول رمز عبور (نویسه). */
+define('HA_AUTH_MIN_PASSWORD', 8);
+
+/** حداکثر تلاشِ ورود از یک IP در هر HA_AUTH_RATE_LIMIT_WINDOW ثانیه. */
+define('HA_AUTH_LOGIN_RATE_LIMIT_MAX', 8);
+
+/** حداکثر ثبت‌نام از یک IP در هر پنجره (ضد ساختِ انبوهِ حساب). */
+define('HA_AUTH_REGISTER_RATE_LIMIT_MAX', 5);
+
+/** طول پنجره‌ی محدودیتِ نرخِ ورود/ثبت‌نام (ثانیه). */
+define('HA_AUTH_RATE_LIMIT_WINDOW', 600);
+
+define('HA_VERSION', '2.2.0');

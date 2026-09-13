@@ -8,6 +8,10 @@ storage/sessions/*
 !storage/sessions/.htaccess
 !storage/.htaccess
 
+# حساب‌های کاربری (هشِ رمزها) — داده‌ی زمانِ اجراست و نباید در مخزن بیاید
+storage/users.json
+storage/users.json.tmp-*
+
 # فایل‌های سیستمی
 .DS_Store
 Thumbs.db

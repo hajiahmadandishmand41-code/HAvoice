@@ -1,4 +1,4 @@
-name: PHP Composer
+name: PHP CI
 
 on:
   push:
@@ -11,29 +11,36 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate --strict
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, json, xml, filter, session
+          coverage: none
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-
+      - name: Validate PHP syntax (all files)
+        run: |
+          set -e
+          for f in $(find . -name '*.php' -not -path './storage/*'); do
+            php -l "$f" >/dev/null || { echo "Syntax error in $f"; exit 1; }
+          done
+          echo "All PHP files lint OK"
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
+      - name: Run self-check (offline)
+        run: php tools/selfcheck.php
 
-    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-    # Docs: https://getcomposer.org/doc/articles/scripts.md
-
-    # - name: Run test suite
-    #   run: composer run-script test
+      - name: Run self-check (HTTP smoke)
+        run: |
+          php -S 127.0.0.1:8080 -t . >/dev/null 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null' EXIT
+          for i in $(seq 1 20); do
+            curl -fsS "http://127.0.0.1:8080/index.php?p=home" >/dev/null 2>&1 && break
+            sleep 1
+          done
+          php tools/selfcheck.php --http=http://127.0.0.1:8080

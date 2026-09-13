@@ -11,6 +11,10 @@ User-agent: *
 Allow: /
 Disallow: /index.php?p=search
 Disallow: /search
+Disallow: /index.php?p=login
+Disallow: /index.php?p=register
+Disallow: /index.php?p=account
+Disallow: /index.php?p=logout
 Disallow: /storage/
 Disallow: /config/
 Disallow: /includes/
