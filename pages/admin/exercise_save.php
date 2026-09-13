@@ -10,4 +10,5 @@ $item = ['id'=>$id,'title'=>$title,'level'=>trim((string)($_POST['level']??'عم
 $orig = (string)($_POST['original_id'] ?? ''); $found = false;
 foreach ($items as $i => $ex) { if (($ex['id'] ?? '') === $orig || ($ex['id'] ?? '') === $id) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;
-admin_store('exercises', $items); flash('success','تمرین ذخیره شد.'); redirect(url('admin_exercises'));
+if (!admin_store('exercises', $items)) { flash('error','ذخیره‌سازی تمرین ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_exercises')); }
+flash('success','تمرین ذخیره شد.'); redirect(url('admin_exercises'));
