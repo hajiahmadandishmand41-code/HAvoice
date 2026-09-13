@@ -59,6 +59,7 @@ $themeDark = '#0B1B3F';
     <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/mobile-ui-fixes.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/ui-polish.css')) ?>">
     <script src="<?= e(asset('assets/js/theme.js')) ?>"></script>
 </head>
 <body class="route-<?= e($route) ?>">
