@@ -8,4 +8,5 @@ $item = ['id'=>$id,'text'=>$text,'try'=>trim((string)($_POST['try']??'')),'categ
 $orig = (string)($_POST['original_id'] ?? ''); $found = false;
 foreach ($items as $i => $t) { if (($t['id'] ?? '') === $orig || ($t['id'] ?? '') === $id) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;
-admin_store('tips', $items); flash('success','نکته ذخیره شد.'); redirect(url('admin_tips'));
+if (!admin_store('tips', $items)) { flash('error','ذخیره‌سازی نکته ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_tips')); }
+flash('success','نکته ذخیره شد.'); redirect(url('admin_tips'));
