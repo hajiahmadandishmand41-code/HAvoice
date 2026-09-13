@@ -2,8 +2,6 @@
  * HAvoice — تعیینِ حالتِ نمایش پیش از اولین رنگ‌آمیزی
  *
  * سه حالت پشتیبانی می‌شود: light | dark | auto.
- * لایه‌ی CSS واکنش‌گرا به‌صورتِ استاتیک در header بارگذاری می‌شود تا
- * ناوبری موبایل قبل از اولین paint هم قراردادِ مشخصی داشته باشد.
  */
 (function () {
     'use strict';
@@ -24,12 +22,11 @@
     root.setAttribute('data-theme', read());
 
     /*
-     * Mobile shell hardening.
-     * The screenshot exposed a stronger failure than the drawer itself:
-     * the document's actual main column was being laid out on only the
-     * right half of the viewport. This final cascade layer intentionally
-     * uses viewport units + !important and targets the real direct children
-     * of <body>, so no nested component can make the page a half-width app.
+     * Mobile layout hardening.
+     * The drawer is never translated outside the viewport while closed.
+     * It is removed from layout with display:none and becomes display:block
+     * only in the open state. This prevents the closed state from creating
+     * horizontal overflow or changing the page width.
      */
     var installMobileHardFix = function () {
         if (document.getElementById('ha-mobile-hard-fix')) return;
@@ -38,24 +35,24 @@
         style.id = 'ha-mobile-hard-fix';
         style.textContent = [
             '@media (max-width:1119.98px){',
-            'html,body{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}',
+            'html,body{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}',
             'body{display:block!important;position:relative!important;}',
-            'body>.site-header,body>.site-main,body>.site-footer{display:block!important;width:100vw!important;max-width:100vw!important;min-width:0!important;margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;margin-inline-end:0!important;transform:none!important;inset-inline-start:auto!important;inset-inline-end:auto!important;left:auto!important;right:auto!important;grid-column:auto!important;flex:none!important;}',
+            'body>.site-header,body>.site-main,body>.site-footer{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;transform:none!important;left:auto!important;right:auto!important;inset-inline-start:auto!important;inset-inline-end:auto!important;}',
             'body>.site-main{position:relative!important;}',
-            'body>.site-main>section,body>.site-main>div,body>.site-main>article,body>.site-main>aside{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;margin-inline-end:0!important;transform:none!important;}',
-            'body>.site-main>.container,body>.site-main>section>.container,body>.site-main>div>.container,body>.site-main>article>.container{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;margin-inline-end:0!important;}',
-            '.site-header__inner{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;}',
+            'body>.site-main>section,body>.site-main>div,body>.site-main>article,body>.site-main>aside{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;margin-inline-end:0!important;box-sizing:border-box!important;transform:none!important;}',
+            'body>.site-main>.container,body>.site-main>section>.container,body>.site-main>div>.container,body>.site-main>article>.container{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;margin-inline-start:0!important;margin-inline-end:0!important;box-sizing:border-box!important;}',
+            '.site-header__inner{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;}',
             '.site-header__inner>.nav-toggle{display:grid!important;}',
             '.header-actions__auth,.header-actions .theme-toggle{display:grid!important;}',
             '.header-actions__admin,.header-actions__cta{display:none!important;}',
-            '.main-nav{position:fixed!important;top:var(--ha-header-h,64px)!important;right:0!important;left:auto!important;bottom:0!important;width:min(56vw,260px)!important;max-width:calc(100vw - 18px)!important;height:auto!important;margin:0!important;box-sizing:border-box!important;overflow-x:hidden!important;overflow-y:auto!important;transform:translate3d(101%,0,0)!important;visibility:hidden!important;pointer-events:none!important;z-index:var(--z-drawer,70)!important;}',
-            'html.nav-open .main-nav,body.nav-open .main-nav{transform:translate3d(0,0,0)!important;visibility:visible!important;pointer-events:auto!important;}',
-            '[dir="ltr"] .main-nav{right:auto!important;left:0!important;transform:translate3d(-101%,0,0)!important;}',
-            '[dir="ltr"] html.nav-open .main-nav,[dir="ltr"] body.nav-open .main-nav{transform:translate3d(0,0,0)!important;}',
+            '.main-nav{position:fixed!important;top:var(--ha-header-h,64px)!important;right:0!important;left:auto!important;bottom:0!important;width:min(56vw,260px)!important;max-width:calc(100vw - 18px)!important;height:auto!important;margin:0!important;box-sizing:border-box!important;overflow-x:hidden!important;overflow-y:auto!important;visibility:visible!important;pointer-events:auto!important;z-index:var(--z-drawer,70)!important;display:none!important;transform:none!important;}',
+            'html.nav-open .main-nav,body.nav-open .main-nav{display:block!important;}',
+            '[dir="ltr"] .main-nav{right:auto!important;left:0!important;}',
+            '[dir="ltr"] html.nav-open .main-nav,[dir="ltr"] body.nav-open .main-nav{display:block!important;}',
             '.nav-backdrop{position:fixed!important;top:var(--ha-header-h,64px)!important;right:0!important;left:0!important;bottom:0!important;}',
             '}',
             '@media (max-width:767.98px){',
-            '.container{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;padding-left:max(var(--gutter),env(safe-area-inset-left))!important;padding-right:max(var(--gutter),env(safe-area-inset-right))!important;}',
+            '.container{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;padding-left:max(var(--gutter),env(safe-area-inset-left))!important;padding-right:max(var(--gutter),env(safe-area-inset-right))!important;box-sizing:border-box!important;}',
             '.route-home .hero__grid,.detail-grid,.course-layout,.article__grid,.account-grid,.contact-grid,.contact-hero,.two-col{grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;}',
             '.route-home .grid--2,.route-home .grid--3,.route-home .grid--4{grid-template-columns:minmax(0,1fr)!important;width:100%!important;}',
             '.route-home .hero,.route-home .section,.route-home .topic-strip{width:100%!important;max-width:100%!important;min-width:0!important;}',
@@ -71,7 +68,7 @@
             '.nav-toggle{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;}',
             '}',
             '@media (min-width:1120px){',
-            '.main-nav{position:relative!important;width:auto!important;max-width:none!important;transform:none!important;visibility:visible!important;overflow:visible!important;}',
+            '.main-nav{position:relative!important;width:auto!important;max-width:none!important;display:block!important;transform:none!important;visibility:visible!important;overflow:visible!important;}',
             '.nav-toggle{display:none!important;}',
             '.nav-backdrop{display:none!important;}',
             '}',
