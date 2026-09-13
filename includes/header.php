@@ -58,6 +58,7 @@ $themeDark = '#0B1B3F';
     <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/mobile-layout.css')) ?>">
     <script src="<?= e(asset('assets/js/theme.js')) ?>"></script>
 </head>
 <body class="route-<?= e($route) ?>">
@@ -169,15 +170,6 @@ $themeDark = '#0B1B3F';
             <a class="btn btn--primary header-actions__cta" href="<?= e(url('courses')) ?>"><?= e($site['cta_start'] ?? 'شروع یادگیری') ?></a>
         </div>
 
-        <?php
-        /* لایه‌ی تیره‌ی کشو عمداً «داخلِ» هدر است:
-           هدر با position:sticky و z-index یک stacking context می‌سازد و کشو
-           (nav.main-nav) هم فرزندِ همین هدر است. اگر backdrop بیرون از هدر
-           باشد، z-indexِ آن در سطحِ ریشه با خودِ هدر مقایسه می‌شود و روی
-           کشو را می‌گیرد؛ داخلِ هدر باشد، ترتیبِ درست (کشو > backdrop)
-           برقرار می‌ماند. این عنصر position:fixed است و از جریانِ flex
-           هدر خارج است، پس در چیدمانِ دسکتاپ خللی ایجاد نمی‌کند. */
-        ?>
         <div class="nav-backdrop" data-nav-backdrop hidden></div>
     </div>
 </header>
