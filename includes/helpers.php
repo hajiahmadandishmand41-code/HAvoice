@@ -256,6 +256,10 @@ function routes(): array
         'about'     => ['file' => 'about.php',     'pretty' => 'about',     'title' => 'درباره مدرس'],
         'contact'   => ['file' => 'contact.php',   'pretty' => 'contact',   'title' => 'تماس با ما', 'session' => true],
         'search'    => ['file' => 'search.php',    'pretty' => 'search',    'title' => 'جستجو'],
+        'login'     => ['file' => 'login.php',     'pretty' => 'login',     'title' => 'ورود',       'session' => true],
+        'register'  => ['file' => 'register.php',  'pretty' => 'register',  'title' => 'ثبت‌نام',    'session' => true],
+        'logout'    => ['file' => 'logout.php',    'pretty' => 'logout',    'title' => 'خروج',       'session' => true],
+        'account'   => ['file' => 'account.php',   'pretty' => 'account',   'title' => 'حساب کاربری', 'session' => true],
     ];
     return $table;
 }
@@ -881,11 +885,43 @@ function fa_ordinal(int $n, int $total=0): string
 
 function storage_dir(string $sub=''): string
 {
-    $dir = HA_ROOT . '/storage' . ($sub!=='' ? '/'.trim($sub,'/') : '');
-    return $dir;
+    static $base = null;
+    if ($base === null) {
+        $base = HA_STORAGE_PATH !== '' ? rtrim(HA_STORAGE_PATH, '/') : (HA_ROOT . '/storage');
+        /* روی استقرارهای read-only (مثل Vercel) پوشه‌ی storage همراهِ کد
+           قابلِ نوشتن نیست؛ به‌جای شکست، به پوشه‌ی موقتِ سیستم برمی‌گردیم تا
+           نشست، فرم تماس و حسابِ کاربری همچنان کار کنند. */
+        if (!is_dir($base) || !is_writable($base)) {
+            $tmp = function_exists('sys_get_temp_dir') ? rtrim((string) sys_get_temp_dir(), '/') : '';
+            if ($tmp !== '' && is_dir($tmp) && is_writable($tmp)) {
+                $alt = $tmp . '/havoice-storage';
+                if (!is_dir($alt)) {
+                    @mkdir($alt, 0700, true);
+                }
+                if (is_dir($alt) && is_writable($alt)) {
+                    $base = $alt;
+                }
+            }
+        }
+    }
+    return $base . ($sub !== '' ? '/' . trim($sub, '/') : '');
 }
 
-function redirect(string $to): void { if(!headers_sent()) header('Location: '.$to); exit; }
+function redirect(string $to): void
+{
+    /* نشانیِ هدف برای ابزارهای تست و لاگ در دسترس باشد؛ در تولید بدون اثر است. */
+    $GLOBALS['HA_REDIRECT_TO'] = $to;
+    if (!headers_sent()) {
+        header('Location: ' . $to);
+    }
+    /* فقط برای تستِ خودکار: به‌جای exit یک استثنا پرتاب می‌شود تا اجرایِ
+       اسکریپت بلافاصله متوقف شود (دقیقاً مثل exit) ولی مهارِ آن در harness
+       ممکن باشد. در تولید هرگز اجرا نمی‌شود. */
+    if (!empty($GLOBALS['HA_TEST_NO_EXIT'])) {
+        throw new \RuntimeException('HA_REDIRECT');
+    }
+    exit;
+}
 
 function flash(string $type='', string $message=''): array
 {

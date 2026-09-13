@@ -1177,3 +1177,109 @@ body.modal-open { overflow: hidden; }
   .category-grid { grid-template-columns: 1fr; }
 }
 
+
+/* ==========================================================================
+   حساب کاربری — ورود / ثبت‌نام / داشبورد
+   ========================================================================== */
+
+/* چیپِ حساب در هدر */
+.account-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .28rem .7rem .28rem .3rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-soft);
+    font-size: .86rem;
+    font-weight: 700;
+    transition: border-color .2s, color .2s, transform .2s var(--ease);
+}
+.account-chip:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
+.account-chip__avatar {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand), var(--brand-3));
+    color: var(--on-brand);
+    font-weight: 800;
+    font-size: .92rem;
+}
+.account-chip__name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.main-nav__auth { display: grid; gap: .5rem; margin-top: .6rem; }
+
+/* صفحه‌های ورود / ثبت‌نام / خروج */
+.auth-section {
+    background:
+        radial-gradient(900px 360px at 85% -10%, var(--brand-soft), transparent 60%),
+        var(--bg-soft);
+}
+.auth-card {
+    max-width: 460px;
+    margin-inline: auto;
+    padding: clamp(1.6rem, 4vw, 2.6rem);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-l);
+    background: var(--surface);
+    box-shadow: var(--shadow-l);
+}
+.auth-card__brand { text-align: center; margin-bottom: 1.4rem; }
+.auth-card__mark {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto .9rem;
+    border-radius: 16px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    border: 1px solid var(--border);
+}
+.auth-card__brand .eyebrow { justify-content: center; margin-bottom: .5rem; }
+.auth-card__brand h1 { margin: 0 0 .4rem; font-size: clamp(1.4rem, 1.1rem + 1vw, 1.8rem); }
+.auth-card__lead { color: var(--text-soft); font-size: .95rem; margin: 0; }
+.auth-form { display: grid; gap: 1rem; }
+.auth-form__note { margin: 0; font-size: .78rem; color: var(--text-mute); text-align: center; }
+.auth-card__alt { margin: 1.4rem 0 0; padding-top: 1.2rem; border-top: 1px dashed var(--border); text-align: center; font-size: .9rem; color: var(--text-soft); }
+.auth-card__alt a { color: var(--brand); font-weight: 800; }
+.auth-card__alt a:hover { color: var(--brand-strong); }
+
+/* داشبوردِ حساب */
+.account-grid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: clamp(1.2rem, 2.6vw, 2rem); align-items: start; }
+.account-profile { display: flex; flex-direction: column; align-items: center; gap: .4rem; text-align: center; padding: clamp(1.4rem, 3vw, 2rem); }
+.account-profile__avatar {
+    width: 88px;
+    height: 88px;
+    display: grid;
+    place-items: center;
+    border-radius: 26px;
+    background: linear-gradient(135deg, var(--brand-3), var(--brand));
+    color: var(--on-brand);
+    font-size: 2.4rem;
+    font-weight: 900;
+    box-shadow: var(--shadow-l);
+    margin-bottom: .6rem;
+}
+.account-profile__name { margin: 0; font-size: 1.3rem; }
+.account-profile__email { margin: 0; font-size: .9rem; color: var(--text-soft); direction: ltr; }
+.account-profile__logout { width: 100%; margin-top: 1rem; }
+.account-main { display: grid; gap: 1.4rem; }
+.account-hello h2 { margin: .2rem 0 .4rem; }
+.account-hello .btn-row { margin-top: 1rem; }
+
+@media (max-width: 940px) {
+    .account-grid { grid-template-columns: 1fr; }
+    .account-profile { flex-direction: row; text-align: start; flex-wrap: wrap; }
+    .account-profile__avatar { margin-bottom: 0; }
+    .account-profile__logout { width: auto; margin-top: 0; margin-inline-start: auto; }
+}
+@media (max-width: 720px) {
+    .account-chip__name { display: none; }
+}
+@media (max-width: 520px) {
+    .account-profile { flex-direction: column; text-align: center; }
+    .account-profile__logout { width: 100%; margin-inline-start: 0; }
+}

@@ -9,6 +9,7 @@ if (!defined('HA_ROOT')) {
 
 $site = data('site');
 $cats = categories();
+$currentUser = auth_current_user();
 ?>
 </main>
 
@@ -54,6 +55,11 @@ $cats = categories();
                 <li><span>ایمیل:</span> <a href="mailto:<?= e(HA_EMAIL) ?>"><?= e(HA_EMAIL) ?></a></li>
                 <li><span>تلفن:</span> <a href="tel:<?= e(preg_replace('/[^0-9+]/','',HA_HOTLINE)) ?>"><?= e(HA_PHONE) ?></a></li>
                 <li><span>ساعت:</span> <?= e($site['work_hours'] ?? 'شنبه تا چهارشنبه، ۹ تا ۱۷') ?></li>
+<?php if ($currentUser !== null): ?>
+                <li><span>حساب:</span> <a href="<?= e(url('account')) ?>">حساب کاربری</a> · <a href="<?= e(url('logout')) ?>">خروج</a></li>
+<?php else: ?>
+                <li><span>حساب:</span> <a href="<?= e(url('login')) ?>">ورود</a> · <a href="<?= e(url('register')) ?>">ثبت‌نام</a></li>
+<?php endif; ?>
             </ul>
             <a class="btn btn--ghost btn--sm" href="<?= e(url('contact')) ?>"><?= e($site['footer_cta'] ?? 'ارسال پیام') ?></a>
         </div>

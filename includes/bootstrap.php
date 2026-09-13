@@ -18,6 +18,7 @@ require HA_ROOT . '/config/config.php';
 require HA_ROOT . '/includes/helpers.php';
 require HA_ROOT . '/includes/icons.php';
 require HA_ROOT . '/includes/content.php';
+require HA_ROOT . '/includes/auth.php';
 require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/meta.php';
 
@@ -33,7 +34,8 @@ ini_set('log_errors', '1');
 function ha_known_routes(): array
 {
     return ['home','courses','course','lesson','articles','article','videos','audios','books',
-            'research','category','exercises','tips','about','contact','search','404'];
+            'research','category','exercises','tips','about','contact','search','404',
+            'login','register','logout','account'];
 }
 
 function ha_resolve_route(): array
@@ -117,10 +119,14 @@ if (HA_FORCE_HTTPS && !ha_is_https() && !headers_sent()) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Session (فقط برای route‌هایی که لازم دارند)                        */
+/*  Session                                                            */
+/*                                                                    */
+/*  چون سیستمِ ورود/ثبت‌نام به‌صورتِ سراسری در هدر نمایش داده می‌شود،  */
+/*  نشست در همه‌ی صفحه‌ها شروع می‌شود (نه فقط فرم تماس). CSRFِ همه‌ی    */
+/*  فرم‌ها هم به همین نشست وابسته است.                                */
 /* ------------------------------------------------------------------ */
 
-if ((bool) route_meta($route, 'session', false) && session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
+if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
     ini_set('session.use_strict_mode', '1');   // جلوگیری از session fixation با SID تحمیلی
     ini_set('session.use_only_cookies', '1');
     ini_set('session.cookie_httponly', '1');
@@ -171,8 +177,21 @@ if (HA_SECURITY_HEADERS && !headers_sent()) {
 /*  پردازش POST (الگوی PRG — پیش از رندر قالب)                         */
 /* ------------------------------------------------------------------ */
 
-if ($route === 'contact' && (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
-    require HA_ROOT . '/includes/handlers/contact.php';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    switch ($route) {
+        case 'contact':
+            require HA_ROOT . '/includes/handlers/contact.php';
+            break;
+        case 'register':
+            require HA_ROOT . '/includes/handlers/register.php';
+            break;
+        case 'login':
+            require HA_ROOT . '/includes/handlers/login.php';
+            break;
+        case 'logout':
+            require HA_ROOT . '/includes/handlers/logout.php';
+            break;
+    }
 }
 
 /* ------------------------------------------------------------------ */
