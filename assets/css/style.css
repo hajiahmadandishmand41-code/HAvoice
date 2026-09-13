@@ -83,6 +83,8 @@
     --brand-softer:   var(--blue-50);
     --brand-2:        var(--blue-400);   /* روی پس‌زمینه‌ی تیره */
     --brand-3:        var(--indigo-600); /* انتهای گرادیانِ دکمه‌ی اصلی */
+    --brand-200:      var(--blue-200);   /* مرز/حاشیه‌ی روشنِ هاور */
+    --brand-300:      var(--blue-300);
     --on-brand:       #FFFFFF;
 
     --secondary:       var(--indigo-600);
@@ -232,6 +234,16 @@
     --z-modal:   80;
     --z-toast:   95;
     --z-totop:   90;
+
+    /* فاصله‌های امنِ لبه‌ی صفحه (ناچ/نوارِ حرکتِ iOS) — مقادیرِ LTR */
+    --safe-inline-start: env(safe-area-inset-left, 0px);
+    --safe-inline-end: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+}
+[dir="rtl"] {
+    --safe-inline-start: env(safe-area-inset-right, 0px);
+    --safe-inline-end: env(safe-area-inset-left, 0px);
 }
 
 /* ---- حالتِ تاریک ---- */
@@ -247,6 +259,8 @@
        ۴٫۲۷:۱ می‌داد و WCAG AA (حداقل ۴٫۵) را روی گرادیانِ دکمه‌ی اصلی رد
        نمی‌کرد. روشن‌تر شد ⇒ ۶٫۳۹:۱. */
     --on-brand:      #06101F;
+    --brand-200:     rgba(147, 178, 245, .38);  /* مرزِ هاور روی سطح تیره */
+    --brand-300:     rgba(147, 178, 245, .58);
 
     --secondary:      #8B8FF7;
     --secondary-soft: #1E1F4A;
@@ -322,6 +336,8 @@
            ۴٫۲۷:۱ می‌داد و WCAG AA (حداقل ۴٫۵) را روی گرادیانِ دکمه‌ی اصلی رد
            نمی‌کرد. روشن‌تر شد ⇒ ۶٫۳۹:۱. */
         --on-brand:      #06101F;
+        --brand-200:      rgba(147, 178, 245, .38);  /* مرزِ هاور روی سطح تیره */
+        --brand-300:      rgba(147, 178, 245, .58);
 
         --secondary:      #8B8FF7;
         --secondary-soft: #1E1F4A;
@@ -411,9 +427,14 @@ body {
     -webkit-overflow-scrolling: touch;
 }
 
+/* قفلِ پیمایشِ پس‌زمینه هنگامِ باز بودنِ کشو/مودال — روی html و body هر دو،
+   تا در iOS/Safari هم پیمایشِ پشت‌لایه انجام نشود. */
+html.nav-open,
 body.nav-open,
 body.modal-open,
 body.admin-nav-locked { overflow: hidden; }
+html:has(body.modal-open),
+html:has(body.admin-nav-locked) { overflow: hidden; }
 
 img, svg, video, canvas { max-width: 100%; height: auto; }
 img, video { display: block; }
@@ -943,6 +964,13 @@ input.is-invalid, textarea.is-invalid, select.is-invalid {
 
 /* ===== ۸) هدر و ناوبری =================================================== */
 
+/* نکته‌ی مهم: عمداً از backdrop-filter روی هدر استفاده نمی‌کنیم.
+   طبق spec، backdrop-filter (و transform/filter) روی یک عنصر آن را به
+   containing block برای نوادگانِ position:fixed تبدیل می‌کند. کشوی موبایل
+   (nav.main-nav) فرزندِ هدر است؛ با وجودِ backdrop-filter، کشو به‌جای
+   viewport نسبت به جعبه‌ی ۶۴–۷۲ پیکسلیِ هدر موقعیت می‌گرفت، ارتفاعش
+   فرومی‌ریخت و روی محتوا دیده نمی‌شد. پس‌زمینه‌ی هدر به‌قدرِ کافی مات است
+   و حالتِ چسبان با سایه مرز را مشخص می‌کند. */
 .site-header {
     position: sticky;
     top: 0;
@@ -951,17 +979,9 @@ input.is-invalid, textarea.is-invalid, select.is-invalid {
     border-bottom: 1px solid var(--border);
     transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
-    .site-header {
-        background: color-mix(in srgb, var(--bg) 88%, transparent);
-        -webkit-backdrop-filter: saturate(180%) blur(12px);
-        backdrop-filter: saturate(180%) blur(12px);
-    }
-}
 .site-header.is-stuck {
     border-bottom-color: var(--border-strong);
     box-shadow: var(--sh-sm);
-    background: var(--bg);
 }
 
 .site-header__inner {
@@ -1067,7 +1087,7 @@ input.is-invalid, textarea.is-invalid, select.is-invalid {
 }
 
 /* دکمه‌ی همبرگر — سه خطِ داخلِ کادرِ ۴۰×۴۰، هرگز از صفحه بیرون نمی‌زند */
-.nav-toggle { display: grid; }
+.nav-toggle { display: grid; place-items: center; }
 .nav-toggle__bars,
 .nav-toggle__bars::before,
 .nav-toggle__bars::after {
@@ -1126,51 +1146,72 @@ input.is-invalid, textarea.is-invalid, select.is-invalid {
     .site-header__inner { gap: var(--sp-1); }
 }
 
-/* --- کشویِ ناوبری (Mobile-First: همیشه کشو) ---
+/* --- کشویِ ناوبری (Mobile-First: زیر ۱۱۲۰px همیشه کشو) --------------
    نکته‌ی مهمِ RTL: دکمه‌ی همبرگر کنارِ لوگو در سمتِ «راست» نشسته است،
-   پس کشو هم از همان لبه‌ی راست (inset-inline-start) باز می‌شود.
-   برای بیرون‌رفتن از لبه‌ی راست باید translateX «مثبت» باشد.
-   نسخه‌ی پیشین translateX(100%) را با لنگرِ inset-inline-end (چپ)
-   ترکیب کرده بود؛ در نتیجه کشو به‌جایِ پنهان‌شدن به داخلِ صفحه هل داده
-   می‌شد و بخشی از منو حتی در حالتِ بسته روی موبایل دیده می‌شد. */
+   پس کشو هم از همان لبه‌ی راست (inset-inline-start) باز می‌شود و برای
+   بیرون‌رفتن باید translateX «مثبت» باشد (در LTR منفی).
+   شرطِ کارکردِ این position:fixed این است که هیچ جدِ دارای
+   backdrop-filter/transform/filter/contain نباشد؛ آن‌ها containing block
+   می‌سازند و کشو را به جعبه‌ی هدر محدود می‌کردند (ارتفاع فرومی‌ریخت). */
 .main-nav {
     position: fixed;
-    inset-block: 0;
+    inset-block-start: var(--header-h);
+    inset-block-end: 0;
     inset-inline-start: 0;
-    inline-size: min(88vw, 340px);
-    max-width: 340px;
+    inset-inline-end: auto;
+    inline-size: min(88vw, 360px);
+    max-width: 360px;
     z-index: var(--z-drawer);
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--sp-4);
-    padding: calc(var(--header-h) + var(--sp-4)) var(--sp-4) var(--sp-6);
+    padding-block: var(--sp-5) max(var(--sp-8), var(--safe-bottom));
+    padding-inline: var(--sp-4);
+    /* لبه‌ی بیرونیِ کشو (لبه‌ی راست در RTL) فاصله‌ی امنِ ناچ می‌گیرد */
+    padding-inline-start: max(var(--sp-4), var(--safe-inline-start));
     background: var(--surface);
     border-inline-end: 1px solid var(--border);
+    border-start-start-radius: var(--r-lg);
     box-shadow: var(--sh-xl);
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     transform: translateX(101%);
     visibility: hidden;
-    transition: transform var(--dur-slow) var(--ease), visibility 0s linear var(--dur-slow);
+    transition:
+        transform var(--dur-slow) var(--ease-out),
+        visibility 0s linear var(--dur-slow);
 }
-[dir="ltr"] .main-nav { transform: translateX(-101%); }
+[dir="ltr"] .main-nav {
+    transform: translateX(-101%);
+    border-inline-end: 0;
+    border-inline-start: 1px solid var(--border);
+    border-start-start-radius: 0;
+    border-start-end-radius: var(--r-lg);
+}
 body.nav-open .main-nav {
     transform: translateX(0);
     visibility: visible;
-    transition: transform var(--dur-slow) var(--ease), visibility 0s;
+    transition: transform var(--dur-slow) var(--ease-out), visibility 0s;
 }
 
-/* لایه‌ی تیره‌ی پشتِ کشو */
+/* لایه‌ی تیره‌ی پشتِ کشو.
+   عمداً از زیرِ هدر شروع می‌شود (inset-block-start: header-h): نوارِ هدر
+   شاملِ دکمه‌ی بستن (همبرگر)، جستجو و تم باید روشن و قابل‌کلیک بماند؛
+   ضمناً این لایه داخلِ خودِ هدر در DOM است تا با کشو در یک stacking
+   context باشد و نتواند روی کشو نقاشی شود. */
 .nav-backdrop {
     position: fixed;
-    inset: 0;
+    inset-block-start: var(--header-h);
+    inset-block-end: 0;
+    inset-inline: 0;
     z-index: var(--z-overlay);
-    background: rgba(6, 14, 34, .5);
-    -webkit-backdrop-filter: blur(2px);
-    backdrop-filter: blur(2px);
+    background: rgba(6, 14, 34, .52);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--dur) var(--ease), visibility 0s linear var(--dur);
@@ -1178,15 +1219,20 @@ body.nav-open .main-nav {
 body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opacity var(--dur) var(--ease), visibility 0s; }
 .nav-backdrop[hidden] { display: none; }
 
+/* دکمه‌ی همبرگر همیشه چند لایه بالاتر از backdrop باشد (در حالتِ باز
+   نقشِ دکمه‌ی بستن را دارد). */
+.nav-toggle { z-index: calc(var(--z-drawer) + 2); }
+
 .main-nav__list { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
 .main-nav__list li { min-width: 0; }
-.main-nav__list a {
+.main-nav__list > li > a {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-2);
-    padding: .85rem var(--sp-3);
+    min-height: 48px;
+    padding: .72rem var(--sp-3);
     font-size: var(--fs-md);
     font-weight: var(--fw-semi);
     color: var(--text-soft);
@@ -1194,9 +1240,9 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
     transition: color var(--dur-fast), background var(--dur-fast);
     min-width: 0;
 }
-.main-nav__list a:hover { color: var(--brand); background: var(--brand-softer); }
-.main-nav__list a.is-active { color: var(--brand); background: var(--brand-soft); font-weight: var(--fw-extra); }
-.main-nav__list a.is-active::before {
+.main-nav__list > li > a:hover { color: var(--brand); background: var(--brand-softer); }
+.main-nav__list > li > a.is-active { color: var(--brand); background: var(--brand-soft); font-weight: var(--fw-extra); }
+.main-nav__list > li > a.is-active::before {
     content: "";
     position: absolute;
     inset-inline-start: 0;
@@ -1225,16 +1271,27 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 .main-nav__mega-list a {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--sp-2);
+    min-height: 44px;
     font-size: var(--fs-sm);
     color: var(--text-soft);
-    padding: .5rem var(--sp-3);
+    padding: .45rem var(--sp-3);
     border-radius: var(--r-xs);
     min-width: 0;
     transition: color var(--dur-fast), background var(--dur-fast);
 }
 .main-nav__mega-list a:hover { color: var(--brand); background: var(--brand-softer); }
-.main-nav__mega-icon { display: inline-flex; flex: 0 0 auto; color: var(--brand-strong); }
+.main-nav__mega-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: var(--r-xs);
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+}
 .main-nav__mega-list span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .main-nav__cta { display: grid; gap: var(--sp-2); margin-top: auto; padding-top: var(--sp-4); border-top: 1px solid var(--border); }
@@ -1395,39 +1452,125 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 
 .hero__panel { position: relative; min-width: 0; }
 
-/* نوارِ سریعِ حوزه‌ها — جایگزینِ گریدِ ۱۲ تاییِ سنگین در صفحه‌ی اصلی */
-.topic-strip { margin-top: var(--sp-6); }
-.topic-strip__head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: var(--sp-4); margin-bottom: var(--sp-3); flex-wrap: wrap;
+/* نوارِ حوزه‌های آموزشی — کارتِ سبک با پیل‌های رنگی.
+   روی موبایل ریلِ افقیِ قابل‌اسکرول (snap)، از ۸۶۰px به بعد چیدمانِ
+   شناورِ چندردیفی. رنگِ هر پیل از متغیرِ --cat می‌آید که در PHP با
+   card_style() روی خودِ پیل ست می‌شود (نه متغیرِ تعریف‌نشده‌ی --topic-c). */
+.topic-strip {
+    margin-top: clamp(var(--sp-8), 3.5vw, var(--sp-12));
+    padding: clamp(var(--sp-4), 2.4vw, var(--sp-6));
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 35%, var(--surface)), var(--surface) 62%);
+    box-shadow: var(--sh-sm);
 }
-.topic-strip__title { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--text-mute); margin: 0; }
+[data-theme="dark"] .topic-strip,
+:root[data-theme="auto"] .topic-strip {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 55%, var(--surface)), var(--surface) 70%);
+}
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] .topic-strip {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--brand-soft) 55%, var(--surface)), var(--surface) 70%);
+    }
+}
+.topic-strip__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4);
+    margin-bottom: var(--sp-4);
+    flex-wrap: wrap;
+}
+.topic-strip__title {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: 0;
+    font-size: var(--fs-base);
+    font-weight: var(--fw-extra);
+    color: var(--text);
+}
+.topic-strip__title .ha-icon {
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border-radius: var(--r-sm);
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+    flex: 0 0 auto;
+}
 .topic-strip__list {
     display: flex;
+    flex-wrap: nowrap;
     gap: var(--sp-2);
     overflow-x: auto;
     padding-block: var(--sp-1) var(--sp-3);
+    margin-block: calc(var(--sp-1) * -1) calc(var(--sp-3) * -1);
     scrollbar-width: thin;
+    scroll-snap-type: inline proximity;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-inline: contain;
 }
 .topic-strip__list::-webkit-scrollbar { height: 4px; }
 .topic-strip__list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-full); }
 .topic-pill {
-    display: inline-flex; align-items: center; gap: var(--sp-2);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
     flex: 0 0 auto;
-    padding: .45rem .85rem;
-    border: 1px solid var(--border);
+    scroll-snap-align: start;
+    min-height: 46px;
+    padding: .35rem .95rem .35rem .42rem;
+    border: 1px solid color-mix(in srgb, var(--cat, var(--brand)) 26%, var(--border));
     border-radius: var(--r-full);
-    background: var(--surface);
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--cat, var(--brand)) 9%, var(--surface)),
+            var(--surface) 78%);
     color: var(--text-soft);
     font-size: var(--fs-sm);
     font-weight: var(--fw-semi);
+    line-height: 1.35;
     white-space: nowrap;
-    transition: border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast);
+    box-shadow: var(--sh-xs);
+    transition:
+        transform var(--dur-fast) var(--ease),
+        border-color var(--dur-fast),
+        color var(--dur-fast),
+        box-shadow var(--dur-fast);
 }
-.topic-pill:hover { border-color: var(--topic-c, var(--brand)); color: var(--topic-c, var(--brand)); transform: translateY(-2px); box-shadow: var(--sh-sm); }
-.topic-pill svg { color: var(--topic-c, var(--brand)); flex: 0 0 auto; }
+.topic-pill .ha-icon {
+    display: grid; place-items: center;
+    width: 32px; height: 32px;
+    flex: 0 0 auto;
+    border-radius: var(--r-full);
+    background: color-mix(in srgb, var(--cat, var(--brand)) 15%, transparent);
+    color: var(--cat, var(--brand-strong));
+    transition: background var(--dur-fast), color var(--dur-fast);
+}
+.topic-pill:hover,
+.topic-pill:focus-visible {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--cat, var(--brand)) 55%, var(--border));
+    color: var(--text);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--cat, var(--brand)) 22%, transparent);
+}
+.topic-pill:hover .ha-icon,
+.topic-pill:focus-visible .ha-icon {
+    background: var(--cat, var(--brand));
+    color: #fff;
+}
+/* از این عرض به بعد پیل‌ها می‌شکنند و ریلِ افقی حذف می‌شود */
+@media (min-width: 860px) {
+    .topic-strip__list {
+        flex-wrap: wrap;
+        overflow: visible;
+        gap: var(--sp-2) var(--sp-3);
+        padding: 0;
+        margin: 0;
+    }
+    .topic-pill { flex: 0 1 auto; }
+}
 
 /* کارتِ تمرینِ روز (پنلِ کنارِ هیرو) */
 .practice-card {
@@ -1541,6 +1684,30 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 .section-head--invert .eyebrow::before { background: linear-gradient(90deg, var(--brand-2), var(--secondary)); }
 .section-head--invert .link-arrow { color: var(--brand-2); }
 .section-head--invert .link-arrow:hover { color: #fff; }
+
+/* روی بخش‌های تیره (section--dark/--ink) سرفصل‌ها به‌صورتِ خودکار وارونه
+   می‌شوند؛ قبلاً فقط با کلاسِ دستیِ --invert کار می‌کرد و در صفحه‌ی اصلی
+   تیترِ بخشِ تیره، تیره روی تیره و ناخوانا بود. */
+.section--dark .section-head__title,
+.section--ink .section-head__title { color: #fff; }
+.section--dark .section-head__lead,
+.section--ink .section-head__lead { color: var(--on-ink-soft); }
+.section--dark .eyebrow,
+.section--ink .eyebrow { color: var(--brand-2); }
+.section--dark .eyebrow::before,
+.section--ink .eyebrow::before { background: linear-gradient(90deg, var(--brand-2), var(--secondary)); }
+.section--dark .section-head .btn--ghost,
+.section--ink .section-head .btn--ghost {
+    color: #fff;
+    border-color: rgba(255, 255, 255, .34);
+    background: rgba(255, 255, 255, .06);
+}
+.section--dark .section-head .btn--ghost:hover,
+.section--ink .section-head .btn--ghost:hover {
+    background: rgba(255, 255, 255, .14);
+    border-color: #fff;
+    color: #fff;
+}
 
 .page-banner {
     padding-block: clamp(1.75rem, 5vw, 3rem) clamp(1.5rem, 3.5vw, 2.25rem);
@@ -2278,7 +2445,24 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 }
 .course-summary__stats { display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6); font-size: var(--fs-sm); color: var(--text-soft); }
 .course-summary__stats strong { color: var(--brand); font-weight: var(--fw-black); font-size: var(--fs-lg); margin-inline-end: .2rem; font-variant-numeric: tabular-nums; }
-.course-summary__progress { flex: 1 1 240px; min-width: 0; }
+/* کانتینر ستونی است؛ پس مبنا روی محورِ عمودی اعمال می‌شود و 240px کارت را
+   بی‌دلیل بلند و خالی می‌کرد. مبنا auto شد؛ در عرضِ بزرگ‌تر خودِ کانتینر
+   ردیفی می‌شود و آن‌وقت 260px مبنایِ افقیِ درست است. */
+.course-summary__progress { flex: 1 1 auto; min-width: 0; }
+@media (min-width: 640px) {
+    .course-summary {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--sp-4) var(--sp-8);
+    }
+    .course-summary__stats { flex: 0 1 auto; }
+    .course-summary__progress { flex: 1 1 260px; max-width: 420px; }
+}
+/* نسخه‌ی داخلِ پنلِ هیرو فقط نوارِ پیشرفت دارد؛ جمع‌وجور بماند */
+.hero__panel .course-summary { padding: var(--sp-4); margin-top: var(--sp-4); gap: var(--sp-2); }
+.hero__panel .course-summary__progress { max-width: none; }
 
 /* نوارِ پیشرفت */
 .progress { display: grid; gap: var(--sp-2); min-width: 0; }
@@ -2859,25 +3043,30 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
         var(--bg-soft);
 }
 .auth-card {
-    max-width: 460px;
+    width: min(100%, 480px);
+    max-width: 480px;
     margin-inline: auto;
-    padding: clamp(1.5rem, 4vw, 2.5rem);
+    padding: clamp(1.5rem, 4vw, 2.4rem);
     border: 1px solid var(--border);
-    border-radius: var(--r-lg);
-    background: var(--surface);
+    border-radius: var(--r-2xl);
+    background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 92%, var(--brand-soft)));
     box-shadow: var(--sh-lg);
     min-width: 0;
 }
+.auth-section > .container { display: flex; justify-content: center; }
 .auth-card__brand { text-align: center; margin-bottom: var(--sp-5); }
 .auth-card__mark {
     display: grid; place-items: center;
-    width: 52px; height: 52px;
+    width: 58px; height: 58px;
     margin: 0 auto var(--sp-4);
-    border-radius: var(--r-md);
-    background: linear-gradient(135deg, var(--brand-soft), var(--secondary-soft));
-    color: var(--brand-strong);
-    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: linear-gradient(135deg, var(--brand), var(--secondary));
+    color: var(--on-brand);
+    border: 0;
+    box-shadow: var(--sh-brand);
 }
+.auth-form .input { min-height: 50px; border-radius: var(--r-md); }
+.auth-form .btn { box-shadow: var(--sh-brand); }
 .auth-card__brand .eyebrow { justify-content: center; margin-bottom: var(--sp-2); }
 .auth-card__brand h1 { margin: 0 0 var(--sp-2); font-size: var(--fs-xl); }
 .auth-card__lead { color: var(--text-soft); font-size: var(--fs-sm); margin: 0; line-height: 1.8; }
@@ -2992,7 +3181,7 @@ a.channel__value:hover { color: var(--brand); }
 
 /* ===== ۱۹) پنلِ مدیریت =================================================== */
 
-.admin-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+.admin-layout { display: grid; grid-template-columns: minmax(0, 1fr); min-height: calc(100dvh - var(--header-h)); gap: var(--sp-6); }
 .admin-sidebar {
     background: var(--bg-ink);
     color: rgba(234, 240, 252, .82);
@@ -3078,9 +3267,19 @@ body.admin-nav-open .admin-sidebar {
 
 .admin-main { padding: clamp(1.1rem, 3vw, 2rem); background: var(--bg-soft); min-width: 0; }
 .admin-main__header {
+    position: sticky;
+    top: calc(var(--header-h) + var(--sp-2));
+    z-index: 5;
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--sp-4); flex-wrap: wrap;
     margin-bottom: var(--sp-6);
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(12px);
+    backdrop-filter: saturate(160%) blur(12px);
+    box-shadow: var(--sh-sm);
 }
 .admin-main__header-title { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
 .admin-main__header h1 { font-size: var(--fs-xl); margin: 0; }
@@ -3310,26 +3509,31 @@ body.admin-nav-open .admin-sidebar {
         padding: 0;
         background: transparent;
         border: 0;
+        border-radius: 0;
         box-shadow: none;
         overflow: visible;
+        overscroll-behavior: auto;
+        touch-action: auto;
         transform: none;
         visibility: visible;
         transition: none;
+        z-index: auto;
         min-width: 0;
     }
-    body.nav-open .main-nav { transform: none; }
+    body.nav-open .main-nav { transform: none; visibility: visible; }
 
     .main-nav__list { flex-direction: row; align-items: center; gap: 0; min-width: 0; }
-    .main-nav__list a {
+    .main-nav__list > li > a {
+        min-height: 0;
         padding: .5rem .55rem;
         font-size: var(--fs-sm);
         font-weight: var(--fw-semi);
         justify-content: center;
         white-space: nowrap;
     }
-    .main-nav__list a.is-active { background: transparent; }
-    .main-nav__list a.is-active::before { display: none; }
-    .main-nav__list a.is-active::after {
+    .main-nav__list > li > a.is-active { background: transparent; }
+    .main-nav__list > li > a.is-active::before { display: none; }
+    .main-nav__list > li > a.is-active::after {
         content: "";
         position: absolute;
         inset-inline: .5rem;
@@ -3338,7 +3542,7 @@ body.admin-nav-open .admin-sidebar {
         border-radius: var(--r-full);
         background: linear-gradient(90deg, var(--brand), var(--secondary));
     }
-    .main-nav__list a:hover { background: var(--bg-soft); }
+    .main-nav__list > li > a:hover { background: var(--bg-soft); }
 
     /* --- ماشه‌ی «بیشتر» و مگامنو --------------------------------------
        پنل به «خودِ آیتم» لنگر می‌شود، نه به کلِ .main-nav؛ وگرنه با
