@@ -1,335 +1,131 @@
-/*
- * HAvoice — mobile layout foundation
- *
- * This is a single, intentional responsive layer for the mobile shell and
- * homepage. It is loaded after style.css by theme.js so the base design system
- * remains unchanged for tablet/desktop while mobile receives one coherent
- * layout contract rather than scattered patches.
- */
+/* HAvoice — responsive shell + homepage presentation layer */
 
-:root {
-    --ha-header-h: var(--header-h, 64px);
-}
+:root { --ha-header-h: var(--header-h, 64px); }
 
-/* --------------------------------------------------------------------------
-   Mobile navigation: real viewport-level drawer
-   -------------------------------------------------------------------------- */
 @media (max-width: 1119.98px) {
-    html,
-    body {
-        max-inline-size: 100%;
-    }
-
+    html, body { max-inline-size: 100%; }
     .site-header__inner {
         position: static;
+        min-inline-size: 0;
+        overflow: visible;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
     }
-
+    .nav-toggle {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        flex: none;
+        position: relative;
+        z-index: calc(var(--z-overlay) + 2);
+    }
+    .brand { min-inline-size: 0; max-inline-size: 100%; justify-self: center; overflow: hidden; }
+    .header-actions { min-inline-size: 0; max-inline-size: 100%; justify-self: end; }
     .main-nav {
         position: fixed;
-        inset-block-start: var(--ha-header-h);
-        inset-block-end: 0;
-        inset-inline-start: auto;
-        inset-inline-end: 0;
-        inline-size: min(88vw, 360px);
-        max-inline-size: calc(100vw - 12px);
-        block-size: calc(100dvh - var(--ha-header-h));
-        max-block-size: none;
-        min-block-size: 0;
+        top: var(--ha-header-h);
+        right: 0;
+        bottom: 0;
+        left: auto;
+        width: min(88vw, 360px);
+        max-width: calc(100vw - 8px);
+        height: calc(100dvh - var(--ha-header-h));
+        max-height: none;
+        min-height: 0;
         box-sizing: border-box;
+        margin: 0;
+        padding: var(--sp-4) var(--sp-4) max(var(--sp-6), env(safe-area-inset-bottom));
         overflow-y: auto;
         overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
         scrollbar-gutter: stable;
-        z-index: calc(var(--z-overlay) + 1);
+        z-index: var(--z-drawer);
         pointer-events: none;
+        visibility: hidden;
     }
-
-    .main-nav,
-    .main-nav * {
-        min-inline-size: 0;
-    }
-
-    [dir="ltr"] .main-nav {
-        inset-inline-start: 0;
-        inset-inline-end: auto;
-    }
-
-    .main-nav__list,
-    .main-nav__mega-list {
-        min-block-size: max-content;
-    }
-
-    .main-nav__cta {
-        margin-block-start: var(--sp-4);
-        padding-block-end: max(var(--sp-4), env(safe-area-inset-bottom));
-    }
-
-    /* In mobile there is no dropdown: "بیشتر" content is in normal flow. */
-    .main-nav__item--mega {
-        display: block;
-    }
-
-    .main-nav__more {
-        display: none;
-    }
-
+    .main-nav, .main-nav * { min-inline-size: 0; }
+    [dir="ltr"] .main-nav { right: auto; left: 0; }
+    html.nav-open .main-nav, body.nav-open .main-nav { pointer-events: auto; visibility: visible; }
+    .main-nav__list, .main-nav__mega-list { min-block-size: max-content; }
+    .main-nav__list { display: flex; flex-direction: column; gap: 2px; }
+    .main-nav__list > li > a { min-height: 46px; padding: .65rem .75rem; border-radius: var(--r-sm); }
     .main-nav__mega {
         position: static;
         display: block;
-        inline-size: auto;
-        max-block-size: none;
+        width: auto;
+        max-height: none;
         overflow: visible;
-        margin-block-start: var(--sp-2);
-        padding-block-start: var(--sp-4);
-        padding-inline: 0;
-        border-block-start: 1px solid var(--border);
-        box-shadow: none;
+        margin: var(--sp-2) 0 0;
+        padding: var(--sp-3) 0 0;
+        border-top: 1px solid var(--border);
         border-radius: 0;
+        box-shadow: none;
     }
-
-    .main-nav__mega-list {
-        grid-template-columns: 1fr;
-    }
-
-    html.nav-open .main-nav,
-    body.nav-open .main-nav {
-        pointer-events: auto;
-    }
-
-    .nav-backdrop {
-        position: fixed;
-        inset-block-start: var(--ha-header-h);
-        inset-block-end: 0;
-        inset-inline: 0;
-        z-index: var(--z-overlay);
-        pointer-events: none;
-    }
-
-    html.nav-open .nav-backdrop,
-    body.nav-open .nav-backdrop {
-        pointer-events: auto;
-    }
-
-    .nav-toggle {
-        position: relative;
-        z-index: calc(var(--z-overlay) + 2);
-        flex: 0 0 auto;
-    }
-
-    /* The drawer must never be visually trapped by the header flex row. */
-    .site-header,
-    .site-header__inner {
-        overflow: visible;
-    }
-
-    /* Keep the header itself out of any accidental horizontal expansion. */
-    .site-header__inner,
-    .main-nav__list,
-    .main-nav__mega,
-    .main-nav__cta,
-    .main-nav__auth {
-        max-inline-size: 100%;
-    }
+    .main-nav__more { display: none; }
+    .main-nav__mega-list { grid-template-columns: 1fr; gap: 2px; }
+    .main-nav__mega-list a { min-height: 44px; padding: .55rem .65rem; }
+    .main-nav__mega-title--spaced { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+    .main-nav__cta { display: grid; gap: var(--sp-2); margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+    .nav-backdrop { position: fixed; top: var(--ha-header-h); right: 0; bottom: 0; left: 0; z-index: var(--z-overlay); pointer-events: none; }
+    html.nav-open .nav-backdrop, body.nav-open .nav-backdrop { pointer-events: auto; }
+    .site-header, .site-header__inner { overflow: visible; }
 }
 
-/* --------------------------------------------------------------------------
-   Small-screen homepage: compact, readable, touch-first
-   -------------------------------------------------------------------------- */
 @media (max-width: 767.98px) {
-    .hero--premium {
-        padding-block: 1.25rem 1.5rem;
+    .header-actions__auth, .header-actions__admin { display: none; }
+    .header-actions { gap: 2px; }
+    .route-home .hero--premium {
+        padding-block: 1.25rem 1.75rem;
+        background: radial-gradient(420px 220px at 100% 0%, rgba(79,70,229,.10), transparent 70%), linear-gradient(180deg, var(--bg-soft), var(--bg));
     }
-
-    .hero__grid {
-        gap: 1rem;
-    }
-
-    .hero__badge {
-        max-inline-size: 100%;
-        font-size: var(--fs-xs);
-        line-height: 1.65;
-    }
-
-    .hero__title--premium {
-        max-inline-size: 100%;
-        margin-block-end: .65rem;
-        font-size: clamp(1.75rem, 8vw, 2.4rem);
-        line-height: 1.28;
-    }
-
-    .hero__lead--premium {
-        margin-block-end: .9rem;
-        font-size: var(--fs-base);
-        line-height: 1.82;
-    }
-
-    .hero .btn-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: .5rem;
-        inline-size: 100%;
-    }
-
-    .hero .btn-row .btn {
-        inline-size: 100%;
-        min-block-size: 44px;
-    }
-
-    .hero__stats--premium {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .5rem;
-        margin-block-start: 1rem;
-    }
-
-    .hero__stats--premium li {
-        min-inline-size: 0;
-        padding: .65rem .5rem;
-        border-radius: var(--r-sm);
-    }
-
-    .hero__stats--premium strong {
-        font-size: 1.05rem;
-    }
-
-    .hero__stats--premium span {
-        font-size: var(--fs-2xs);
-        line-height: 1.55;
-    }
-
-    .hero__panel {
-        min-inline-size: 0;
-    }
-
-    .practice-card {
-        padding: .9rem;
-    }
-
-    .practice-card__title {
-        font-size: var(--fs-lg);
-    }
-
-    .practice-card__text {
-        font-size: var(--fs-sm);
-    }
-
-    .topic-strip {
-        margin-block-start: 0;
-    }
-
-    .topic-strip__head {
-        align-items: flex-start;
-        gap: .5rem;
-    }
-
-    .section {
-        padding-block: 2rem;
-    }
-
-    .section .container {
-        min-inline-size: 0;
-    }
-
-    .grid--2,
-    .grid--3,
-    .grid--4 {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .grid,
-    .grid > * {
-        min-inline-size: 0;
-    }
-
-    .card,
-    .stage-card,
-    .practice-card,
-    .course-summary {
-        max-inline-size: 100%;
-        min-inline-size: 0;
-    }
-
-    .section-head,
-    .section-head__content,
-    .section-head__actions {
-        min-inline-size: 0;
-    }
-
-    .section-head {
-        gap: .75rem;
-        margin-block-end: 1rem;
-    }
-
-    .section-head__title {
-        font-size: clamp(1.25rem, 6vw, 1.55rem);
-    }
-
-    .section-head__lead {
-        font-size: var(--fs-sm);
-        line-height: 1.8;
-    }
-
-    .section-head__actions .btn,
-    .section-head__actions a {
-        min-block-size: 40px;
-    }
-
-    .site-footer {
-        margin-block-start: 1rem;
-    }
-
-    /* No homepage component may create a horizontal page scroll. */
-    .hero,
-    .section,
-    .topic-strip,
-    .site-footer,
-    .site-main {
-        max-inline-size: 100%;
-    }
+    .route-home .hero__grid { gap: 1rem; align-items: stretch; }
+    .route-home .hero__content { min-inline-size: 0; }
+    .route-home .hero__badge { max-inline-size: 100%; padding: .4rem .65rem; font-size: var(--fs-xs); line-height: 1.6; }
+    .route-home .hero__title--premium { margin-block: .65rem .6rem; font-size: clamp(1.75rem, 8vw, 2.45rem); line-height: 1.25; letter-spacing: -.02em; }
+    .route-home .hero__lead--premium { max-inline-size: 38rem; margin-bottom: .85rem; font-size: var(--fs-base); line-height: 1.85; }
+    .route-home .hero .btn-row { display: grid; grid-template-columns: 1fr; gap: .55rem; width: 100%; }
+    .route-home .hero .btn-row .btn { width: 100%; min-height: 46px; }
+    .route-home .hero__stats--premium { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: 1rem; }
+    .route-home .hero__stats--premium li { min-inline-size: 0; padding: .7rem .55rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--sh-xs); }
+    .route-home .hero__stats--premium strong { display: block; font-size: 1.08rem; }
+    .route-home .hero__stats--premium span { display: block; margin-top: .15rem; font-size: var(--fs-2xs); line-height: 1.55; }
+    .route-home .hero__panel { min-inline-size: 0; }
+    .route-home .practice-card { padding: 1rem; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-md); }
+    .route-home .practice-card__title { font-size: var(--fs-lg); }
+    .route-home .practice-card__text { font-size: var(--fs-sm); line-height: 1.8; }
+    .route-home .topic-strip { margin-block-start: .75rem; padding-block: .75rem 0; }
+    .route-home .topic-strip__head { align-items: center; gap: .5rem; }
+    .route-home .topic-strip__list { padding-block: .55rem .2rem; }
+    .route-home .topic-pill { min-height: 40px; }
+    .route-home .section { padding-block: 2.25rem; }
+    .route-home .section-head { display: grid; gap: .65rem; margin-bottom: 1rem; }
+    .route-home .section-head__title { font-size: clamp(1.3rem, 6vw, 1.7rem); line-height: 1.35; }
+    .route-home .section-head__lead { font-size: var(--fs-sm); line-height: 1.8; }
+    .route-home .section-head__actions a, .route-home .section-head__actions .btn { min-height: 40px; }
+    .route-home .grid--2, .route-home .grid--3, .route-home .grid--4 { grid-template-columns: minmax(0, 1fr); }
+    .route-home .grid, .route-home .grid > *, .route-home .card, .route-home .stage-card, .route-home .course-summary, .route-home .hero__instructor { min-inline-size: 0; max-inline-size: 100%; }
+    .route-home .course-summary { margin-top: 1rem; }
+    .route-home .hero__instructor { padding: .8rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+    .route-home .site-footer { margin-top: 0; }
+    .route-home .hero, .route-home .section, .route-home .topic-strip, .route-home .site-main { max-inline-size: 100%; }
 }
 
 @media (max-width: 479.98px) {
-    .site-header__inner {
-        gap: .25rem;
-    }
-
-    .brand__text small {
-        display: none;
-    }
-
-    .hero__stats--premium {
-        gap: .4rem;
-    }
-
-    .hero__stats--premium li {
-        padding: .55rem .4rem;
-    }
-
-    .main-nav {
-        inline-size: min(92vw, 360px);
-        max-inline-size: calc(100vw - 8px);
-    }
+    .brand__text small { display: none; }
+    .header-actions .theme-toggle { display: none; }
+    .site-header__inner { column-gap: .25rem; }
+    .main-nav { width: min(92vw, 360px); max-width: calc(100vw - 8px); padding-inline: .85rem; }
 }
 
 @media (max-width: 359.98px) {
-    .main-nav {
-        inline-size: calc(100vw - 4px);
-        max-inline-size: calc(100vw - 4px);
-    }
-
-    .hero--premium {
-        padding-block-start: 1rem;
-    }
-
-    .hero__stats--premium {
-        grid-template-columns: 1fr 1fr;
-    }
+    .main-nav { width: calc(100vw - 4px); max-width: calc(100vw - 4px); }
+    .route-home .hero--premium { padding-block-start: 1rem; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .main-nav,
-    .nav-backdrop {
-        transition: none !important;
-    }
-}
+@media (min-width: 1120px) { .main-nav { visibility: visible; } }
+@media (prefers-reduced-motion: reduce) { .main-nav, .nav-backdrop { transition: none !important; } }
