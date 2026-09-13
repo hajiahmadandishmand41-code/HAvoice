@@ -1,16 +1,6 @@
 <?php
 /**
  * HAvoice — سرصفحه (Design System v4)
- *
- * تصمیم‌های مهم این فایل:
- * ۱) فونتِ Vazirmatn به‌صورت محلی و self-host بارگذاری می‌شود (بدونِ
- *    درخواست به سرویسِ ثالث)؛ سازگار با CSP سخت‌گیرانه.
- * ۲) اسکریپتِ تعیینِ تم در فایلِ خارجی است تا script-src 'self' بدونِ
- *    'unsafe-inline' ممکن بماند.
- * ۳) همه‌ی نشانی‌های متا (canonical، og:url، og:image) مطلق‌اند.
- * ۴) ناوبری: ۸ قلمِ اصلی + منویِ «بیشتر» (حوزه‌ها و صفحه‌های فرعی).
- *    روی موبایل همه‌ی این‌ها داخلِ یک کشویِ تمام‌صفحه‌ای می‌روند و
- *    دکمه‌ی همبرگر همیشه داخلِ کادرِ هدر می‌ماند.
  */
 
 if (!defined('HA_ROOT')) {
@@ -68,6 +58,7 @@ $themeDark = '#0B1B3F';
     <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/mobile-ui-fixes.css')) ?>">
     <script src="<?= e(asset('assets/js/theme.js')) ?>"></script>
 </head>
 <body class="route-<?= e($route) ?>">
@@ -75,7 +66,6 @@ $themeDark = '#0B1B3F';
 
 <header class="site-header" data-header>
     <div class="container site-header__inner">
-
         <button class="icon-btn nav-toggle" type="button" data-nav-toggle
                 aria-controls="main-nav" aria-expanded="false"
                 aria-label="باز و بسته کردن منوی ناوبری">
@@ -93,8 +83,8 @@ $themeDark = '#0B1B3F';
                     </defs>
                     <rect x="0" y="0" width="32" height="32" rx="9" fill="url(#brandGrad)"/>
                     <g fill="#ffffff">
-                        <rect x="7"    y="13" width="2.6" height="6"  rx="1.3"/>
-                        <rect x="11.8" y="9"  width="2.6" height="14" rx="1.3"/>
+                        <rect x="7" y="13" width="2.6" height="6" rx="1.3"/>
+                        <rect x="11.8" y="9" width="2.6" height="14" rx="1.3"/>
                         <rect x="16.6" y="5.5" width="2.6" height="21" rx="1.3"/>
                         <rect x="21.4" y="11" width="2.6" height="10" rx="1.3"/>
                     </g>
@@ -111,24 +101,7 @@ $themeDark = '#0B1B3F';
 <?php foreach (nav_items() as $item): ?>
                 <li><a href="<?= e($item['url']) ?>"<?= is_current($item['route']) ? ' class="is-active" aria-current="page"' : '' ?>><?= e($item['label']) ?></a></li>
 <?php endforeach; ?>
-
-                <?php
-                /*
-                 * آیتمِ «بیشتر» — ماشه‌ی مگامنو.
-                 *
-                 * اشکالِ نسخه‌ی پیشین: پنلِ مگا هیچ ماشه‌ای نداشت و با
-                 * .main-nav:hover باز می‌شد. یعنی (۱) در دسکتاپ کاربر هیچ
-                 * نشانه‌ای از وجودِ «نکته‌ها / درباره / تماس» و ۱۲ حوزه
-                 * نمی‌دید و عملاً به آن‌ها دسترسی نداشت، و (۲) با hover روی
-                 * «هر» لینکِ منو، کلِ پنل بیرون می‌پرید.
-                 * اکنون یک دکمه‌ی واقعی با aria-expanded/aria-haspopup وجود
-                 * دارد که هم با hover و هم با focus و هم با کلیک/لمس باز
-                 * می‌شود (منطق در main.js: navMoreModule).
-                 * در حالتِ کشویِ موبایل، دکمه پنهان است و پنل همیشه بازِ
-                 * درون‌خطی می‌ماند، چون کشو خودش فهرستِ بلند است.
-                 */
-                $moreOpen = is_current('tips') || is_current('about') || is_current('contact') || is_current('category');
-                ?>
+                <?php $moreOpen = is_current('tips') || is_current('about') || is_current('contact') || is_current('category'); ?>
                 <li class="main-nav__item main-nav__item--mega<?= $moreOpen ? ' is-open' : '' ?>">
                     <button class="main-nav__more" type="button" data-nav-more
                             aria-expanded="<?= $moreOpen ? 'true' : 'false' ?>" aria-haspopup="true"
@@ -177,9 +150,7 @@ $themeDark = '#0B1B3F';
         </nav>
 
         <div class="header-actions">
-            <a class="icon-btn" href="<?= e(url('search')) ?>" aria-label="جستجو در سایت" title="جستجو">
-                <?= ha_icon('search', 19) ?>
-            </a>
+            <a class="icon-btn" href="<?= e(url('search')) ?>" aria-label="جستجو در سایت" title="جستجو"><?= ha_icon('search', 19) ?></a>
             <button class="icon-btn theme-toggle" type="button" data-theme-toggle
                     aria-label="تغییر حالت نمایش، حالتِ کنونی: خودکارِ سیستم" title="تغییر حالت نمایش">
                 <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true"><?= ha_icon('sun', 19) ?></span>
@@ -191,17 +162,10 @@ $themeDark = '#0B1B3F';
                 <span class="account-chip__name"><?= e(mb_strimwidth((string) ($currentUser['name'] ?? ''), 0, 14, '…', 'UTF-8')) ?></span>
             </a>
     <?php if (auth_is_admin()): ?>
-            <a class="icon-btn header-actions__admin" href="<?= e(url('admin')) ?>" aria-label="پنل مدیریت" title="پنل مدیریت">
-                <?= ha_icon('shield', 19) ?>
-            </a>
+            <a class="icon-btn header-actions__admin" href="<?= e(url('admin')) ?>" aria-label="پنل مدیریت" title="پنل مدیریت"><?= ha_icon('shield', 19) ?></a>
     <?php endif; ?>
 <?php else: ?>
-            <?php /* روی صفحه‌های خیلی باریک پنهان می‌شود: کشویِ منو خودش
-                    دکمه‌های «ورود» و «ثبت‌نام» را دارد، پس این آیتم تکراری است
-                    و حذفش از سرریزِ هدر در ۳۲۰px جلوگیری می‌کند. */ ?>
-            <a class="icon-btn header-actions__auth" href="<?= e(url('login')) ?>" aria-label="ورود به حساب کاربری" title="ورود / ثبت‌نام">
-                <?= ha_icon('user', 19) ?>
-            </a>
+            <a class="icon-btn header-actions__auth" href="<?= e(url('login')) ?>" aria-label="ورود به حساب کاربری" title="ورود / ثبت‌نام"><?= ha_icon('user', 19) ?></a>
 <?php endif; ?>
             <a class="btn btn--primary header-actions__cta" href="<?= e(url('courses')) ?>"><?= e($site['cta_start'] ?? 'شروع یادگیری') ?></a>
         </div>
