@@ -1,153 +1,82 @@
 /* ========================================================================
-   HAvoice — Mobile UI Fixes v1.0
-   هدف: هدر/کشوی موبایل، جلوگیری از هم‌پوشانی، سرریز عرضی و fallbackهای
-   CSS. این فایل عمداً فقط overrideهای کوچک و مستقل دارد تا Design System
-   اصلی دست‌نخورده بماند.
+   HAvoice — Mobile UI Fixes v1.1
+   هدف: هدر/کشوی موبایل، جلوگیری از هم‌پوشانی، سرریز عرضی و fallbackهای CSS.
    ======================================================================== */
 
-/* 1) توکن‌هایی که در style.css استفاده شده‌اند ولی تعریف نشده بودند. */
 :root {
     --brand-200: var(--blue-200);
     --brand-300: var(--blue-300);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* 2) هدر: آیتم‌ها هرگز روی هم نیفتند و ناحیه‌ی اصلی قابل فشرده‌سازی باشد. */
-.site-header__inner {
-    min-height: var(--header-h);
-    width: 100%;
-    overflow: visible;
-}
+.site-header { isolation: isolate; }
+.site-header__inner { min-height: var(--header-h); width: 100%; overflow: visible; min-width: 0; }
+.site-header__inner > * { min-width: 0; }
 
-.site-header__inner > * {
-    min-width: 0;
-}
+.brand { max-width: min(44vw, 240px); min-width: 0; }
+.brand__text { min-width: 0; max-width: 100%; }
+.brand__text strong, .brand__text small { max-width: 100%; }
 
-.brand {
-    max-width: min(44vw, 240px);
-}
+.header-actions { flex-shrink: 0; min-width: 0; }
+.header-actions .icon-btn, .header-actions .btn { flex: 0 0 auto; }
+.nav-toggle { flex: 0 0 40px; position: relative; z-index: calc(var(--z-header) + 2); touch-action: manipulation; }
 
-.header-actions {
-    flex-shrink: 0;
-}
-
-.header-actions .icon-btn,
-.header-actions .btn {
-    flex: 0 0 auto;
-}
-
-/* 3) کشوی موبایل از زیر هدر باز شود؛ خود هدر روی آن باقی بماند. */
 @media (max-width: 1119.98px) {
     .main-nav {
         inset-block-start: var(--header-h);
         inset-block-end: 0;
         padding-block-start: var(--sp-4);
+        padding-block-end: max(var(--sp-6), var(--safe-bottom));
         max-height: calc(100dvh - var(--header-h));
         width: min(88vw, 360px);
         max-width: 360px;
         border-inline-end: 1px solid var(--border);
         border-top: 0;
         z-index: var(--z-drawer);
+        overscroll-behavior: contain;
+        touch-action: pan-y;
     }
-
-    [dir="ltr"] .main-nav {
-        transform: translateX(-101%);
-    }
-
-    body.nav-open .main-nav {
-        transform: translateX(0);
-    }
-
-    .nav-backdrop {
-        z-index: calc(var(--z-header) - 1);
-    }
-
-    .main-nav__list,
-    .main-nav__mega-list {
-        min-width: 0;
-    }
-
-    .main-nav__list a,
-    .main-nav__mega-list a,
-    .main-nav__more {
+    [dir="ltr"] .main-nav { transform: translateX(-101%); }
+    body.nav-open .main-nav { transform: translateX(0); }
+    .nav-backdrop { z-index: calc(var(--z-header) - 1); }
+    .main-nav__list, .main-nav__mega-list { min-width: 0; }
+    .main-nav__list a, .main-nav__mega-list a, .main-nav__more {
         min-height: 44px;
+        touch-action: manipulation;
     }
-
-    .main-nav__list a,
-    .main-nav__mega-list a {
-        overflow-wrap: anywhere;
-    }
+    .main-nav__list a, .main-nav__mega-list a { overflow-wrap: anywhere; }
 }
 
-/* 4) موبایل باریک: فقط چیزهایی بمانند که واقعاً جا می‌شوند. */
+@media (min-width: 420px) and (max-width: 559.98px) {
+    .site-header__inner { gap: 6px; }
+    .brand { flex: 1 1 auto; max-width: none; overflow: hidden; }
+    .brand__text { overflow: hidden; }
+    .brand__text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .header-actions { gap: 3px; }
+    .header-actions__cta, .header-actions__auth, .header-actions__admin { display: none !important; }
+    .header-actions .icon-btn { width: 40px; height: 40px; }
+}
+
 @media (max-width: 419.98px) {
-    .site-header__inner {
-        gap: 6px;
-    }
-
-    .brand {
-        max-width: none;
-        flex: 0 1 auto;
-    }
-
-    .header-actions {
-        gap: 3px;
-    }
-
-    .header-actions .icon-btn {
-        width: 40px;
-        height: 40px;
-    }
+    .site-header__inner { gap: 5px; padding-inline-start: max(var(--gutter), var(--safe-right)); padding-inline-end: max(var(--gutter), var(--safe-left)); }
+    .brand { max-width: none; flex: 0 0 auto; }
+    .brand__text { display: none; }
+    .header-actions { gap: 3px; }
+    .header-actions__cta, .header-actions__auth, .header-actions__admin { display: none !important; }
+    .header-actions .icon-btn { width: 40px; height: 40px; }
 }
 
-/* 5) فاصله‌ی امن برای محتوای صفحه تا اولین بخش زیر هدر. */
-.site-main {
-    min-width: 0;
-    overflow-x: clip;
+@media (max-width: 359.98px) {
+    .site-header__inner { gap: 4px; }
+    .header-actions { gap: 2px; }
 }
 
-/* 6) جلوگیری از خروج عناصر بلند/جدول‌ها از عرض viewport. */
-.container,
-.card,
-.hero__content,
-.hero__panel,
-.section,
-.page-banner,
-.article,
-.lesson,
-.admin-main {
-    min-width: 0;
-    max-width: 100%;
-}
+.site-main { min-width: 0; max-width: 100%; overflow-x: clip; }
+.container, .card, .hero__content, .hero__panel, .section, .page-banner, .article, .lesson, .admin-main { min-width: 0; max-width: 100%; }
+.table-wrap, .admin-table-wrap, .filter-tabs, .topic-strip__list { max-width: 100%; }
 
-.table-wrap,
-.admin-table-wrap,
-.filter-tabs,
-.topic-strip__list {
-    max-width: 100%;
-}
-
-/* 7) دستگاه‌هایی که dynamic viewport height را پشتیبانی می‌کنند. */
-@supports (height: 100dvh) {
-    @media (max-width: 1119.98px) {
-        .main-nav {
-            max-height: calc(100dvh - var(--header-h));
-        }
-    }
-}
-
-/* 8) وقتی کشو باز است، بدنه اسکرول نمی‌شود؛ خودِ کشو اسکرول می‌شود. */
-body.nav-open .main-nav {
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* 9) به‌جای سخت‌گیری بیش از حد روی ارتفاع هدر، متن برند همیشه بریده شود. */
-.brand__text {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.brand__text strong,
-.brand__text small {
-    max-width: 100%;
+@media (prefers-reduced-motion: reduce) {
+    .main-nav { transition-duration: .001ms !important; }
 }
