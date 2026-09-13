@@ -303,21 +303,90 @@ function contrast(string $a, string $b): float
     return round(($hi + 0.05) / ($lo + 0.05), 2);
 }
 
-/** بیرون کشیدنِ توکن‌های یک بلوکِ CSS */
-function css_tokens(string $css, string $blockPattern): array
+/**
+ * بیرون کشیدنِ توکن‌های خامِ یک بلوکِ CSS (بدونِ حلِ var()).
+ *
+ * نکته: کامنت‌ها اول پاک می‌شوند، وگرنه یک کدِ رنگِ داخلِ کامنت می‌تواند
+ * به‌اشتباه به‌عنوانِ مقدارِ توکن خوانده شود.
+ *
+ * @return array<string, string>
+ */
+function css_tokens_raw(string $css, string $blockPattern): array
 {
     if (!preg_match($blockPattern, $css, $m)) {
         return [];
     }
-    preg_match_all('/(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,6})/', $m[0], $tm);
-    return array_combine($tm[1], $tm[2]);
+    $body = (string) preg_replace('/\/\*.*?\*\//s', '', $m[0]);
+    preg_match_all('/(--[a-z0-9-]+)\s*:\s*([^;}]+)/', $body, $tm, PREG_SET_ORDER);
+    $out = [];
+    foreach ($tm as $t) {
+        $out[$t[1]] = trim($t[2]);
+    }
+    return $out;
 }
 
-$light = css_tokens($css, '/:root\s*\{.*?\}/s');
-$dark  = css_tokens($css, '/\[data-theme=["\']?dark["\']?\]?\s*\{.*?\}/s');
-if ($dark === []) {
-    $dark = css_tokens($css, '/prefers-color-scheme:\s*dark[^{]*\{\s*[^{]*\{.*?\}/s');
+/**
+ * حلِ زنجیره‌ی var() تا رسیدن به یک کدِ رنگِ واقعی.
+ *
+ * چرا لازم است؟ Design System عمداً دو لایه دارد: پالتِ پایه
+ * (--blue-700) و توکنِ معنایی (--brand). نسخه‌ی پیشینِ این تابع فقط
+ * مقدارهای hexِ «مستقیم» را می‌گرفت، پس هر توکنی که به var() اشاره
+ * می‌کرد «یافت نشد» گزارش می‌شد و ۶ آزمونِ کنتراست همیشه قرمزِ کاذب
+ * بودند. دروازه‌ی انتشاری که اشتباه قرمز شود، نادیده گرفته می‌شود.
+ *
+ * @param array<string, string> $map
+ */
+function css_resolve_color(string $value, array $map, int $depth = 0): ?string
+{
+    if ($depth > 12) {
+        return null;                       // محافظِ چرخه
+    }
+    $value = trim($value);
+    if (preg_match('/^#[0-9a-fA-F]{3,8}$/', $value)) {
+        return $value;
+    }
+    if (preg_match('/^var\(\s*(--[a-z0-9-]+)\s*(?:,\s*(.*))?\)$/i', $value, $m)) {
+        $next = $map[$m[1]] ?? null;
+        if ($next !== null) {
+            return css_resolve_color($next, $map, $depth + 1);
+        }
+        if (isset($m[2]) && trim($m[2]) !== '') {
+            return css_resolve_color($m[2], $map, $depth + 1);   // fallback
+        }
+        return null;
+    }
+    return null;                            // rgba()/gradiant/… ⇒ قابلِ سنجشِ ساده نیست
 }
+
+/**
+ * توکن‌های رنگِ «حل‌شده‌ی» یک بلوک.
+ *
+ * @param array<string, string> $raw  توکن‌های همان بلوک
+ * @param array<string, string> $inherit توکن‌های بلوکِ والد (custom property
+ *        در CSS از :root به ارث می‌رسد، پس هرچه در بلوکِ تاریک بازتعریف
+ *        نشده عملاً همان مقدارِ روشن است)
+ * @return array<string, string>
+ */
+function css_tokens(array $raw, array $inherit = []): array
+{
+    $scope = array_merge($inherit, $raw);
+    $out = [];
+    foreach ($raw as $name => $value) {
+        $hex = css_resolve_color($value, $scope);
+        if ($hex !== null) {
+            $out[$name] = $hex;
+        }
+    }
+    return $out;
+}
+
+$lightRaw = css_tokens_raw($css, '/:root\s*\{.*?\}/s');
+$darkRaw  = css_tokens_raw($css, '/\[data-theme=["\']?dark["\']?\]?\s*\{.*?\}/s');
+if ($darkRaw === []) {
+    $darkRaw = css_tokens_raw($css, '/prefers-color-scheme:\s*dark[^{]*\{\s*[^{]*\{.*?\}/s');
+}
+$light = css_tokens($lightRaw);
+$dark  = css_tokens($darkRaw, $lightRaw);
 info('توکن‌های رنگِ حالتِ روشن', count($light) . ' عدد');
 info('توکن‌های رنگِ حالتِ تاریک', count($dark) . ' عدد');
 

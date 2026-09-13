@@ -7,8 +7,8 @@ $flash = flash();
 <form class="admin-form" method="post" action="<?= e(url('admin_settings_save')) ?>">
 <?= csrf_field() ?>
 <div class="admin-card"><h2>اطلاعات هویتی</h2>
-<div class="field"><label>نام مدرس</label><input class="input" type="text" name="name" value="<?= e($settings['name'] ?? HA_NAME) ?>"></div>
-<div class="field"><label>عنوان</label><input class="input" type="text" name="tagline" value="<?= e($settings['tagline'] ?? HA_TAGLINE) ?>"></div>
+<div class="field"><label>نام مدرس</label><input class="input" type="text" name="name" value="<?= e($settings['name'] ?? ha_site_name()) ?>"></div>
+<div class="field"><label>عنوان</label><input class="input" type="text" name="tagline" value="<?= e($settings['tagline'] ?? ha_site_tagline()) ?>"></div>
 <div class="field"><label>ایمیل</label><input class="input" type="email" name="email" value="<?= e($settings['email'] ?? HA_EMAIL) ?>" dir="ltr"></div>
 <div class="field"><label>تلفن</label><input class="input" type="text" name="phone" value="<?= e($settings['phone'] ?? HA_PHONE) ?>" dir="ltr"></div>
 </div>
@@ -29,13 +29,3 @@ $flash = flash();
 <div class="admin-form-actions"><button class="btn btn--primary" type="submit">ذخیره تنظیمات</button></div>
 </form>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>
-
-cat > pages/admin/settings_save.php << 'EOF'
-<?php if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
-auth_require_admin(); if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url('admin_settings'));
-if (!csrf_verify()) { flash('error','نشست تمام شده.'); redirect(url('admin_settings')); }
-$fields = ['name','tagline','email','phone','footer_about','cta_title','cta_text','work_hours','social_telegram','social_instagram','social_youtube'];
-$settings = [];
-foreach ($fields as $f) { $settings[$f] = trim((string)($_POST[$f] ?? '')); }
-admin_store('settings', $settings);
-flash('success','تنظیمات ذخیره شد.'); redirect(url('admin_settings'));

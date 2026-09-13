@@ -12,8 +12,8 @@ $flash = flash();
 <div class="field"><label>عنوان کوتاه</label><input class="input" type="text" name="short" value="<?= e($item['short'] ?? '') ?>"></div>
 <div class="field"><label>توضیحات</label><textarea class="input" name="description" rows="3"><?= e($item['description'] ?? '') ?></textarea></div>
 <div class="field"><label>آیکون</label><input class="input" type="text" name="icon" value="<?= e($item['icon'] ?? 'compass') ?>" dir="ltr"></div>
-<div class="field"><label>رنگ اصلی</label><input class="input" type="color" name="color" value="<?= e($item['color'] ?? '#0d5c4d') ?>"></div>
-<div class="field"><label>رنگ فرعی</label><input class="input" type="color" name="accent" value="<?= e($item['accent'] ?? '#2ec4a6') ?>"></div>
+<div class="field"><label>رنگ اصلی</label><input class="input" type="color" name="color" value="<?= e($item['color'] ?? '#1A3A7C') ?>"></div>
+<div class="field"><label>رنگ فرعی</label><input class="input" type="color" name="accent" value="<?= e($item['accent'] ?? '#4F46E5') ?>"></div>
 <div class="admin-form-actions"><button class="btn btn--primary" type="submit">ذخیره</button><a class="btn btn--ghost" href="<?= e(url('admin_categories')) ?>">بازگشت</a></div>
 </form>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>

@@ -12,6 +12,43 @@
     var FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
     var fa = function (value) { return String(value).replace(/[0-9]/g, function (d) { return FA_DIGITS[+d]; }); };
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+
+    /* آیکون‌ها در PHP از یک sprite یکتا می‌آیند (includes/icons.php).
+       در JS هم به‌جایِ گلیفِ یونیکدِ «✓» — که در برخی فونت‌ها/سیستم‌ها
+       ناهمگون رندر می‌شود — همان مسیرِ SVG را می‌سازیم تا وزنِ خط،
+       اندازه و رنگ با بقیه‌ی آیکون‌های سایت یکی باشد. */
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+    var ICON_PATHS = {
+        check: ['m4.8 12.6 4.6 4.6L19.2 7.4'],
+        copy: null /* از sprite استفاده می‌شود */
+    };
+    /** ساختِ آیکونِ خطیِ هم‌خانواده با sprite (برای متنِ دکمه‌ها). */
+    var makeIcon = function (name, size) {
+        var svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'ha-icon');
+        svg.setAttribute('width', String(size || 16));
+        svg.setAttribute('height', String(size || 16));
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        var paths = ICON_PATHS[name] || [];
+        for (var i = 0; i < paths.length; i++) {
+            var el = document.createElementNS(SVG_NS, 'path');
+            el.setAttribute('d', paths[i]);
+            svg.appendChild(el);
+        }
+        return svg;
+    };
+    /** متنِ یک دکمه را با یک آیکونِ ابتدایی جای‌گزین می‌کند. */
+    var setLabel = function (el, text, iconName) {
+        if (!el) { return; }
+        el.textContent = text;
+        if (iconName) {
+            var icon = makeIcon(iconName, 15);
+            icon.style.marginInlineEnd = '0.4em';
+            el.insertBefore(icon, el.firstChild);
+        }
+    };
     var mmss = function (seconds) {
         var s = Math.max(0, Math.round(seconds));
         return fa(pad(Math.floor(s / 60)) + ':' + pad(s % 60));
@@ -94,26 +131,154 @@
         var nav = $('#main-nav');
         if (!toggle || !nav) { return; }
 
+        var backdrop = $('[data-nav-backdrop]');
+        var isOpen = function () { return document.body.classList.contains('nav-open'); };
+
         var setOpen = function (open) {
+            if (isOpen() === open) { return; }
             document.body.classList.toggle('nav-open', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (backdrop) { backdrop.hidden = !open; }
+            // دسترس‌پذیری: وقتی کشو باز است، محتوای پشتِ آن نباید خوانده شود
+            document.querySelectorAll('main, .site-footer').forEach(function (el) {
+                if (open) { el.setAttribute('aria-hidden', 'true'); }
+                else { el.removeAttribute('aria-hidden'); }
+            });
+            if (open) {
+                var first = nav.querySelector('a, button');
+                if (first) { setTimeout(function () { first.focus(); }, 120); }
+            } else {
+                toggle.focus();
+            }
         };
 
-        toggle.addEventListener('click', function () {
-            setOpen(!document.body.classList.contains('nav-open'));
-        });
+        toggle.addEventListener('click', function () { setOpen(!isOpen()); });
+
+        if (backdrop) {
+            backdrop.addEventListener('click', function () { setOpen(false); });
+        }
 
         nav.addEventListener('click', function (event) {
             if (event.target.closest('a')) { setOpen(false); }
         });
 
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') { setOpen(false); }
+            if (event.key === 'Escape' && isOpen()) { setOpen(false); }
+        });
+
+        var mq = window.matchMedia('(min-width: 1120px)');
+        var onBreakpoint = function () { if (mq.matches && isOpen()) { setOpen(false); } };
+        if (mq.addEventListener) { mq.addEventListener('change', onBreakpoint); }
+        else if (mq.addListener) { mq.addListener(onBreakpoint); }
+        window.addEventListener('resize', function () {
+            if (window.innerWidth >= 1120 && isOpen()) { setOpen(false); }
+        });
+
+        if (backdrop) { backdrop.hidden = true; }
+    })();
+
+    /* ---------------- تأییدِ عملیاتِ خطرناک ----------------
+       پیش‌تر فرم‌های حذف در پنل از onsubmit="return confirm(...)" استفاده
+       می‌کردند. ولی CSP سایت «script-src 'self'» است و بدونِ 'unsafe-inline'
+       همه‌ی event handlerهای درون‌خطی «بلاک» می‌شوند؛ یعنی آن ۹ تأیید هرگز
+       نمایش داده نمی‌شدند و حذف بدونِ هیچ پرسشی انجام می‌شد.
+       اکنون به‌جایش صفتِ data-confirm و یک delegated listener اینجاست
+       (اسکریپتِ بیرونی ⇒ سازگار با CSP). */
+    (function confirmModule() {
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+            if (!form || !form.getAttribute) { return; }
+            var message = form.getAttribute('data-confirm');
+            if (!message) { return; }
+            // پرسشِ بومی؛ اگر کاربر لغو کرد، ارسال متوقف می‌شود
+            if (!window.confirm(message)) { event.preventDefault(); }
+        }, true);
+
+        // دکمه‌های حذف با data-confirm روی خودِ دکمه
+        document.addEventListener('click', function (event) {
+            var el = event.target.closest ? event.target.closest('[data-confirm-click]') : null;
+            if (!el) { return; }
+            if (!window.confirm(el.getAttribute('data-confirm-click'))) { event.preventDefault(); }
+        });
+    })();
+
+    /* ---------------- ماشه‌ی «بیشتر» (مگامنو) ----------------
+       hover و focus-within در CSS مدیریت می‌شوند. این ماژول فقط چیزی را
+       اضافه می‌کند که CSS نمی‌تواند: باز/بسته‌شدن با «کلیک و لمس»
+       (دستگاه‌های لمسی hover ندارند) و بستن با کلیکِ بیرون. */
+    (function navMoreModule() {
+        var item = $('.main-nav__item--mega');
+        var trigger = $('[data-nav-more]');
+        if (!item || !trigger) { return; }
+
+        var isOpen = function () { return item.classList.contains('is-open'); };
+        var setOpen = function (open) {
+            item.classList.toggle('is-open', open);
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+
+        trigger.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(!isOpen());
+        });
+
+        // کلیک روی پیوندهای داخلِ پنل ⇒ بستن (و اجازه‌ی پیمایش)
+        item.addEventListener('click', function (event) {
+            if (event.target.closest('a')) { setOpen(false); }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (isOpen() && !item.contains(event.target)) { setOpen(false); }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && isOpen()) { setOpen(false); trigger.focus(); }
+        });
+
+        // در حالتِ کشویِ موبایل، پنل همیشه بازِ درون‌خطی است ⇒ is-open بی‌معناست
+        var mq = window.matchMedia('(min-width: 1120px)');
+        var sync = function () { if (!mq.matches && isOpen()) { setOpen(false); } };
+        if (mq.addEventListener) { mq.addEventListener('change', sync); }
+        else if (mq.addListener) { mq.addListener(sync); }
+    })();
+
+    /* ---------------- سایدبارِ پنلِ مدیریت ----------------
+       پیش‌تر این منطق به‌صورتِ <script> درون‌خطی در pages/admin/_layout_end.php
+       بود و چون CSP سایت «script-src 'self'» است (بدونِ 'unsafe-inline')،
+       مرورگر آن را بلاک می‌کرد و منوی مدیریت روی موبایل باز نمی‌شد.
+       اینجا همان رفتار، ولی از فایلِ مجازِ خارجی. */
+    (function adminNavModule() {
+        var toggle = $('[data-admin-toggle]');
+        var sidebar = $('#admin-sidebar');
+        var overlay = $('#admin-overlay');
+        if (!toggle || !sidebar) { return; }
+
+        var isOpen = function () { return document.body.classList.contains('admin-nav-open'); };
+
+        var setOpen = function (open) {
+            document.body.classList.toggle('admin-nav-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (overlay) { overlay.hidden = !open; }
+            document.body.classList.toggle('admin-nav-locked', open);
+        };
+
+        toggle.addEventListener('click', function () { setOpen(!isOpen()); });
+        if (overlay) { overlay.addEventListener('click', function () { setOpen(false); }); }
+
+        sidebar.addEventListener('click', function (event) {
+            if (event.target.closest('a')) { setOpen(false); }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && isOpen()) { setOpen(false); toggle.focus(); }
         });
 
         window.addEventListener('resize', function () {
-            if (window.innerWidth > 860) { setOpen(false); }
+            if (window.innerWidth > 940 && isOpen()) { setOpen(false); }
         });
+
+        setOpen(false);
     })();
 
     /* ---------------- هدر چسبان + دکمه‌ی بالا ---------------- */
@@ -244,7 +409,7 @@
             var render = function () {
                 var state = has(slug);
                 button.setAttribute('aria-pressed', state ? 'true' : 'false');
-                label.textContent = state ? '✓ این درس انجام شد' : 'علامت‌گذاری به‌عنوان انجام‌شده';
+                setLabel(label, state ? 'این درس انجام شد' : 'علامت‌گذاری به‌عنوان انجام‌شده', state ? 'check' : null);
             };
 
             button.addEventListener('click', function () {
@@ -382,7 +547,7 @@
             }
             if (toggleBtn) { toggleBtn.textContent = t.running ? 'توقف' : (t.left === t.total ? 'شروع' : 'ادامه'); }
         }, function () {
-            toast('تایمر تمرین تمام شد ✓');
+            toast('تایمر تمرین تمام شد');
         });
 
         var close = function () {
@@ -516,7 +681,7 @@
             if (out) { out.textContent = mmss(t.left); }
             card.classList.toggle('is-running', t.running);
             if (button) { button.textContent = t.running ? 'توقف' : (t.left === total ? 'شروع' : 'ادامه'); }
-        }, function () { toast('تمرین روز تمام شد ✓'); });
+        }, function () { toast('تمرین روز تمام شد'); });
         timer.set(total);
         if (button) { button.addEventListener('click', function () { timer.toggle(); }); }
     })();
@@ -602,7 +767,7 @@
             if (!saveButton) { return; }
             var tip = current();
             var isSaved = tip && saved.some(function (s) { return s.id === tip.id; });
-            saveButton.textContent = isSaved ? '✓ ذخیره شد' : 'ذخیره در این مرورگر';
+            setLabel(saveButton, isSaved ? 'ذخیره شد' : 'ذخیره در این مرورگر', isSaved ? 'check' : null);
             saveButton.disabled = !tip;
         };
 

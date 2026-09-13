@@ -22,6 +22,14 @@ function data(string $name): array
     return $cache[$name];
 }
 
+/**
+ * ناوبریِ اصلیِ هدر.
+ *
+ * چرا فقط ۸ قلم؟ نسخه‌ی پیشین ۱۰ قلم داشت و در عرض‌های میانی
+ * (۱۰۸۰ تا ۱۲۴۰ پیکسل) از کادرِ هدر بیرون می‌زد. سه قلمِ کمتر‌مراجعه
+ * (نکته‌ها، درباره‌ی مدرس، تماس) به منویِ «بیشتر» منتقل شدند؛ همان
+ * منو حوزه‌های آموزشی را هم نشان می‌دهد.
+ */
 function nav_items(): array
 {
     $routes = [
@@ -33,12 +41,25 @@ function nav_items(): array
         'books'     => 'کتاب‌ها',
         'research'  => 'پژوهش',
         'exercises' => 'تمرین‌ها',
-        'about'     => 'درباره مدرس',
-        'contact'   => 'تماس',
     ];
     $out = [];
     foreach ($routes as $route => $label) {
         $out[] = ['route' => $route, 'label' => $label, 'url' => url($route)];
+    }
+    return $out;
+}
+
+/** قلم‌های «بیشتر» — داخلِ مگا‌منو و انتهایِ کشویِ موبایل. */
+function nav_more_items(): array
+{
+    $routes = [
+        'tips'    => ['نکته‌های کوتاه', 'sparkle'],
+        'about'   => ['درباره‌ی مدرس', 'user'],
+        'contact' => ['تماس با ما', 'mail'],
+    ];
+    $out = [];
+    foreach ($routes as $route => [$label, $icon]) {
+        $out[] = ['route' => $route, 'label' => $label, 'icon' => $icon, 'url' => url($route)];
     }
     return $out;
 }
@@ -774,6 +795,71 @@ function category_label(string $slug, string $fallback=''): string {
     return $c ? $c['title'] : ($fallback ?: $slug);
 }
 
+/**
+ * پیدا کردنِ «حوزه» از روی نامِ فارسیِ موضوع.
+ *
+ * چرا لازم است؟ مقاله‌ها/کتاب‌ها/پژوهش‌ها در داده‌ها یک موضوعِ فارسیِ
+ * آزاد دارند (مثل «صدا و نفس») نه slugِ حوزه. برای اینکه هر کارت رنگ و
+ * آیکونِ هماهنگِ همان حوزه را بگیرد، این تابع:
+ *   ۱) تطبیقِ دقیق با title یا shortِ حوزه‌ها
+ *   ۲) نگاشتِ کلیدواژه‌ایِ موضوع → حوزه
+ *   ۳) در غیر این صورت یک انتخابِ پایدار (هشِ موضوع) از فهرستِ حوزه‌ها
+ * را برمی‌گرداند تا رنگِ کارت‌ها بینِ بارگذاری‌ها یکسان بماند.
+ */
+function find_category_by_title(string $label): ?array
+{
+    $label = trim($label);
+    if ($label === '') {
+        return null;
+    }
+    $cats = categories();
+    if ($cats === []) {
+        return null;
+    }
+
+    /* ۱) تطبیقِ دقیق */
+    foreach ($cats as $cat) {
+        if (($cat['title'] ?? '') === $label || ($cat['short'] ?? '') === $label) {
+            return $cat;
+        }
+    }
+    $bySlug = find_category($label);
+    if ($bySlug !== null) {
+        return $bySlug;
+    }
+
+    /* ۲) نگاشتِ کلیدواژه‌ای */
+    static $map = [
+        'public-speaking' => ['صدا', 'نفس', 'تنفس', 'بیان', 'سخنوری', 'زبان بدن', 'ساختار کلام', 'کلام', 'مکث', 'بداهه'],
+        'communication'   => ['گوش', 'ارتباط', 'همدلی', 'بازخورد', 'گفت‌وگو', 'پیام'],
+        'psychology'      => ['اضطراب', 'استرس', 'اعتمادبه‌نفس', 'اعتماد به نفس', 'روان', 'هیجان', 'خودشناسی', 'ذهن'],
+        'success'         => ['عادت', 'انضباط', 'رشد', 'تمرین', 'بازخورد', 'تاب‌آوری', 'پیشرفت'],
+        'goals-time'      => ['هدف', 'زمان', 'برنامه', 'اولویت', 'تمرکز'],
+        'negotiation'     => ['مذاکره', 'جلسه', 'متقاعد', 'چانه'],
+        'career'          => ['کار', 'شغل', 'حرفه', 'رزومه', 'مصاحبه', 'سازمان'],
+        'research'        => ['پژوهش', 'تحقیق', 'مطالعه', 'منبع'],
+        'books'           => ['کتاب', 'خلاصه'],
+        'podcast'         => ['پادکست', 'صوت'],
+        'video'           => ['ویدیو', 'فیلم'],
+        'life-skills'     => ['زندگی', 'تصمیم', 'حل مسئله', 'مسئله'],
+    ];
+    foreach ($map as $slug => $keys) {
+        foreach ($keys as $key) {
+            if (mb_strpos($label, $key, 0, 'UTF-8') !== false) {
+                $hit = find_category($slug);
+                if ($hit !== null) {
+                    return $hit;
+                }
+                break;
+            }
+        }
+    }
+
+    /* ۳) انتخابِ پایدار بر اساسِ هشِ موضوع */
+    $index = (int) (hexdec(substr(md5($label), 0, 6)) % count($cats));
+    return $cats[$index];
+}
+
 /* ------------------------------------------------------------------ */
 /*  جستجو                                                            */
 /* ------------------------------------------------------------------ */
@@ -955,13 +1041,100 @@ function storage_dir(string $sub=''): string
     return $base . ($sub !== '' ? '/' . trim($sub, '/') : '');
 }
 
+/* ------------------------------------------------------------------ */
+/*  ذخیره‌سازیِ داده‌ی پنلِ مدیریت (JSON در storage/admin)              */
+/*                                                                    */
+/*  این دو تابع عمداً «اینجا» و نه در auth.php هستند: هیچ وابستگی به    */
+/*  احرازِ هویت ندارند، فقط به storage_dir() تکیه می‌کنند، و هم          */
+/*  helpers.php (categories) و هم content.php (articles, books,        */
+/*  media, courses, …) به آن‌ها نیاز دارند. گذاشتنشان در auth.php       */
+/*  باعث می‌شد هر نقطه‌ی ورودِ مستقلی که auth.php را بار نمی‌کند — مثلِ  */
+/*  sitemap.php — با «Call to undefined function admin_load()» و        */
+/*  پاسخِ ۵۰۰ از کار بیفتد.                                           */
+/* ------------------------------------------------------------------ */
+
+/** ذخیره‌ی داده‌ی JSON در storage */
+function admin_store(string $name, array $data): bool
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
+    if (@file_put_contents($tmp, $json, LOCK_EX) !== false) {
+        $ok = @rename($tmp, $file);
+        @unlink($tmp);
+        return $ok;
+    }
+    @unlink($tmp);
+    return false;
+}
+
+/** بارگذاری داده‌ی JSON از storage */
+function admin_load(string $name): array
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    if (!is_file($file)) return [];
+    $raw = @file_get_contents($file);
+    if (!is_string($raw)) return [];
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
+}
+
 function redirect(string $to): void
 {
     /* نشانیِ هدف برای ابزارهای تست و لاگ در دسترس باشد؛ در تولید بدون اثر است. */
     $GLOBALS['HA_REDIRECT_TO'] = $to;
-    if (!headers_sent()) {
-        header('Location: ' . $to);
+
+    /*
+     * «اول» نشست را می‌بندیم، بعد سرصفحه را می‌فرستیم.
+     *
+     * این ترتیب برایِ الگوی PRG حیاتی است: هر handler اول flash() می‌زند و
+     * بعد redirect() می‌کند، و redirect با exit پایان می‌دهد — یعنی هرگز به
+     * session_write_close() انتهای bootstrap نمی‌رسد. اگر نشست فقط در
+     * خاموشیِ اسکریپت نوشته شود (که روی برخی SAPIها و میزبانی‌های اشتراکی
+     * اتکاپذیر نیست)، پیامِ flash و خودِ ورودِ کاربر بی‌صدا گم می‌شود:
+     * کاربر رمز را درست می‌زند ولی به صفحه‌ی ورود برمی‌گردد، بی‌آنکه
+     * پیامی ببیند. نوشتنِ صریح، پیش از exit، این را قطعی می‌کند.
+     *
+     * $_SESSION پس از بستن هم در حافظه خواندنی/نوشتنی می‌ماند، فقط دیگر به
+     * ذخیره‌ساز متصل نیست — پس چیزی را برای ادامه‌ی اجرا خراب نمی‌کند.
+     */
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
     }
+
+    /*
+     * دور ریختنِ خروجیِ بافرشده.
+     *
+     * bootstrap کلِ رندر را بافر می‌کند، پس ممکن است بخشی از هدر/بدنه
+     * «نوشته» ولی هنوز «فرستاده» نشده باشد. تا وقتی بافر باز است
+     * headers_sent() ناراست است و می‌توانیم سرصفحه‌ی Location را بفرستیم —
+     * به‌شرطِ آنکه محتوایِ بافرشده را دور بریزیم، وگرنه کلاینت هم ۳۰۲
+     * می‌گیرد و هم HTML ناقصِ صفحه‌ای که نیمه‌کاره رها شده.
+     */
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        header('Location: ' . $to, true, 302);
+    } elseif (!empty($GLOBALS['HA_TEST_NO_EXIT'])) {
+        // حالتِ تست: سرصفحه قابلِ ارسال نیست، فقط هدف ثبت می‌شود.
+    } else {
+        /*
+         * واپسین لایه‌ی اطمینان: اگر به هر دلیلی (بافرِ بسته در پیکربندیِ
+         * خاصِ میزبان، یا خروجیِ پیش از redirect) سرصفحه‌ها رفته باشند،
+         * کاربر را روی یک صفحه‌ی خالی و بی‌پیوند رها نمی‌کنیم.
+         */
+        $safe = e($to);
+        echo '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">'
+            . '<meta http-equiv="refresh" content="0;url=' . $safe . '">'
+            . '<title>در حالِ انتقال…</title></head><body>'
+            . '<p>در حالِ انتقال به <a href="' . $safe . '">' . $safe . '</a>…</p>'
+            . '</body></html>';
+    }
+
     /* فقط برای تستِ خودکار: به‌جای exit یک استثنا پرتاب می‌شود تا اجرایِ
        اسکریپت بلافاصله متوقف شود (دقیقاً مثل exit) ولی مهارِ آن در harness
        ممکن باشد. در تولید هرگز اجرا نمی‌شود. */

@@ -67,7 +67,7 @@ $totalExercises = count(exercises());
                     <div class="numbers__item"><strong><?= fa_num($totalExercises) ?></strong><span>تمرین عملی</span></div>
                 </div>
 
-                <div class="grid grid--2" style="margin-top:1.4rem">
+                <div class="grid grid--2 mt-md">
                     <div class="card side-card">
                         <h2>شروعِ مسیر فن بیان</h2>
                         <p>از نفس و صدا شروع کنید؛ مسیرِ ۹ درسِ تمرین‌محور با پیشرفتِ قابلِ اندازه‌گیری.</p>

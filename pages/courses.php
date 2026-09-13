@@ -36,7 +36,7 @@ $filtered = $filter ? array_values(array_filter($all, fn($c)=>($c['category']??'
             </div>
         <?php endif; ?>
 
-        <div class="card" style="margin-top:2rem; background:var(--brand-soft); border-color:transparent">
+        <div class="info-box">
             <h2>چطور یک حوزه‌ی جدید اضافه می‌شود؟</h2>
             <p class="muted-sm">کافی است یک قلم به <code>data/categories.php</code> و یک دوره به <code>data/course.php</code> اضافه کنید؛ فهرست‌ها، فیلترها، جستجو و نقشه‌ی سایت خودکار به‌روز می‌شوند — بدونِ بازنویسیِ معماری.</p>
         </div>

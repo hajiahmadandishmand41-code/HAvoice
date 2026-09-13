@@ -33,7 +33,7 @@ $list = $filter ? array_values(array_filter($all, fn($v)=>($v['category']??'')==
             </div>
         <?php endif; ?>
 
-        <div class="card" style="margin-top:2rem">
+        <div class="info-box">
             <h2>نحوه‌ی افزودنِ ویدیوی واقعی</h2>
             <p class="muted-sm">در <code>data/media.php</code> مقدارِ <code>url</code> را به لینکِ ویدیو (مثلاً آپارات/یوتیوب یا فایلِ mp4 روی هاست) تغییر دهید؛ کارت خودکار از حالتِ «به‌زودی» به حالتِ پخش تبدیل می‌شود — بدونِ تغییرِ قالب.</p>
             <ul class="rich-list"><li>فرمتِ پیشنهادی: mp4 با حجمِ بهینه (≤ 25MB برای ۵ دقیقه) و پوسترِ سبک.</li><li>برای ویدیوهای آپارات، <code>url</code> را با iframeِ امبد جایگزین کنید و در بلوکِ درس از نوعِ <code>video</code> استفاده کنید.</li></ul>

@@ -18,7 +18,7 @@ $allArticles = array_merge(data('articles'), $adminArticles);
 <td class="actions">
 <a class="btn btn--ghost btn--sm" href="<?= e(url('admin_article_edit', ['slug' => $a['slug'] ?? ''])) ?>">ویرایش</a>
 <?php if (!$isData): ?>
-<form method="post" action="<?= e(url('admin_article_delete')) ?>" style="display:inline" onsubmit="return confirm('حذف شود؟')"><?= csrf_field() ?><input type="hidden" name="slug" value="<?= e($a['slug'] ?? '') ?>"><button class="btn btn--ghost btn--sm" type="submit" style="color:var(--danger)">حذف</button></form>
+<form method="post" action="<?= e(url('admin_article_delete')) ?>" class="inline-form" data-confirm="این مورد برای همیشه حذف شود؟"><?= csrf_field() ?><input type="hidden" name="slug" value="<?= e($a['slug'] ?? '') ?>"><button class="btn btn--ghost btn--sm btn--danger-text" type="submit"><?= ha_icon('trash', 14) ?> حذف</button></form>
 <?php endif; ?>
 </td>
 </tr>

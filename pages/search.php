@@ -90,7 +90,7 @@ $suggestions = ['مکث','تنفس','تکیه‌کلام','زبان بدن','ا�
             <?php endif; ?>
 
             <?php if($articleResults!==[]): ?>
-                <div class="search-results" style="margin-top:1.2rem">
+                <div class="search-results mt-md">
                     <h2>مقالات</h2>
                     <?php foreach($articleResults as $item): ?>
                         <article class="result">
@@ -103,7 +103,7 @@ $suggestions = ['مکث','تنفس','تکیه‌کلام','زبان بدن','ا�
             <?php endif; ?>
 
             <?php if($lessonResults!==[]): ?>
-                <div class="search-lessons" style="margin-top:1.6rem">
+                <div class="search-lessons sub-section">
                     <h2>درس‌ها</h2>
                     <ol class="lesson-list">
                         <?php foreach($lessonResults as $g): ?>
@@ -120,27 +120,27 @@ $suggestions = ['مکث','تنفس','تکیه‌کلام','زبان بدن','ا�
             <?php endif; ?>
 
             <?php if($bookResults!==[]): ?>
-                <div style="margin-top:1.6rem">
-                    <h2>کتاب‌ها</h2>
-                    <div class="grid grid--2" style="margin-top:.6rem">
+                <div class="sub-section">
+                    <h2 class="sub-section__title">کتاب‌ها</h2>
+                    <div class="grid grid--2">
                         <?php foreach($bookResults as $b): ?><div><?= book_card($b) ?></div><?php endforeach; ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <?php if($researchResults!==[]): ?>
-                <div style="margin-top:1.6rem">
-                    <h2>پژوهش‌ها</h2>
-                    <div class="grid grid--2" style="margin-top:.6rem">
+                <div class="sub-section">
+                    <h2 class="sub-section__title">پژوهش‌ها</h2>
+                    <div class="grid grid--2">
                         <?php foreach($researchResults as $r): ?><div><?= research_card($r) ?></div><?php endforeach; ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <?php if($mediaResults!==[]): ?>
-                <div style="margin-top:1.6rem">
-                    <h2>ویدیو و صوت</h2>
-                    <div class="grid grid--3" style="margin-top:.6rem">
+                <div class="sub-section">
+                    <h2 class="sub-section__title">ویدیو و صوت</h2>
+                    <div class="grid grid--3">
                         <?php foreach($mediaResults as $m): ?>
                             <div><?= ($m['type']==='video')? video_card($m): audio_card($m) ?></div>
                         <?php endforeach; ?>

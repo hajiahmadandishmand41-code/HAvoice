@@ -33,7 +33,7 @@ $list = $filter ? array_values(array_filter($all, fn($a)=>($a['category']??'')==
             </div>
         <?php endif; ?>
 
-        <div class="card" style="margin-top:2rem; background:var(--surface-2)">
+        <div class="info-box">
             <h2>پخش‌کننده‌ی حرفه‌ای</h2>
             <p class="muted-sm">فایل‌های صوتی با تگِ <code>&lt;audio&gt;</code> پخش می‌شوند؛ نیازی به سرویسِ خارجی نیست. برای افزودنِ فایلِ واقعی، در <code>data/media.php</code> مسیرِ فایل (مثلاً <code>/uploads/audio/xxx.mp3</code>) را در <code>url</code> بگذارید.</p>
         </div>
