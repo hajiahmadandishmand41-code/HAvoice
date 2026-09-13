@@ -76,7 +76,13 @@ function auth_save_users(array $users): bool
         flock($fp, LOCK_UN);
     }
     fclose($fp);
-    @unlink($tmp);
+    /* پاک‌سازی فقط اگر فایلِ موقت هنوز هست: بعد از rename موفق وجود ندارد
+       و @unlink بی‌قید و شرط هر بار یک هشدار برمی‌انگیخت (همان اصلاحی که
+       در admin_store() انجام شد — @ مقدارِ بازگشتی را خفه می‌کند، نه خودِ
+       هشدار را). */
+    if (is_file($tmp)) {
+        @unlink($tmp);
+    }
     return $ok;
 }
 
