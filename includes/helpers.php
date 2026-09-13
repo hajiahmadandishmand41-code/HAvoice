@@ -1041,6 +1041,46 @@ function storage_dir(string $sub=''): string
     return $base . ($sub !== '' ? '/' . trim($sub, '/') : '');
 }
 
+/* ------------------------------------------------------------------ */
+/*  ذخیره‌سازیِ داده‌ی پنلِ مدیریت (JSON در storage/admin)              */
+/*                                                                    */
+/*  این دو تابع عمداً «اینجا» و نه در auth.php هستند: هیچ وابستگی به    */
+/*  احرازِ هویت ندارند، فقط به storage_dir() تکیه می‌کنند، و هم          */
+/*  helpers.php (categories) و هم content.php (articles, books,        */
+/*  media, courses, …) به آن‌ها نیاز دارند. گذاشتنشان در auth.php       */
+/*  باعث می‌شد هر نقطه‌ی ورودِ مستقلی که auth.php را بار نمی‌کند — مثلِ  */
+/*  sitemap.php — با «Call to undefined function admin_load()» و        */
+/*  پاسخِ ۵۰۰ از کار بیفتد.                                           */
+/* ------------------------------------------------------------------ */
+
+/** ذخیره‌ی داده‌ی JSON در storage */
+function admin_store(string $name, array $data): bool
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
+    if (@file_put_contents($tmp, $json, LOCK_EX) !== false) {
+        $ok = @rename($tmp, $file);
+        @unlink($tmp);
+        return $ok;
+    }
+    @unlink($tmp);
+    return false;
+}
+
+/** بارگذاری داده‌ی JSON از storage */
+function admin_load(string $name): array
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    if (!is_file($file)) return [];
+    $raw = @file_get_contents($file);
+    if (!is_string($raw)) return [];
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
+}
+
 function redirect(string $to): void
 {
     /* نشانیِ هدف برای ابزارهای تست و لاگ در دسترس باشد؛ در تولید بدون اثر است. */

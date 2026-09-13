@@ -329,33 +329,15 @@ function auth_set_role(string $id, string $role): bool
     return $changed && auth_save_users($users);
 }
 
-/** ذخیره‌ی داده‌ی JSON در storage */
-function admin_store(string $name, array $data): bool
-{
-    $file = storage_dir('admin') . '/' . $name . '.json';
-    $dir = dirname($file);
-    if (!is_dir($dir)) @mkdir($dir, 0755, true);
-    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-    $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
-    if (@file_put_contents($tmp, $json, LOCK_EX) !== false) {
-        $ok = @rename($tmp, $file);
-        @unlink($tmp);
-        return $ok;
-    }
-    @unlink($tmp);
-    return false;
-}
-
-/** بارگذاری داده‌ی JSON از storage */
-function admin_load(string $name): array
-{
-    $file = storage_dir('admin') . '/' . $name . '.json';
-    if (!is_file($file)) return [];
-    $raw = @file_get_contents($file);
-    if (!is_string($raw)) return [];
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
-}
+/*
+ * admin_store() و admin_load() به includes/helpers.php منتقل شدند، کنارِ
+ * storage_dir(). دلیل: این دو هیچ وابستگی به احرازِ هویت ندارند — فقط
+ * ذخیره‌سازیِ JSON در storage‌اند — ولی helpers.php (categories) و
+ * content.php (articles/books/media/…) هر دو به آن‌ها تکیه می‌کنند.
+ * وقتی اینجا بودند، هر اسکریپتِ مستقلی که helpers+content را require
+ * می‌کرد و auth.php را نه (مثلِ sitemap.php) با خطایِ فاجعه‌بارِ
+ * «Call to undefined function admin_load()» از کار می‌افتاد.
+ */
 
 /** بارگذاری تنظیمات سایت ذخیره‌شده توسط مدیر */
 function admin_settings(): array
