@@ -2,9 +2,8 @@
  * HAvoice — تعیینِ حالتِ نمایش پیش از اولین رنگ‌آمیزی
  *
  * سه حالت پشتیبانی می‌شود: light | dark | auto.
- * این فایل همچنین لایه‌ی واکنش‌گرای یکپارچه‌ی موبایل را بارگذاری می‌کند
- * و ارتفاع واقعی هدر را در یک CSS custom property نگه می‌دارد تا drawer
- * به‌جای حدسِ 64px دقیقاً زیر هدر قرار بگیرد.
+ * لایه‌ی CSS واکنش‌گرا به‌صورتِ استاتیک در header بارگذاری می‌شود تا
+ * ناوبری موبایل قبل از اولین paint هم قراردادِ مشخصی داشته باشد.
  */
 (function () {
     'use strict';
@@ -40,27 +39,7 @@
         }
     } catch (e) { /* اختیاری است */ }
 
-    /* ----------------------------------------------------------------------
-       Responsive shell layer
-       ---------------------------------------------------------------------- */
-    var loadMobileStyles = function () {
-        var script = document.currentScript;
-        if (!script || !script.src || !document.head) { return; }
-        if (document.querySelector('link[data-ha-mobile-layout]')) { return; }
-
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = new URL('../css/mobile-layout.css', script.src).href;
-        link.setAttribute('data-ha-mobile-layout', '');
-        document.head.appendChild(link);
-    };
-
-    loadMobileStyles();
-
-    /* Header height is content-dependent on small screens, especially with
-       font rendering and narrow widths. Feed the measured value to CSS so the
-       drawer starts exactly below the real header and fills the remaining
-       dynamic viewport (100dvh) without clipping. */
+    /* ارتفاع هدر وابسته به عرض، فونت و وضعیت چیدمان است. */
     var syncHeaderHeight = function () {
         var header = document.querySelector('[data-header]');
         if (!header) { return; }
