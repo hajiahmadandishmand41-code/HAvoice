@@ -1,5 +1,5 @@
 /* ========================================================================
-   HAvoice — Mobile UI Fixes v1.1
+   HAvoice — Mobile UI Fixes v1.2
    هدف: هدر/کشوی موبایل، جلوگیری از هم‌پوشانی، سرریز عرضی و fallbackهای CSS.
    ======================================================================== */
 
@@ -10,6 +10,9 @@
     --safe-left: env(safe-area-inset-left, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 .site-header { isolation: isolate; }
 .site-header__inner { min-height: var(--header-h); width: 100%; overflow: visible; min-width: 0; }
