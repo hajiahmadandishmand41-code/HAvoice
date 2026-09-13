@@ -1,0 +1,335 @@
+/*
+ * HAvoice — mobile layout foundation
+ *
+ * This is a single, intentional responsive layer for the mobile shell and
+ * homepage. It is loaded after style.css by theme.js so the base design system
+ * remains unchanged for tablet/desktop while mobile receives one coherent
+ * layout contract rather than scattered patches.
+ */
+
+:root {
+    --ha-header-h: var(--header-h, 64px);
+}
+
+/* --------------------------------------------------------------------------
+   Mobile navigation: real viewport-level drawer
+   -------------------------------------------------------------------------- */
+@media (max-width: 1119.98px) {
+    html,
+    body {
+        max-inline-size: 100%;
+    }
+
+    .site-header__inner {
+        position: static;
+    }
+
+    .main-nav {
+        position: fixed;
+        inset-block-start: var(--ha-header-h);
+        inset-block-end: 0;
+        inset-inline-start: auto;
+        inset-inline-end: 0;
+        inline-size: min(88vw, 360px);
+        max-inline-size: calc(100vw - 12px);
+        block-size: calc(100dvh - var(--ha-header-h));
+        max-block-size: none;
+        min-block-size: 0;
+        box-sizing: border-box;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        z-index: calc(var(--z-overlay) + 1);
+        pointer-events: none;
+    }
+
+    .main-nav,
+    .main-nav * {
+        min-inline-size: 0;
+    }
+
+    [dir="ltr"] .main-nav {
+        inset-inline-start: 0;
+        inset-inline-end: auto;
+    }
+
+    .main-nav__list,
+    .main-nav__mega-list {
+        min-block-size: max-content;
+    }
+
+    .main-nav__cta {
+        margin-block-start: var(--sp-4);
+        padding-block-end: max(var(--sp-4), env(safe-area-inset-bottom));
+    }
+
+    /* In mobile there is no dropdown: "بیشتر" content is in normal flow. */
+    .main-nav__item--mega {
+        display: block;
+    }
+
+    .main-nav__more {
+        display: none;
+    }
+
+    .main-nav__mega {
+        position: static;
+        display: block;
+        inline-size: auto;
+        max-block-size: none;
+        overflow: visible;
+        margin-block-start: var(--sp-2);
+        padding-block-start: var(--sp-4);
+        padding-inline: 0;
+        border-block-start: 1px solid var(--border);
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    .main-nav__mega-list {
+        grid-template-columns: 1fr;
+    }
+
+    html.nav-open .main-nav,
+    body.nav-open .main-nav {
+        pointer-events: auto;
+    }
+
+    .nav-backdrop {
+        position: fixed;
+        inset-block-start: var(--ha-header-h);
+        inset-block-end: 0;
+        inset-inline: 0;
+        z-index: var(--z-overlay);
+        pointer-events: none;
+    }
+
+    html.nav-open .nav-backdrop,
+    body.nav-open .nav-backdrop {
+        pointer-events: auto;
+    }
+
+    .nav-toggle {
+        position: relative;
+        z-index: calc(var(--z-overlay) + 2);
+        flex: 0 0 auto;
+    }
+
+    /* The drawer must never be visually trapped by the header flex row. */
+    .site-header,
+    .site-header__inner {
+        overflow: visible;
+    }
+
+    /* Keep the header itself out of any accidental horizontal expansion. */
+    .site-header__inner,
+    .main-nav__list,
+    .main-nav__mega,
+    .main-nav__cta,
+    .main-nav__auth {
+        max-inline-size: 100%;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Small-screen homepage: compact, readable, touch-first
+   -------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    .hero--premium {
+        padding-block: 1.25rem 1.5rem;
+    }
+
+    .hero__grid {
+        gap: 1rem;
+    }
+
+    .hero__badge {
+        max-inline-size: 100%;
+        font-size: var(--fs-xs);
+        line-height: 1.65;
+    }
+
+    .hero__title--premium {
+        max-inline-size: 100%;
+        margin-block-end: .65rem;
+        font-size: clamp(1.75rem, 8vw, 2.4rem);
+        line-height: 1.28;
+    }
+
+    .hero__lead--premium {
+        margin-block-end: .9rem;
+        font-size: var(--fs-base);
+        line-height: 1.82;
+    }
+
+    .hero .btn-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: .5rem;
+        inline-size: 100%;
+    }
+
+    .hero .btn-row .btn {
+        inline-size: 100%;
+        min-block-size: 44px;
+    }
+
+    .hero__stats--premium {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .5rem;
+        margin-block-start: 1rem;
+    }
+
+    .hero__stats--premium li {
+        min-inline-size: 0;
+        padding: .65rem .5rem;
+        border-radius: var(--r-sm);
+    }
+
+    .hero__stats--premium strong {
+        font-size: 1.05rem;
+    }
+
+    .hero__stats--premium span {
+        font-size: var(--fs-2xs);
+        line-height: 1.55;
+    }
+
+    .hero__panel {
+        min-inline-size: 0;
+    }
+
+    .practice-card {
+        padding: .9rem;
+    }
+
+    .practice-card__title {
+        font-size: var(--fs-lg);
+    }
+
+    .practice-card__text {
+        font-size: var(--fs-sm);
+    }
+
+    .topic-strip {
+        margin-block-start: 0;
+    }
+
+    .topic-strip__head {
+        align-items: flex-start;
+        gap: .5rem;
+    }
+
+    .section {
+        padding-block: 2rem;
+    }
+
+    .section .container {
+        min-inline-size: 0;
+    }
+
+    .grid--2,
+    .grid--3,
+    .grid--4 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .grid,
+    .grid > * {
+        min-inline-size: 0;
+    }
+
+    .card,
+    .stage-card,
+    .practice-card,
+    .course-summary {
+        max-inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .section-head,
+    .section-head__content,
+    .section-head__actions {
+        min-inline-size: 0;
+    }
+
+    .section-head {
+        gap: .75rem;
+        margin-block-end: 1rem;
+    }
+
+    .section-head__title {
+        font-size: clamp(1.25rem, 6vw, 1.55rem);
+    }
+
+    .section-head__lead {
+        font-size: var(--fs-sm);
+        line-height: 1.8;
+    }
+
+    .section-head__actions .btn,
+    .section-head__actions a {
+        min-block-size: 40px;
+    }
+
+    .site-footer {
+        margin-block-start: 1rem;
+    }
+
+    /* No homepage component may create a horizontal page scroll. */
+    .hero,
+    .section,
+    .topic-strip,
+    .site-footer,
+    .site-main {
+        max-inline-size: 100%;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .site-header__inner {
+        gap: .25rem;
+    }
+
+    .brand__text small {
+        display: none;
+    }
+
+    .hero__stats--premium {
+        gap: .4rem;
+    }
+
+    .hero__stats--premium li {
+        padding: .55rem .4rem;
+    }
+
+    .main-nav {
+        inline-size: min(92vw, 360px);
+        max-inline-size: calc(100vw - 8px);
+    }
+}
+
+@media (max-width: 359.98px) {
+    .main-nav {
+        inline-size: calc(100vw - 4px);
+        max-inline-size: calc(100vw - 4px);
+    }
+
+    .hero--premium {
+        padding-block-start: 1rem;
+    }
+
+    .hero__stats--premium {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .main-nav,
+    .nav-backdrop {
+        transition: none !important;
+    }
+}
