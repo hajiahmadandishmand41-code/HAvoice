@@ -8,4 +8,5 @@ $item = ['slug'=>$slug,'title'=>$title,'author'=>trim((string)($_POST['author']?
 $orig = (string)($_POST['original_slug'] ?? ''); $found = false;
 foreach ($items as $i => $b) { if (($b['slug'] ?? '') === $orig || ($b['slug'] ?? '') === $slug) { $items[$i] = $item; $found = true; break; } }
 if (!$found) $items[] = $item;
-admin_store('books', $items); flash('success','کتاب ذخیره شد.'); redirect(url('admin_books'));
+if (!admin_store('books', $items)) { flash('error','ذخیره‌سازی کتاب ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_books')); }
+flash('success','کتاب ذخیره شد.'); redirect(url('admin_books'));
