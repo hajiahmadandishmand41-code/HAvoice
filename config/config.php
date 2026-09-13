@@ -124,4 +124,4 @@ define('HA_AUTH_REGISTER_RATE_LIMIT_MAX', 5);
 /** طول پنجره‌ی محدودیتِ نرخِ ورود/ثبت‌نام (ثانیه). */
 define('HA_AUTH_RATE_LIMIT_WINDOW', 600);
 
-define('HA_VERSION', '2.2.0');
+define('HA_VERSION', '3.0.0');

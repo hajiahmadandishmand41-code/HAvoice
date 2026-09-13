@@ -35,7 +35,19 @@ function ha_known_routes(): array
 {
     return ['home','courses','course','lesson','articles','article','videos','audios','books',
             'research','category','exercises','tips','about','contact','search','404',
-            'login','register','logout','account'];
+            'login','register','logout','account',
+            'admin','admin_courses','admin_course_edit','admin_course_save','admin_course_delete',
+            'admin_articles','admin_article_edit','admin_article_save','admin_article_delete',
+            'admin_videos','admin_video_edit','admin_video_save','admin_video_delete',
+            'admin_audios','admin_audio_edit','admin_audio_save','admin_audio_delete',
+            'admin_books','admin_book_edit','admin_book_save','admin_book_delete',
+            'admin_research','admin_research_edit','admin_research_save','admin_research_delete',
+            'admin_exercises','admin_exercise_edit','admin_exercise_save','admin_exercise_delete',
+            'admin_tips','admin_tip_edit','admin_tip_save','admin_tip_delete',
+            'admin_categories','admin_category_edit','admin_category_save','admin_category_delete',
+            'admin_users','admin_user_edit','admin_user_save','admin_user_delete',
+            'admin_messages','admin_message_view','admin_message_delete',
+            'admin_settings','admin_settings_save'];
 }
 
 function ha_resolve_route(): array
@@ -190,6 +202,35 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             break;
         case 'logout':
             require HA_ROOT . '/includes/handlers/logout.php';
+            break;
+        // Admin POST handlers
+        case 'admin_course_save':
+        case 'admin_article_save':
+        case 'admin_video_save':
+        case 'admin_audio_save':
+        case 'admin_book_save':
+        case 'admin_research_save':
+        case 'admin_exercise_save':
+        case 'admin_tip_save':
+        case 'admin_category_save':
+        case 'admin_user_save':
+        case 'admin_settings_save':
+        case 'admin_course_delete':
+        case 'admin_article_delete':
+        case 'admin_video_delete':
+        case 'admin_audio_delete':
+        case 'admin_book_delete':
+        case 'admin_research_delete':
+        case 'admin_exercise_delete':
+        case 'admin_tip_delete':
+        case 'admin_category_delete':
+        case 'admin_user_delete':
+        case 'admin_message_delete':
+            // Map route to file: admin_article_save → article_save.php
+            $handlerFile = HA_ROOT . '/pages/admin/' . str_replace('admin_', '', $route) . '.php';
+            if (is_file($handlerFile)) {
+                require $handlerFile;
+            }
             break;
     }
 }

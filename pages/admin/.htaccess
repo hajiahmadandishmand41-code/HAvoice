@@ -1,0 +1,5 @@
+# Deny direct access to admin PHP files (they should be accessed through index.php)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [L]
+</IfModule>

@@ -18,7 +18,7 @@ if (!defined('HA_ROOT')) {
 
 function all_articles_sorted(): array
 {
-    $articles = data('articles');
+    $articles = articles();
     usort($articles, static function (array $a, array $b) {
         return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
     });
@@ -401,6 +401,33 @@ function ha_page_meta(string $route): array
     ];
     // صفحه‌هایی که <h1> خودشان را می‌سازند ⇒ بنر (و <h1> دوم) خاموش
     $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout'];
+
+    // Admin routes — noindex, no banner
+    if (strpos($route, 'admin') === 0) {
+        $adminTitles = [
+            'admin' => 'داشبورد مدیریت', 'admin_courses' => 'مدیریت دوره‌ها', 'admin_articles' => 'مدیریت مقالات',
+            'admin_videos' => 'مدیریت ویدیوها', 'admin_audios' => 'مدیریت صوتها', 'admin_books' => 'مدیریت کتاب‌ها',
+            'admin_research' => 'مدیریت پژوهش‌ها', 'admin_exercises' => 'مدیریت تمرین‌ها', 'admin_tips' => 'مدیریت نکته‌ها',
+            'admin_categories' => 'مدیریت حوزه‌ها', 'admin_users' => 'مدیریت کاربران', 'admin_messages' => 'پیام‌های تماس',
+            'admin_settings' => 'تنظیمات سایت', 'admin_message_view' => 'مشاهده پیام',
+        ];
+        $editTitles = [
+            'admin_course_edit' => 'ویرایش دوره', 'admin_article_edit' => 'ویرایش مقاله',
+            'admin_video_edit' => 'ویرایش ویدیو', 'admin_audio_edit' => 'ویرایش صوت',
+            'admin_book_edit' => 'ویرایش کتاب', 'admin_research_edit' => 'ویرایش پژوهش',
+            'admin_exercise_edit' => 'ویرایش تمرین', 'admin_tip_edit' => 'ویرایش نکته',
+            'admin_category_edit' => 'ویرایش حوزه', 'admin_user_edit' => 'ویرایش کاربر',
+        ];
+        $title = ($adminTitles[$route] ?? $editTitles[$route] ?? 'مدیریت') . ' — پنل مدیریت';
+        return array_merge($base, [
+            'title'       => $title . ' | ' . $siteName,
+            'description' => 'پنل مدیریت سایت HAvoice',
+            'h1'          => $adminTitles[$route] ?? $editTitles[$route] ?? 'مدیریت',
+            'banner'      => false,
+            'canonical'   => '',
+            'robots'      => 'noindex,nofollow',
+        ]);
+    }
 
     return array_merge($base, [
         'title'       => (isset($titles[$route]) ? $titles[$route] : HA_NAME) . ' | ' . $siteName,

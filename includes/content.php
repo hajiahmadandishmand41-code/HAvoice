@@ -118,10 +118,20 @@ function lessons_by_category(string $category): array
 /*  مقالات                                                            */
 /* ------------------------------------------------------------------ */
 
+function articles(): array { return array_merge(data('articles'), admin_load('articles')); }
+function all_articles_sorted(): array
+{
+    $articles = articles();
+    usort($articles, static function (array $a, array $b) {
+        return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
+    });
+    return $articles;
+}
+
 function article_categories(): array
 {
     $cats=[];
-    foreach (data('articles') as $article){ $cat=(string)($article['category']??'عمومی'); $cats[$cat]=($cats[$cat]??0)+1; }
+    foreach (articles() as $article){ $cat=(string)($article['category']??'عمومی'); $cats[$cat]=($cats[$cat]??0)+1; }
     ksort($cats,SORT_STRING|SORT_FLAG_CASE);
     return $cats;
 }
@@ -136,7 +146,7 @@ function latest_articles(int $limit=3, ?string $excludeSlug=null): array
 function related_articles(array $current, int $limit=3): array
 {
     $scored=[];
-    foreach (data('articles') as $article){
+    foreach (articles() as $article){
         if (($article['slug']??null)===($current['slug']??null)) continue;
         $score=0;
         if (($article['category']??'')===($current['category']??'')) $score+=3;
@@ -152,17 +162,17 @@ function related_articles(array $current, int $limit=3): array
 /*  تمرین‌ها و نکته‌ها                                                 */
 /* ------------------------------------------------------------------ */
 
-function exercises(): array { return data('exercises'); }
-function tips(): array { return data('tips'); }
+function exercises(): array { return array_merge(data('exercises'), admin_load('exercises')); }
+function tips(): array { return array_merge(data('tips'), admin_load('tips')); }
 function exercises_by_level(): array { $grouped=[]; foreach(exercises() as $ex){ $level=(string)($ex['level']??'عمومی'); $grouped[$level][]=$ex; } return $grouped; }
 
 /* ------------------------------------------------------------------ */
 /*  کتاب، پژوهش، مدیا، مسیر                                            */
 /* ------------------------------------------------------------------ */
 
-function books(): array { return data('books'); }
-function research_items(): array { return data('research'); }
-function media_items(): array { return data('media'); }
+function books(): array { return array_merge(data('books'), admin_load('books')); }
+function research_items(): array { return array_merge(data('research'), admin_load('research')); }
+function media_items(): array { return array_merge(data('media'), admin_load('media')); }
 function videos(): array { return array_values(array_filter(media_items(), fn($m)=>($m['type']??'')==='video')); }
 function audios(): array { return array_values(array_filter(media_items(), fn($m)=>($m['type']??'')==='audio')); }
 function learning_paths(): array { return data('learning_paths'); }

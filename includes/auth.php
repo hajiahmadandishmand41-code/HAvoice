@@ -285,3 +285,80 @@ function auth_initial(string $name): string
     $first = mb_substr(trim($name), 0, 1, 'UTF-8');
     return $first !== '' ? $first : '؟';
 }
+
+/* ------------------------------------------------------------------ */
+/*  مدیر سایت (Admin)                                                 */
+/* ------------------------------------------------------------------ */
+
+/** آیا کاربر جاری مدیر است؟ */
+function auth_is_admin(): bool
+{
+    $user = auth_current_user();
+    if ($user === null) return false;
+    // اولین کاربر ثبت‌نام‌شده همیشه مدیر است
+    $users = auth_load_users();
+    if ($users !== [] && ($users[0]['id'] ?? '') === ($user['id'] ?? '')) return true;
+    return !empty($user['role']) && $user['role'] === 'admin';
+}
+
+/** محافظت از صفحه‌های مدیریت */
+function auth_require_admin(): void
+{
+    if (!auth_is_logged_in()) {
+        flash('error', 'ابتدا وارد حساب کاربری شوید.');
+        redirect(url('login'));
+    }
+    if (!auth_is_admin()) {
+        flash('error', 'شما دسترسی مدیریت ندارید.');
+        redirect(url('home'));
+    }
+}
+
+/** تغییر نقش کاربر */
+function auth_set_role(string $id, string $role): bool
+{
+    $users = auth_load_users();
+    $changed = false;
+    foreach ($users as $i => $user) {
+        if (($user['id'] ?? '') === $id) {
+            $users[$i]['role'] = $role;
+            $changed = true;
+            break;
+        }
+    }
+    return $changed && auth_save_users($users);
+}
+
+/** ذخیره‌ی داده‌ی JSON در storage */
+function admin_store(string $name, array $data): bool
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
+    if (@file_put_contents($tmp, $json, LOCK_EX) !== false) {
+        $ok = @rename($tmp, $file);
+        @unlink($tmp);
+        return $ok;
+    }
+    @unlink($tmp);
+    return false;
+}
+
+/** بارگذاری داده‌ی JSON از storage */
+function admin_load(string $name): array
+{
+    $file = storage_dir('admin') . '/' . $name . '.json';
+    if (!is_file($file)) return [];
+    $raw = @file_get_contents($file);
+    if (!is_string($raw)) return [];
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
+}
+
+/** بارگذاری تنظیمات سایت ذخیره‌شده توسط مدیر */
+function admin_settings(): array
+{
+    return admin_load('settings');
+}

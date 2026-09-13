@@ -8,6 +8,11 @@ if (!defined('HA_ROOT')) {
 }
 
 $site = data('site');
+$adminCfg = admin_settings();
+if (!empty($adminCfg['footer_about'])) $site['footer_about'] = $adminCfg['footer_about'];
+if (!empty($adminCfg['work_hours'])) $site['work_hours'] = $adminCfg['work_hours'];
+if (!empty($adminCfg['cta_title'])) $site['cta_band']['title'] = $adminCfg['cta_title'];
+if (!empty($adminCfg['cta_text'])) $site['cta_band']['text'] = $adminCfg['cta_text'];
 $cats = categories();
 $currentUser = auth_current_user();
 ?>
@@ -21,9 +26,18 @@ $currentUser = auth_current_user();
             </a>
             <p><?= e($site['footer_about'] ?? '') ?></p>
             <ul class="social-list">
-<?php foreach ((array)($site['social'] ?? []) as $social): ?>
-                <li><a href="<?= e($social['url']) ?>" rel="noopener noreferrer nofollow" target="_blank"><?= e($social['label']) ?></a></li>
-<?php endforeach; ?>
+<?php
+$socialLinks = (array)($site['social'] ?? []);
+if (!empty($adminCfg['social_telegram'])) $socialLinks[] = ['label'=>'تلگرام','url'=>$adminCfg['social_telegram']];
+if (!empty($adminCfg['social_instagram'])) $socialLinks[] = ['label'=>'اینستاگرام','url'=>$adminCfg['social_instagram']];
+if (!empty($adminCfg['social_youtube'])) $socialLinks[] = ['label'=>'یوتیوب','url'=>$adminCfg['social_youtube']];
+// remove duplicates by label
+$seen = [];
+foreach ($socialLinks as $s) {
+    $lbl = $s['label'] ?? '';
+    if ($lbl !== '' && !isset($seen[$lbl])) { $seen[$lbl] = $s; echo '<li><a href="' . e($s['url']) . '" rel="noopener noreferrer nofollow" target="_blank">' . e($s['label']) . '</a></li>'; }
+}
+?>
             </ul>
         </div>
 
@@ -52,8 +66,8 @@ $currentUser = auth_current_user();
         <div class="site-footer__col">
             <h2><?= e($site['footer_col_contact'] ?? 'پشتیبانی') ?></h2>
             <ul class="contact-list">
-                <li><span>ایمیل:</span> <a href="mailto:<?= e(HA_EMAIL) ?>"><?= e(HA_EMAIL) ?></a></li>
-                <li><span>تلفن:</span> <a href="tel:<?= e(preg_replace('/[^0-9+]/','',HA_HOTLINE)) ?>"><?= e(HA_PHONE) ?></a></li>
+                <li><span>ایمیل:</span> <a href="mailto:<?= e(!empty($adminCfg['email']) ? $adminCfg['email'] : HA_EMAIL) ?>"><?= e(!empty($adminCfg['email']) ? $adminCfg['email'] : HA_EMAIL) ?></a></li>
+                <li><span>تلفن:</span> <a href="tel:<?= e(preg_replace('/[^0-9+]/','',!empty($adminCfg['phone']) ? $adminCfg['phone'] : HA_HOTLINE)) ?>"><?= e(!empty($adminCfg['phone']) ? $adminCfg['phone'] : HA_PHONE) ?></a></li>
                 <li><span>ساعت:</span> <?= e($site['work_hours'] ?? 'شنبه تا چهارشنبه، ۹ تا ۱۷') ?></li>
 <?php if ($currentUser !== null): ?>
                 <li><span>حساب:</span> <a href="<?= e(url('account')) ?>">حساب کاربری</a> · <a href="<?= e(url('logout')) ?>">خروج</a></li>

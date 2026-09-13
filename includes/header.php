@@ -119,6 +119,9 @@ $themeDark = '#0b1512';
                 <div class="main-nav__auth">
 <?php if ($currentUser !== null): ?>
                     <a class="btn btn--ghost btn--block" href="<?= e(url('account')) ?>"><?= ha_icon('user', 16) ?> حساب کاربری</a>
+                    <?php if (auth_is_admin()): ?>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('admin')) ?>" style="color:var(--brand)"><?= ha_icon('shield', 16) ?> پنل مدیریت</a>
+                    <?php endif; ?>
                     <form method="post" action="<?= e(url('logout')) ?>">
                         <?= csrf_field() ?>
                         <button class="btn btn--ghost btn--block" type="submit"><?= ha_icon('external', 16) ?> خروج</button>
@@ -144,6 +147,11 @@ $themeDark = '#0b1512';
                 <span class="account-chip__avatar" aria-hidden="true"><?= e(auth_initial((string) $currentUser['name'])) ?></span>
                 <span class="account-chip__name"><?= e(mb_strimwidth((string) $currentUser['name'], 0, 12, '…', 'UTF-8')) ?></span>
             </a>
+            <?php if (auth_is_admin()): ?>
+            <a class="icon-btn" href="<?= e(url('admin')) ?>" title="پنل مدیریت" style="color:var(--brand)">
+                <?= ha_icon('shield', 19) ?>
+            </a>
+            <?php endif; ?>
 <?php else: ?>
             <a class="icon-btn" href="<?= e(url('login')) ?>" aria-label="ورود به حساب کاربری">
                 <?= ha_icon('user', 19) ?>

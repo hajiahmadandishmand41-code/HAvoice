@@ -260,6 +260,54 @@ function routes(): array
         'register'  => ['file' => 'register.php',  'pretty' => 'register',  'title' => 'ثبت‌نام',    'session' => true],
         'logout'    => ['file' => 'logout.php',    'pretty' => 'logout',    'title' => 'خروج',       'session' => true],
         'account'   => ['file' => 'account.php',   'pretty' => 'account',   'title' => 'حساب کاربری', 'session' => true],
+
+        // Admin routes
+        'admin'                 => ['file' => 'admin/dashboard.php',      'pretty' => 'admin',         'title' => 'پنل مدیریت',      'admin' => true],
+        'admin_courses'         => ['file' => 'admin/courses.php',        'pretty' => 'admin/courses', 'title' => 'مدیریت دوره‌ها',   'admin' => true],
+        'admin_course_edit'     => ['file' => 'admin/course_edit.php',    'pretty' => 'admin/course-edit','title' => 'ویرایش دوره',  'admin' => true],
+        'admin_course_save'     => ['file' => 'admin/course_save.php',    'pretty' => 'admin/course-save','title' => 'ذخیره دوره',   'admin' => true],
+        'admin_course_delete'   => ['file' => 'admin/course_delete.php',  'pretty' => 'admin/course-del', 'title' => 'حذف دوره',    'admin' => true],
+        'admin_articles'        => ['file' => 'admin/articles.php',       'pretty' => 'admin/articles','title' => 'مدیریت مقالات',    'admin' => true],
+        'admin_article_edit'    => ['file' => 'admin/article_edit.php',   'pretty' => 'admin/article-edit','title' => 'ویرایش مقاله', 'admin' => true],
+        'admin_article_save'    => ['file' => 'admin/article_save.php',   'pretty' => 'admin/article-save','title' => 'ذخیره مقاله',  'admin' => true],
+        'admin_article_delete'  => ['file' => 'admin/article_delete.php', 'pretty' => 'admin/article-del', 'title' => 'حذف مقاله',   'admin' => true],
+        'admin_videos'          => ['file' => 'admin/videos.php',         'pretty' => 'admin/videos',  'title' => 'مدیریت ویدیوها',   'admin' => true],
+        'admin_video_edit'      => ['file' => 'admin/video_edit.php',     'pretty' => 'admin/video-edit', 'title' => 'ویرایش ویدیو', 'admin' => true],
+        'admin_video_save'      => ['file' => 'admin/video_save.php',     'pretty' => 'admin/video-save', 'title' => 'ذخیره ویدیو',  'admin' => true],
+        'admin_video_delete'    => ['file' => 'admin/video_delete.php',   'pretty' => 'admin/video-del',  'title' => 'حذف ویدیو',   'admin' => true],
+        'admin_audios'          => ['file' => 'admin/audios.php',         'pretty' => 'admin/audios',  'title' => 'مدیریت صوتها',     'admin' => true],
+        'admin_audio_edit'      => ['file' => 'admin/audio_edit.php',     'pretty' => 'admin/audio-edit', 'title' => 'ویرایش صوت',   'admin' => true],
+        'admin_audio_save'      => ['file' => 'admin/audio_save.php',     'pretty' => 'admin/audio-save', 'title' => 'ذخیره صوت',    'admin' => true],
+        'admin_audio_delete'    => ['file' => 'admin/audio_delete.php',   'pretty' => 'admin/audio-del',  'title' => 'حذف صوت',     'admin' => true],
+        'admin_books'           => ['file' => 'admin/books.php',          'pretty' => 'admin/books',   'title' => 'مدیریت کتاب‌ها',    'admin' => true],
+        'admin_book_edit'       => ['file' => 'admin/book_edit.php',      'pretty' => 'admin/book-edit', 'title' => 'ویرایش کتاب',   'admin' => true],
+        'admin_book_save'       => ['file' => 'admin/book_save.php',      'pretty' => 'admin/book-save', 'title' => 'ذخیره کتاب',    'admin' => true],
+        'admin_book_delete'     => ['file' => 'admin/book_delete.php',    'pretty' => 'admin/book-del',   'title' => 'حذف کتاب',    'admin' => true],
+        'admin_research'        => ['file' => 'admin/research.php',       'pretty' => 'admin/research','title' => 'مدیریت پژوهش‌ها',   'admin' => true],
+        'admin_research_edit'   => ['file' => 'admin/research_edit.php',  'pretty' => 'admin/research-edit','title' => 'ویرایش پژوهش','admin' => true],
+        'admin_research_save'   => ['file' => 'admin/research_save.php',  'pretty' => 'admin/research-save','title' => 'ذخیره پژوهش', 'admin' => true],
+        'admin_research_delete' => ['file' => 'admin/research_delete.php','pretty' => 'admin/research-del','title' => 'حذف پژوهش',  'admin' => true],
+        'admin_exercises'       => ['file' => 'admin/exercises.php',      'pretty' => 'admin/exercises','title' => 'مدیریت تمرین‌ها',   'admin' => true],
+        'admin_exercise_edit'   => ['file' => 'admin/exercise_edit.php',  'pretty' => 'admin/exercise-edit','title' => 'ویرایش تمرین','admin' => true],
+        'admin_exercise_save'   => ['file' => 'admin/exercise_save.php',  'pretty' => 'admin/exercise-save','title' => 'ذخیره تمرین', 'admin' => true],
+        'admin_exercise_delete' => ['file' => 'admin/exercise_delete.php','pretty' => 'admin/exercise-del','title' => 'حذف تمرین',  'admin' => true],
+        'admin_tips'            => ['file' => 'admin/tips.php',           'pretty' => 'admin/tips',    'title' => 'مدیریت نکته‌ها',    'admin' => true],
+        'admin_tip_edit'        => ['file' => 'admin/tip_edit.php',       'pretty' => 'admin/tip-edit', 'title' => 'ویرایش نکته',   'admin' => true],
+        'admin_tip_save'        => ['file' => 'admin/tip_save.php',       'pretty' => 'admin/tip-save', 'title' => 'ذخیره نکته',    'admin' => true],
+        'admin_tip_delete'      => ['file' => 'admin/tip_delete.php',     'pretty' => 'admin/tip-del',   'title' => 'حذف نکته',    'admin' => true],
+        'admin_categories'      => ['file' => 'admin/categories.php',     'pretty' => 'admin/categories','title' => 'مدیریت حوزه‌ها',  'admin' => true],
+        'admin_category_edit'   => ['file' => 'admin/category_edit.php',  'pretty' => 'admin/category-edit','title' => 'ویرایش حوزه','admin' => true],
+        'admin_category_save'   => ['file' => 'admin/category_save.php',  'pretty' => 'admin/category-save','title' => 'ذخیره حوزه', 'admin' => true],
+        'admin_category_delete' => ['file' => 'admin/category_delete.php','pretty' => 'admin/category-del','title' => 'حذف حوزه',  'admin' => true],
+        'admin_users'           => ['file' => 'admin/users.php',          'pretty' => 'admin/users',   'title' => 'مدیریت کاربران',    'admin' => true],
+        'admin_user_edit'       => ['file' => 'admin/user_edit.php',      'pretty' => 'admin/user-edit', 'title' => 'ویرایش کاربر', 'admin' => true],
+        'admin_user_save'       => ['file' => 'admin/user_save.php',      'pretty' => 'admin/user-save', 'title' => 'ذخیره کاربر',  'admin' => true],
+        'admin_user_delete'     => ['file' => 'admin/user_delete.php',    'pretty' => 'admin/user-del',   'title' => 'حذف کاربر',   'admin' => true],
+        'admin_messages'        => ['file' => 'admin/messages.php',       'pretty' => 'admin/messages','title' => 'پیام‌های تماس',     'admin' => true],
+        'admin_message_view'    => ['file' => 'admin/message_view.php',   'pretty' => 'admin/message-view','title' => 'مشاهده پیام', 'admin' => true],
+        'admin_message_delete'  => ['file' => 'admin/message_delete.php', 'pretty' => 'admin/message-del', 'title' => 'حذف پیام',    'admin' => true],
+        'admin_settings'        => ['file' => 'admin/settings.php',       'pretty' => 'admin/settings','title' => 'تنظیمات سایت',      'admin' => true],
+        'admin_settings_save'   => ['file' => 'admin/settings_save.php',  'pretty' => 'admin/settings-save','title' => 'ذخیره تنظیمات','admin' => true],
     ];
     return $table;
 }
@@ -715,7 +763,7 @@ function ha_rate_limit_acquire(string $scope, string $ip, int $max, int $window,
 /*  دسته‌ها                                                           */
 /* ------------------------------------------------------------------ */
 
-function categories(): array { return data('categories'); }
+function categories(): array { return array_merge(data('categories'), admin_load('categories')); }
 function find_category(string $slug): ?array {
     $slug = slugify($slug);
     foreach (categories() as $cat) if (slugify($cat['slug']??'')=== $slug) return $cat;
