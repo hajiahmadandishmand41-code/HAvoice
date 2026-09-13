@@ -4,5 +4,12 @@ if (!csrf_verify()) { flash('error','نشست تمام شده.'); redirect(url('
 $fields = ['name','tagline','email','phone','footer_about','cta_title','cta_text','work_hours','social_telegram','social_instagram','social_youtube'];
 $settings = [];
 foreach ($fields as $f) { $settings[$f] = trim((string)($_POST[$f] ?? '')); }
-admin_store('settings', $settings);
-flash('success','تنظیمات ذخیره شد.'); redirect(url('admin_settings'));
+if ($settings['email'] !== '' && !filter_var($settings['email'], FILTER_VALIDATE_EMAIL)) {
+    flash('error','ایمیل تنظیمات معتبر نیست.');
+    redirect(url('admin_settings'));
+}
+if (!admin_store('settings', $settings)) {
+    flash('error','ذخیره‌سازی تنظیمات ناموفق بود؛ storage قابل نوشتن نیست.');
+    redirect(url('admin_settings'));
+}
+flash('success','تنظیمات ذخیره شد.'); redirect(url('admin_settings')); 
