@@ -1063,10 +1063,24 @@ function admin_store(string $name, array $data): bool
     $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
     if (@file_put_contents($tmp, $json, LOCK_EX) !== false) {
         $ok = @rename($tmp, $file);
-        @unlink($tmp);
+        /*
+         * پاک‌سازی فقط وقتی لازم است که rename ناموفق بوده باشد.
+         *
+         * پیش‌تر @unlink($tmp) بی‌قید و شرط اجرا می‌شد، ولی بعد از یک
+         * rename موفق فایلِ موقت «دیگر وجود ندارد» — پس هر بار یک هشدارِ
+         * «No such file or directory» برمی‌خاست. عملگرِ @ فقط مقدارِ
+         * بازگشتی را خفه می‌کند و خودِ هشدار همچنان برانگیخته می‌شود: در
+         * لاگِ خطا می‌نشیند و هر set_error_handler() آن را می‌گیرد (که
+         * باعث می‌شد در آزمون‌ها به‌اشتباه «خطای PHP» گزارش شود).
+         */
+        if (!$ok && is_file($tmp)) {
+            @unlink($tmp);
+        }
         return $ok;
     }
-    @unlink($tmp);
+    if (is_file($tmp)) {
+        @unlink($tmp);
+    }
     return false;
 }
 
