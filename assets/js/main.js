@@ -125,19 +125,30 @@
         sync();
     })();
 
-    /* ---------------- منوی موبایل ---------------- */
+    /* ---------------- منوی موبایل (کشوی لغزان) ----------------
+       وضعیت باز/بسته فقط با کلاسِ nav-open روی <html>/<body> و صفتِ
+       aria-expanded دکمه بیان می‌شود؛ هیچ استایلِ درون‌خطی یا
+       display/hidden دستی روی خودِ کشو لازم نیست (همه‌اش در CSS است). */
     (function navModule() {
         var toggle = $('[data-nav-toggle]');
         var nav = $('#main-nav');
         if (!toggle || !nav) { return; }
 
         var backdrop = $('[data-nav-backdrop]');
-        var isOpen = function () { return document.body.classList.contains('nav-open'); };
+        var DESKTOP = '(min-width: 1120px)';
+        var mq = window.matchMedia(DESKTOP);
+
+        var isOpen = function () { return document.documentElement.classList.contains('nav-open'); };
 
         var setOpen = function (open) {
             if (isOpen() === open) { return; }
+            // در حالتِ دسکتاپ (دکمه پنهان و ناوبری درون‌خطی) کشو معنایی ندارد
+            if (open && mq.matches) { return; }
+            // کلاس روی html و body هر دو: قفلِ پیمایش در iOS هم تضمین شود
+            document.documentElement.classList.toggle('nav-open', open);
             document.body.classList.toggle('nav-open', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'بستنِ منوی ناوبری' : 'باز و بسته کردن منوی ناوبری');
             if (backdrop) { backdrop.hidden = !open; }
             // دسترس‌پذیری: وقتی کشو باز است، محتوای پشتِ آن نباید خوانده شود
             document.querySelectorAll('main, .site-footer').forEach(function (el) {
@@ -162,17 +173,30 @@
             if (event.target.closest('a')) { setOpen(false); }
         });
 
+        // کشیدن انگشت روی لایه‌ی تیره معادل کلیکِ بستن است
+        if (backdrop) {
+            var touchStart = null;
+            backdrop.addEventListener('touchstart', function (e) {
+                touchStart = e.touches[0] ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+            }, { passive: true });
+            backdrop.addEventListener('touchend', function (e) {
+                if (!touchStart || !e.changedTouches[0]) { return; }
+                var t = e.changedTouches[0];
+                var dx = Math.abs(t.clientX - touchStart.x);
+                var dy = Math.abs(t.clientY - touchStart.y);
+                if (dx < 12 && dy < 12) { setOpen(false); } // تپک واقعی، نه اسکرول
+                touchStart = null;
+            }, { passive: true });
+        }
+
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape' && isOpen()) { setOpen(false); }
         });
 
-        var mq = window.matchMedia('(min-width: 1120px)');
+        // اگر موقعِ باز بودنِ کشو عرضِ پنجره به دسکتاپ برسد، بسته شود
         var onBreakpoint = function () { if (mq.matches && isOpen()) { setOpen(false); } };
         if (mq.addEventListener) { mq.addEventListener('change', onBreakpoint); }
         else if (mq.addListener) { mq.addListener(onBreakpoint); }
-        window.addEventListener('resize', function () {
-            if (window.innerWidth >= 1120 && isOpen()) { setOpen(false); }
-        });
 
         if (backdrop) { backdrop.hidden = true; }
     })();
@@ -258,6 +282,7 @@
 
         var setOpen = function (open) {
             document.body.classList.toggle('admin-nav-open', open);
+            document.documentElement.classList.toggle('nav-open', open);
             toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (overlay) { overlay.hidden = !open; }
             document.body.classList.toggle('admin-nav-locked', open);
