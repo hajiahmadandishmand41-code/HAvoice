@@ -24,6 +24,6 @@ $article = ['slug'=>$slug,'title'=>$title,'category'=>$category,'excerpt'=>$exce
 $found = false;
 foreach ($articles as $i => $a) { if (($a['slug'] ?? '') === $originalSlug || ($a['slug'] ?? '') === $slug) { $articles[$i] = $article; $found = true; break; } }
 if (!$found) $articles[] = $article;
-admin_store('articles', $articles);
+if (!admin_store('articles', $articles)) { flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_articles')); }
 flash('success', 'مقاله ذخیره شد.');
 redirect(url('admin_articles'));
