@@ -172,11 +172,15 @@ check('storage/.htaccess: اجرای PHP خاموش', str_contains($stHt, 'engin
 group('۴. دارایی‌های محلی');
 $assets = [
     '/assets/css/style.css',
+    '/assets/css/mobile-layout.css',
+    '/assets/css/instructor-banner.css',
     '/assets/js/main.js',
     '/assets/js/theme.js',
     '/assets/fonts/vazirmatn-var.woff2',
     '/assets/fonts/OFL.txt',
-    '/assets/img/og-cover.png',
+    '/assets/img/fanbayan-banner.webp',   // بنرِ صفحه‌ی اصلی
+    '/assets/img/instructor.jpg',         // عکسِ مدرس (هیرو + مدرس + درباره)
+    '/assets/img/favicon.svg',
 ];
 foreach ($assets as $a) {
     $exists = is_file(HA_ROOT . $a);
@@ -186,6 +190,58 @@ foreach ($assets as $a) {
 $css = (string) @file_get_contents(HA_ROOT . '/assets/css/style.css');
 check('CSS: @font-face محلی برای وزیرمتن', (bool) preg_match('/@font-face[^}]*Vazirmatn/s', $css));
 check('CSS: ارجاع به fonts.googleapis.com ندارد', !str_contains($css, 'fonts.googleapis'));
+
+/* پوشه‌ی تصویرها باید فقط همین فایل‌ها را داشته باشد: بنر، عکسِ مدرس و آیکونِ سایت */
+$allowedImgs = ['favicon.svg', 'fanbayan-banner.webp', 'instructor.jpg'];
+sort($allowedImgs);
+$foundImgs = [];
+foreach ((array) @scandir(HA_ROOT . '/assets/img') as $name) {
+    if (!is_string($name) || $name === '' || $name[0] === '.') { continue; }
+    if (is_file(HA_ROOT . '/assets/img/' . $name)) { $foundImgs[] = $name; }
+}
+sort($foundImgs);
+check('assets/img: فقط تصویرهای رسمیِ سایت (بنر، مدرس، آیکون)', $foundImgs === $allowedImgs, implode('، ', $foundImgs));
+
+/* integrity: هر ارجاع asset(...) در PHP/JS و هر url(...) در CSS باید به فایلِ موجود برسد */
+$brokenRefs = [];
+$assetExt   = '\.(?:css|js|png|jpe?g|webp|avif|gif|ico|svg|woff2?|ttf|otf|eot)';
+$tree = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(HA_ROOT, FilesystemIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::SELF_FIRST
+);
+foreach ($tree as $info) {
+    if (!$info->isFile()) { continue; }
+    $file = str_replace('\\', '/', $info->getPathname());
+    if (strpos($file, '/.git/') !== false || strpos($file, '/storage/') !== false) { continue; }
+    $ext = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+    if ($ext !== 'php' && $ext !== 'js' && $ext !== 'css') { continue; }
+
+    $src  = (string) @file_get_contents($file);
+    $refs = [];
+
+    if ($ext === 'css') {
+        if (preg_match_all('#url\(\s*[\x27"]?([^\x27")]+)[\x27"]?\s*\)#i', $src, $mm)) {
+            foreach ($mm[1] as $r) { $refs[] = ['base' => dirname($file), 'ref' => $r]; }
+        }
+    } else {
+        // فقط مسیرهایِ واقعیِ فایل: assets/…/name.ext (داخل asset() یا رشته‌ی مستقیمِ og:image)
+        if (preg_match_all('#[\x27"](assets/[A-Za-z0-9_\-./]+' . $assetExt . ')[\x27"]#i', $src, $mm)) {
+            foreach ($mm[1] as $r) { $refs[] = ['base' => HA_ROOT, 'ref' => $r]; }
+        }
+    }
+
+    foreach ($refs as $one) {
+        $ref = (string) preg_replace('/[?#].*$/', '', trim($one['ref']));
+        if ($ref === '' || preg_match('#^(?:https?:)?//#i', $ref) || strpos($ref, 'data:') === 0) { continue; }
+        $target = $ref[0] === '/' ? HA_ROOT . $ref : $one['base'] . '/' . $ref;
+        if (!is_file($target)) {
+            $brokenRefs[] = str_replace(HA_ROOT . '/', '', $file) . ' -> ' . $ref;
+        }
+    }
+}
+check('مسیرهای assets: هیچ ارجاع شکسته‌ای وجود ندارد',
+    $brokenRefs === [],
+    $brokenRefs === [] ? 'همه‌ی فایل‌های ارجاع‌شده موجودند' : implode(' | ', array_slice($brokenRefs, 0, 6)));
 $hdr = (string) @file_get_contents(HA_ROOT . '/includes/header.php');
 check('header: preload فونت محلی', str_contains($hdr, 'vazirmatn-var.woff2'));
 /* فقط تگ‌های واقعی بررسی می‌شوند، نه توضیحاتِ داخلِ کامنت */
@@ -198,7 +254,9 @@ $inlineAll = preg_match_all('#<script(?![^>]*\bsrc=)[^>]*>#i', $hdrNoComment);
 $inlineLd  = preg_match_all('#<script[^>]*application/ld\+json[^>]*>#i', $hdrNoComment);
 check('تنها اسکریپتِ درون‌خطی، داده‌ی JSON-LD است (CSP آن را اجرا نمی‌کند)',
     $inlineAll === $inlineLd, "درون‌خطی={$inlineAll}، JSON-LD={$inlineLd}");
-check('OG image از نوع PNG است', (bool) preg_match('#og-cover\.png#', $hdrNoComment) || is_file(HA_ROOT . '/assets/img/og-cover.png'));
+check('og:image یک تصویرِ واقعی (PNG/JPG/WebP) از داخل assets است',
+    (bool) preg_match('#[\x27"]assets/img/[A-Za-z0-9_\-./]+\.(?:png|jpe?g|webp)[\x27"]#i',
+        (string) @file_get_contents(HA_ROOT . '/includes/meta.php')));
 check('اسپرایتِ آیکون در footer چاپ می‌شود', str_contains((string) @file_get_contents(HA_ROOT . '/includes/footer.php'), 'ha_icon_sprite'));
 
 /* ------------------------------------------------------------------ */

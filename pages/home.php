@@ -11,12 +11,11 @@ $site     = ha_site();
 $hero     = (array) ($site['hero'] ?? []);
 $cats     = categories();
 $instructor = (array) ($site['instructor'] ?? []);
-$banner   = (array) ($site['home_banner'] ?? []);
-$adminCfg = admin_settings();
 
-$bannerLead = trim((string) ($adminCfg['banner_lead'] ?? ''));
-if ($bannerLead === '') {
-    $bannerLead = (string) ($banner['lead'] ?? '');
+/* متنِ جایگزینِ بنر (از پنلِ مدیریت قابلِ تغییر است) */
+$bannerAlt = trim((string) (admin_settings()['banner_alt'] ?? ''));
+if ($bannerAlt === '') {
+    $bannerAlt = 'بنرِ فن‌بیان — فن بیان، مهارت زندگی؛ آموزش‌های کاربردی فن بیان، مهارت‌های ارتباطی، اعتمادبه‌نفس و دوره‌های آنلاین و حضوری با حاجی احمد صالحی';
 }
 
 $LIMIT = 3;
@@ -59,9 +58,9 @@ $countLessons  = count(course_lesson_index());
 $countArticles = count(all_articles_sorted());
 $countMedia    = count(videos()) + count(audios());
 
-/* تصاویر واقعی و بهینه‌شده‌ی داخل پروژه */
-$bannerArtwork = asset('assets/img/fanbayan-banner.jpg');
-$avatarPhoto   = asset('assets/img/instructor-360.jpg');
+/* تصاویرِ واقعیِ سایت — هر دو فایلِ داخلِ assets/img (بنر + عکسِ مدرس) */
+$bannerArtwork = asset('assets/img/fanbayan-banner.webp');
+$avatarPhoto   = asset('assets/img/instructor.jpg');
 
 $head = static function (string $eyebrow, string $title, string $lead, string $url, string $label = 'مشاهده همه'): string {
     return section_head([
@@ -74,15 +73,15 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 };
 ?>
 
-<!-- ۱) بنر فن‌بیان: فقط خودِ تصویر، با اندازه‌ی کنترل‌شده ================= -->
-<section class="home-instructor-banner" aria-label="بنر فن‌بیان">
+<!-- ۱) بنرِ فن‌بیان: تصویرِ واقعیِ assets/img/fanbayan-banner.webp =========== -->
+<section class="home-instructor-banner" aria-label="بنرِ فن‌بیان">
     <div class="container">
         <div class="home-instructor-banner__card">
             <img class="home-instructor-banner__art"
                  src="<?= e($bannerArtwork) ?>"
-                 alt="بنر فن‌بیان"
-                 width="1536"
-                 height="559"
+                 alt="<?= e($bannerAlt) ?>"
+                 width="640"
+                 height="233"
                  decoding="async"
                  fetchpriority="high">
         </div>

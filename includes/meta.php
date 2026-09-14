@@ -91,12 +91,10 @@ function ha_website_jsonld(): array
     ];
 }
 
-/** تصویرِ اشتراک‌گذاری. اگر PNG موجود نبود، به SVG برمی‌گردیم. */
+/** تصویرِ اشتراک‌گذاری (og:image / twitter:image) — همان بنرِ رسمیِ سایت. */
 function ha_og_image(): string
 {
-    return is_file(HA_ROOT . '/assets/img/og-cover.png')
-        ? 'assets/img/og-cover.png'
-        : 'assets/img/og-cover.svg';
+    return 'assets/img/fanbayan-banner.webp';
 }
 
 function ha_page_meta(string $route): array
