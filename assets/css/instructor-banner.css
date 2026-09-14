@@ -1,12 +1,12 @@
 /* HAvoice — compact FanBayan banner + restored instructor portrait */
 .home-instructor-banner{padding:10px 0 0}
-.home-instructor-banner__card{position:relative;display:block;width:min(980px,100%);margin-inline:auto;overflow:hidden;border:0;border-radius:20px;background:#071426;box-shadow:0 14px 34px rgba(5,15,35,.16);isolation:isolate}
+.home-instructor-banner__card{position:relative;display:block;width:min(900px,100%);margin-inline:auto;overflow:hidden;border:0;border-radius:20px;background:#071426;box-shadow:0 14px 34px rgba(5,15,35,.16);isolation:isolate}
 .home-instructor-banner__art{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;object-position:center;vertical-align:middle}
 .home-instructor-banner__photo,.home-instructor-banner__content{display:none!important}
 .home-instructor-banner__card::after{display:none}
 .home-instructor-banner__card:focus-visible{outline:3px solid rgba(79,70,229,.8);outline-offset:3px}
 
-/* Instructor photo: use the real 360×360 repository asset directly. */
+/* Instructor photo: use the supplied portrait asset directly. */
 .instructor{box-shadow:0 14px 40px rgba(16,26,46,.10),0 3px 10px rgba(16,26,46,.06)}
 .instructor .instructor__media{display:grid;justify-items:center;gap:0}
 .instructor .instructor__avatar{position:relative;display:block;width:min(360px,78vw);height:min(360px,78vw);max-width:100%;overflow:hidden;border:5px solid #16a34a;border-radius:26px;background:#10291e;box-shadow:0 0 0 7px rgba(34,160,107,.13),0 0 0 15px rgba(34,160,107,.06),0 26px 54px rgba(4,24,14,.28);transition:box-shadow .3s ease,transform .3s ease}
