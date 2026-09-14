@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b2f28"/>
+      <stop offset="1" stop-color="#0d5c4d"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6ee7c8"/>
+      <stop offset="1" stop-color="#2ec4a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g fill="url(#wave)" opacity=".9">
+    <rect x="90"  y="420" width="22" height="90"  rx="11"/>
+    <rect x="130" y="370" width="22" height="190" rx="11"/>
+    <rect x="170" y="310" width="22" height="310" rx="11"/>
+    <rect x="210" y="382" width="22" height="166" rx="11"/>
+    <rect x="250" y="430" width="22" height="70"  rx="11"/>
+  </g>
+  <text x="1080" y="220" text-anchor="end" font-family="Tahoma, sans-serif" font-size="72" font-weight="bold" fill="#ffffff">حاجی احمد صالحی</text>
+  <text x="1080" y="290" text-anchor="end" font-family="Tahoma, sans-serif" font-size="32" fill="#a9e5d6">مدرس و پژوهشگر — HAvoice</text>
+  <text x="1080" y="360" text-anchor="end" font-family="Tahoma, sans-serif" font-size="26" fill="#7fd3bd">فن بیان · ارتباط مؤثر · روانشناسی · رشد فردی</text>
+  <text x="1080" y="410" text-anchor="end" font-family="Tahoma, sans-serif" font-size="22" fill="#c6ede3">دوره · درس · ویدیو · صوت · مقاله · تمرین · پژوهش</text>
+</svg>
