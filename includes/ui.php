@@ -134,6 +134,7 @@ function card_media(string $icon, string $tag = '', string $badge = '', string $
     $out = '<div class="' . e($cls) . '"' . ($style !== '' ? ' style="' . e($style) . '"' : '') . '>';
     $out .= '<span class="card-media__glyph">' . ha_icon($icon, 96) . '</span>';
     $out .= '<span class="card-media__icon">' . ha_icon($icon, 26) . '</span>';
+    $out .= '<span class="card-media__shine" aria-hidden="true"></span>';
     if ($tag !== '') {
         $out .= '<span class="card-media__tag">' . e($tag) . '</span>';
     }
@@ -168,7 +169,7 @@ function article_card(array $article, bool $featured = false): string
         </div>
         <footer class="article-card__foot">
             <span><?= minutes_label((int) ($article['minutes'] ?? 5)) ?> مطالعه</span>
-            <a class="link-arrow" href="<?= e($href) ?>">خواندن مقاله</a>
+            <a class="card-cta" href="<?= e($href) ?>">خواندن مقاله <?= ha_icon('arrow-left', 14) ?></a>
         </footer>
     </article>
     <?php return (string) ob_get_clean();
@@ -432,7 +433,7 @@ function book_card(array $book): string
             <p class="book-card__excerpt"><?= e($book['excerpt'] ?? '') ?></p>
         </div>
         <footer class="book-card__foot">
-            <a class="link-arrow" href="<?= e($href) ?>">خلاصه و برداشت</a>
+            <a class="card-cta" href="<?= e($href) ?>">خلاصه و برداشت <?= ha_icon('arrow-left', 14) ?></a>
             <?php if (!empty($book['date_fa'])): ?>
                 <span><?= e($book['date_fa']) ?></span>
             <?php endif; ?>
@@ -469,7 +470,7 @@ function research_card(array $item): string
             </div>
         <?php endif; ?>
         <footer class="research-card__foot">
-            <a class="link-arrow" href="<?= e($href) ?>">مطالعه پژوهش</a>
+            <a class="card-cta" href="<?= e($href) ?>">مطالعه پژوهش <?= ha_icon('arrow-left', 14) ?></a>
         </footer>
     </article>
     <?php return (string) ob_get_clean();

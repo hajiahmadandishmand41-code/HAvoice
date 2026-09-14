@@ -26,18 +26,13 @@ $currentUser = auth_current_user();
             </a>
             <p><?= e($site['footer_about'] ?? '') ?></p>
             <ul class="social-list">
-<?php
-$socialLinks = (array)($site['social'] ?? []);
-if (!empty($adminCfg['social_telegram'])) $socialLinks[] = ['label'=>'تلگرام','url'=>$adminCfg['social_telegram']];
-if (!empty($adminCfg['social_instagram'])) $socialLinks[] = ['label'=>'اینستاگرام','url'=>$adminCfg['social_instagram']];
-if (!empty($adminCfg['social_youtube'])) $socialLinks[] = ['label'=>'یوتیوب','url'=>$adminCfg['social_youtube']];
-// remove duplicates by label
-$seen = [];
-foreach ($socialLinks as $s) {
-    $lbl = $s['label'] ?? '';
-    if ($lbl !== '' && !isset($seen[$lbl])) { $seen[$lbl] = $s; echo '<li><a href="' . e($s['url']) . '" rel="noopener noreferrer nofollow" target="_blank">' . e($s['label']) . '</a></li>'; }
-}
-?>
+<?php foreach (ha_social_links() as $s): ?>
+                <li>
+                    <a href="<?= e($s['url']) ?>" rel="noopener noreferrer nofollow" target="_blank">
+                        <?= ha_icon($s['icon'], 16) ?><span><?= e($s['label']) ?></span>
+                    </a>
+                </li>
+<?php endforeach; ?>
             </ul>
         </div>
 
@@ -51,6 +46,7 @@ foreach ($socialLinks as $s) {
                 <li><a href="<?= e(url('books')) ?>">کتاب‌ها</a></li>
                 <li><a href="<?= e(url('research')) ?>">پژوهش</a></li>
                 <li><a href="<?= e(url('exercises')) ?>">تمرین‌ها</a></li>
+                <li><a href="<?= e(url('comments')) ?>">نظرات کاربران</a></li>
             </ul>
         </nav>
 

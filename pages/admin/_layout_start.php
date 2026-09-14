@@ -11,6 +11,7 @@ if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
 $adminUser = auth_current_user();
 $adminRoute = active_route();
+$pendingComments = comments_admin_counts()['pending'];
 
 /** آیا مسیرِ فعلی زیرمجموعه‌ی یک بخشِ پنل است؟ */
 $admin_is = static function (string $prefix) use ($adminRoute): bool {
@@ -40,6 +41,7 @@ $admin_is = static function (string $prefix) use ($adminRoute): bool {
             <p class="admin-nav__section">سیستم</p>
             <a href="<?= e(url('admin_users')) ?>"<?= $admin_is('admin_user') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('user', 16) ?> کاربران</a>
             <a href="<?= e(url('admin_messages')) ?>"<?= $admin_is('admin_message') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('chat', 16) ?> پیام‌ها</a>
+            <a href="<?= e(url('admin_comments')) ?>"<?= $admin_is('admin_comment') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('comment', 16) ?> نظرات سایت<?= $pendingComments > 0 ? ' <span class="admin-nav__badge">' . fa_num($pendingComments) . '</span>' : '' ?></a>
             <a href="<?= e(url('admin_settings')) ?>"<?= $adminRoute === 'admin_settings' ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('target', 16) ?> تنظیمات</a>
         </nav>
 

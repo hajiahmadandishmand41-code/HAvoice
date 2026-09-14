@@ -18,6 +18,7 @@ $totalTips = count(tips());
 $totalCategories = count(categories());
 $adminMessages = admin_load('messages');
 $totalMessages = count($adminMessages);
+$commentCounts = comments_admin_counts();
 ?>
 
 <div class="admin-stats">
@@ -31,6 +32,10 @@ $totalMessages = count($adminMessages);
     <div class="admin-stat"><strong><?= fa_num($totalExercises) ?></strong><span>تمرین</span></div>
     <div class="admin-stat"><strong><?= fa_num($totalTips) ?></strong><span>نکته</span></div>
     <div class="admin-stat"><strong><?= fa_num($totalMessages) ?></strong><span>پیام</span></div>
+    <div class="admin-stat"><strong><?= fa_num($commentCounts['approved']) ?></strong><span>نظرِ منتشرشده</span></div>
+    <?php if ($commentCounts['pending'] > 0): ?>
+    <div class="admin-stat admin-stat--warn"><strong><?= fa_num($commentCounts['pending']) ?></strong><span>نظرِ در انتظارِ تأیید</span></div>
+    <?php endif; ?>
 </div>
 
 <div class="admin-card">
@@ -42,6 +47,7 @@ $totalMessages = count($adminMessages);
         <a href="<?= e(url('admin_books')) ?>"><?= ha_icon('book',18) ?> مدیریت کتاب‌ها</a>
         <a href="<?= e(url('admin_users')) ?>"><?= ha_icon('user',18) ?> مدیریت کاربران</a>
         <a href="<?= e(url('admin_messages')) ?>"><?= ha_icon('chat',18) ?> پیام‌های تماس</a>
+        <a href="<?= e(url('admin_comments')) ?>"><?= ha_icon('comment',18) ?> نظرات سایت</a>
         <a href="<?= e(url('admin_categories')) ?>"><?= ha_icon('compass',18) ?> مدیریت حوزه‌ها</a>
         <a href="<?= e(url('admin_settings')) ?>"><?= ha_icon('target',18) ?> تنظیمات سایت</a>
     </div>

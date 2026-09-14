@@ -352,6 +352,7 @@ function ha_page_meta(string $route): array
         'tips'      => 'نکات کوتاه و کاربردی',
         'about'     => 'درباره‌ی ما',
         'contact'   => 'تماس با ما',
+        'comments'  => 'نظرات عمومی کاربران',
         'search'    => 'جستجو در همه‌ی محتوا',
         'login'     => 'ورود به حساب کاربری',
         'register'  => 'ساخت حساب کاربری',
@@ -371,6 +372,7 @@ function ha_page_meta(string $route): array
         'tips'      => 'نکته‌های کوتاه برای استفاده‌ی فوری در جلسه و گفت‌وگو.',
         'about'     => 'معرفیِ ' . ha_site_name() . '، رویکردِ آموزشی، حوزه‌ها و سؤالاتِ متداول.',
         'contact'   => 'پرسش، پیشنهاد و همکاری؛ پاسخ‌گویی تا دو روزِ کاری.',
+        'comments'  => 'نظرهای واقعیِ کاربران درباره‌ی درس‌ها، تمرین‌ها و محتوای HAvoice؛ ثبتِ نظر پس از بازبینیِ مدیر منتشر می‌شود.',
         'search'    => 'جستجو در تمامِ محتوا: مقاله، درس، کتاب، پژوهش، ویدیو و صوت.',
         'login'     => 'ورود به حساب کاربری HAvoice برای پیگیریِ مسیر یادگیری.',
         'register'  => 'ساخت حساب رایگان در HAvoice و دنبال کردنِ پیشرفتِ درس‌ها و تمرین‌ها.',
@@ -390,6 +392,7 @@ function ha_page_meta(string $route): array
         'tips'      => 'نکته‌ها',
         'about'     => 'درباره‌ی ما',
         'contact'   => 'تماس با ما',
+        'comments'  => 'نظرات',
         'search'    => 'جستجو',
         'login'     => 'ورود',
         'register'  => 'ثبت‌نام',
@@ -397,7 +400,7 @@ function ha_page_meta(string $route): array
         'logout'    => 'خروج',
     ];
     // صفحه‌هایی که <h1> خودشان را می‌سازند ⇒ بنر (و <h1> دوم) خاموش
-    $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout'];
+    $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout', 'comments'];
 
     // Admin routes — noindex, no banner
     if (strpos($route, 'admin') === 0) {
@@ -406,7 +409,7 @@ function ha_page_meta(string $route): array
             'admin_videos' => 'مدیریت ویدیوها', 'admin_audios' => 'مدیریت صوتها', 'admin_books' => 'مدیریت کتاب‌ها',
             'admin_research' => 'مدیریت پژوهش‌ها', 'admin_exercises' => 'مدیریت تمرین‌ها', 'admin_tips' => 'مدیریت نکته‌ها',
             'admin_categories' => 'مدیریت حوزه‌ها', 'admin_users' => 'مدیریت کاربران', 'admin_messages' => 'پیام‌های تماس',
-            'admin_settings' => 'تنظیمات سایت', 'admin_message_view' => 'مشاهده پیام',
+            'admin_settings' => 'تنظیمات سایت', 'admin_message_view' => 'مشاهده پیام', 'admin_comments' => 'مدیریت نظرات',
         ];
         $editTitles = [
             'admin_course_edit' => 'ویرایش دوره', 'admin_article_edit' => 'ویرایش مقاله',

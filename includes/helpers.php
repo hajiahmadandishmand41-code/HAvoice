@@ -53,9 +53,10 @@ function nav_items(): array
 function nav_more_items(): array
 {
     $routes = [
-        'tips'    => ['نکته‌های کوتاه', 'sparkle'],
-        'about'   => ['درباره‌ی مدرس', 'user'],
-        'contact' => ['تماس با ما', 'mail'],
+        'tips'     => ['نکته‌های کوتاه', 'sparkle'],
+        'about'    => ['درباره‌ی مدرس', 'user'],
+        'comments' => ['نظرات عمومی', 'chat'],
+        'contact'  => ['تماس با ما', 'mail'],
     ];
     $out = [];
     foreach ($routes as $route => [$label, $icon]) {
@@ -76,6 +77,53 @@ function nav_mega(): array
         ];
     }
     return $groups;
+}
+
+/**
+ * شبکه‌های اجتماعی — ادغامِ پیش‌فرضِ data/site.php با تنظیماتِ پنل.
+ *
+ * مقدارِ ذخیره‌شده در پنل (تنظیمات → شبکه‌های اجتماعی) بر پیش‌فرضِ
+ * فایلِ داده اولویت دارد؛ شبکه‌های بدونِ مقدارِ پنلی از همان پیش‌فرض
+ * می‌آیند. خروجی: فهرستِ [label, url, icon] به‌ترتیبِ ثابت.
+ */
+function ha_social_links(): array
+{
+    $iconMap = [
+        'تلگرام'     => 'telegram',
+        'اینستاگرام' => 'instagram',
+        'فیسبوک'     => 'facebook',
+        'واتساپ'     => 'whatsapp',
+    ];
+    $order = ['تلگرام', 'اینستاگرام', 'فیسبوک', 'واتساپ'];
+
+    $links = [];
+    foreach ((array) (ha_site()['social'] ?? []) as $s) {
+        $label = (string) ($s['label'] ?? '');
+        $url   = (string) ($s['url'] ?? '');
+        if ($label === '' || $url === '' || !isset($iconMap[$label])) {
+            continue; // شبکه‌ی ناشناخته یا ناقص نمایش داده نمی‌شود
+        }
+        $links[$label] = ['label' => $label, 'url' => $url, 'icon' => $iconMap[$label]];
+    }
+
+    /* بازنویسیِ پنلی — مدیر می‌تواند هر شبکه را عوض کند */
+    $admin = function_exists('admin_settings') ? admin_settings() : [];
+    $adminFields = ['social_telegram' => 'تلگرام', 'social_instagram' => 'اینستاگرام', 'social_facebook' => 'فیسبوک', 'social_whatsapp' => 'واتساپ'];
+    foreach ($adminFields as $field => $label) {
+        $url = trim((string) ($admin[$field] ?? ''));
+        if ($url !== '') {
+            $links[$label] = ['label' => $label, 'url' => $url, 'icon' => $iconMap[$label]];
+        }
+    }
+
+    /* ترتیبِ ثابت و قابلِ پیش‌بینی */
+    $out = [];
+    foreach ($order as $label) {
+        if (isset($links[$label])) {
+            $out[] = $links[$label];
+        }
+    }
+    return $out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -276,6 +324,7 @@ function routes(): array
         'tips'      => ['file' => 'tips.php',      'pretty' => 'tips',      'title' => 'نکات کوتاه'],
         'about'     => ['file' => 'about.php',     'pretty' => 'about',     'title' => 'درباره مدرس'],
         'contact'   => ['file' => 'contact.php',   'pretty' => 'contact',   'title' => 'تماس با ما', 'session' => true],
+        'comments'  => ['file' => 'comments.php',  'pretty' => 'comments',  'title' => 'نظرات عمومی', 'session' => true],
         'search'    => ['file' => 'search.php',    'pretty' => 'search',    'title' => 'جستجو'],
         'login'     => ['file' => 'login.php',     'pretty' => 'login',     'title' => 'ورود',       'session' => true],
         'register'  => ['file' => 'register.php',  'pretty' => 'register',  'title' => 'ثبت‌نام',    'session' => true],
@@ -327,6 +376,9 @@ function routes(): array
         'admin_messages'        => ['file' => 'admin/messages.php',       'pretty' => 'admin/messages','title' => 'پیام‌های تماس',     'admin' => true],
         'admin_message_view'    => ['file' => 'admin/message_view.php',   'pretty' => 'admin/message-view','title' => 'مشاهده پیام', 'admin' => true],
         'admin_message_delete'  => ['file' => 'admin/message_delete.php', 'pretty' => 'admin/message-del', 'title' => 'حذف پیام',    'admin' => true],
+        'admin_comments'        => ['file' => 'admin/comments.php',       'pretty' => 'admin/comments','title' => 'مدیریت نظرات',     'admin' => true],
+        'admin_comment_status'  => ['file' => 'admin/comment_status.php', 'pretty' => 'admin/comment-status','title' => 'وضعیت نظر', 'admin' => true],
+        'admin_comment_delete'  => ['file' => 'admin/comment_delete.php', 'pretty' => 'admin/comment-del', 'title' => 'حذف نظر',    'admin' => true],
         'admin_settings'        => ['file' => 'admin/settings.php',       'pretty' => 'admin/settings','title' => 'تنظیمات سایت',      'admin' => true],
         'admin_settings_save'   => ['file' => 'admin/settings_save.php',  'pretty' => 'admin/settings-save','title' => 'ذخیره تنظیمات','admin' => true],
     ];
