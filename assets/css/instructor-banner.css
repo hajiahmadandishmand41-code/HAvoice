@@ -1,0 +1,59 @@
+/* HAvoice — instructor banner photography */
+.home-instructor-banner__card{
+    position:relative;
+    min-height:170px;
+    border-color:rgba(255,255,255,.18) !important;
+    background-image:
+        linear-gradient(90deg, rgba(7,13,28,.22) 0%, rgba(7,13,28,.56) 48%, rgba(7,13,28,.90) 100%),
+        url("../img/instructor-banner.jpg") !important;
+    background-size:cover !important;
+    background-position:center 44% !important;
+}
+.home-instructor-banner__eyebrow,
+.home-instructor-banner__title,
+.home-instructor-banner__lead{
+    position:relative;
+    z-index:1;
+    color:#fff !important;
+    text-shadow:0 1px 2px rgba(0,0,0,.28);
+}
+.home-instructor-banner__eyebrow{
+    color:#e4ecff !important;
+}
+.home-instructor-banner__avatar{
+    position:relative;
+    z-index:1;
+    overflow:hidden;
+    flex:0 0 74px !important;
+    width:74px !important;
+    height:74px !important;
+    border:2px solid rgba(255,255,255,.72) !important;
+    background-image:url("../img/instructor-banner.jpg") !important;
+    background-size:cover !important;
+    background-position:center 28% !important;
+    box-shadow:0 10px 28px rgba(0,0,0,.24) !important;
+    color:transparent !important;
+    font-size:0 !important;
+    text-shadow:none !important;
+}
+.home-instructor-banner__action{
+    position:relative;
+    z-index:1;
+    box-shadow:0 8px 20px rgba(0,0,0,.18);
+}
+@media (max-width:680px){
+    .home-instructor-banner__card{
+        min-height:122px;
+        background-image:
+            linear-gradient(90deg, rgba(7,13,28,.28) 0%, rgba(7,13,28,.62) 50%, rgba(7,13,28,.92) 100%),
+            url("../img/instructor-banner.jpg") !important;
+        background-position:center 42% !important;
+    }
+    .home-instructor-banner__avatar{
+        flex-basis:56px !important;
+        width:56px !important;
+        height:56px !important;
+        background-position:center 28% !important;
+        border-radius:15px !important;
+    }
+}
