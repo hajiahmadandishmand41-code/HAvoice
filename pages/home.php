@@ -1,25 +1,6 @@
 <?php
 /**
  * HAvoice — صفحه‌ی اصلی (Design System v4)
- *
- * ساختارِ صفحه — دقیقاً به همان ترتیبی که یک کاربرِ تازه‌وارد نیاز دارد:
- *
- *   ۱) بنرِ مدرس    : عکسِ واقعی + متنِ ادیتوریال (از داده/پنل تغذیه می‌شود)
- *   ۲) هیرو          : سایت چیست؟ چه چیزی یاد می‌گیرم؟ از کجا شروع کنم؟
- *   ۳) نوارِ حوزه‌ها : نقشه‌ی سریعِ محتوا (اسکرولِ افقی، سبک)
- *   ۴) دوره‌های منتخب : اصلی‌ترین محصولِ آموزشی
- *   ۵) آخرین مقاله‌ها : تازه‌ترین محتوای متنی
- *   ۶) ویدیوهای منتخب : محتوای دیداری
- *   ۷) فایل‌های صوتی  : پادکست و آموزشِ صوتی
- *   ۸) کتاب‌ها/منابع  : منابعِ عمیق‌تر (+ پژوهش)
- *   ۹) تمرین‌ها        : ابزارِ عملی (بخشِ تیره برای تنوعِ بصری)
- *  ۱۰) نظرِ کاربران   : نمونه‌ی نظراتِ تأییدشده (دیتابیس)
- *  ۱۱) معرفی سایت      : مدرس + چرا HAvoice + روشِ کار
- *  ۱۲) فراخوانِ پایانی
- *
- * اصلِ مهم: در صفحه‌ی اصلی فقط «نمونه» نشان می‌دهیم (۳ مورد از هر نوع)
- * و برای ادامه یک دکمه‌ی «مشاهده همه» می‌گذاریم. صفحه شلوغ نمی‌شود.
- * متنِ بخش‌ها از data/site.php (و در صورتِ تنظیم، از پنل) می‌آید.
  */
 
 if (!defined('HA_ROOT')) {
@@ -33,13 +14,11 @@ $instructor = (array) ($site['instructor'] ?? []);
 $banner   = (array) ($site['home_banner'] ?? []);
 $adminCfg = admin_settings();
 
-/* متنِ بنر: مقدارِ پنل بر پیش‌فرضِ فایلِ داده اولویت دارد */
 $bannerLead = trim((string) ($adminCfg['banner_lead'] ?? ''));
 if ($bannerLead === '') {
     $bannerLead = (string) ($banner['lead'] ?? '');
 }
 
-/* تعدادِ نمونه‌ها در صفحه‌ی اصلی — عمداً کم */
 $LIMIT = 3;
 
 $featuredCourses = courses_featured($LIMIT);
@@ -63,7 +42,6 @@ $method   = (array) ($site['method'] ?? []);
 $cta      = (array) ($site['cta_band'] ?? []);
 $commentsTeaser = (array) ($site['comments_teaser'] ?? []);
 
-/* نمونه‌ی نظراتِ تأییدشده — فقط وقتی دیتابیس آماده است */
 $homeComments    = [];
 $homeCommentsAll = 0;
 if (comments_db() !== null) {
@@ -81,11 +59,10 @@ $countLessons  = count(course_lesson_index());
 $countArticles = count(all_articles_sorted());
 $countMedia    = count(videos()) + count(audios());
 
-/* عکسِ مدرس — فایلِ واقعیِ داخلِ پروژه (cropping با CSS در instructor-banner.css) */
-$bannerPhoto = asset('assets/img/instructor-banner.jpg');
-$avatarPhoto = asset('assets/img/instructor.jpg');
+/* تصاویر واقعی و بهینه‌شده‌ی داخل پروژه */
+$bannerArtwork = asset('assets/img/fanbayan-banner.jpg');
+$avatarPhoto   = asset('assets/img/instructor-360.jpg');
 
-/** سرصفحه‌ی استانداردِ بخش‌های صفحه‌ی اصلی */
 $head = static function (string $eyebrow, string $title, string $lead, string $url, string $label = 'مشاهده همه'): string {
     return section_head([
         'eyebrow' => $eyebrow,
@@ -97,40 +74,17 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 };
 ?>
 
-<!-- ۱) بنر مدرس: عکسِ واقعی + متنِ ادیتوریال ============================ -->
-<section class="home-instructor-banner" aria-labelledby="home-instructor-banner-title">
+<!-- ۱) بنر فن‌بیان: فقط خودِ تصویر، با اندازه‌ی کنترل‌شده ================= -->
+<section class="home-instructor-banner" aria-label="بنر فن‌بیان">
     <div class="container">
         <div class="home-instructor-banner__card">
-            <div class="home-instructor-banner__photo">
-                <img src="<?= e($bannerPhoto) ?>" alt="<?= e(($instructor['name'] ?? ha_site_name()) . ' — ' . ($instructor['role'] ?? ha_site_tagline())) ?>"
-                     width="900" height="375" decoding="async" fetchpriority="high">
-            </div>
-            <div class="home-instructor-banner__content">
-                <div class="home-instructor-banner__body">
-                    <p class="home-instructor-banner__eyebrow"><?= e($banner['eyebrow'] ?? ($instructor['role'] ?? ha_site_tagline())) ?></p>
-                    <h2 id="home-instructor-banner-title" class="home-instructor-banner__title"><?= e($instructor['name'] ?? ha_site_name()) ?></h2>
-                    <p class="home-instructor-banner__lead"><?= e($bannerLead) ?></p>
-                    <?php if (!empty($banner['tags'])): ?>
-                        <ul class="home-instructor-banner__tags" aria-label="حوزه‌های تمرکز">
-                            <?php foreach (array_slice((array) $banner['tags'], 0, 4) as $tag): ?>
-                                <li><?= e($tag) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-                <div class="home-instructor-banner__foot">
-                    <div class="home-instructor-banner__actions">
-                        <a class="btn btn--light btn--md" href="<?= e(url('about')) ?>">آشنایی با مدرس <?= ha_icon('chevron-left', 14) ?></a>
-                        <a class="btn btn--outline btn--md" href="<?= e(url('courses')) ?>"><?= ha_icon('steps', 15) ?> دیدنِ دوره‌ها</a>
-                    </div>
-                    <ul class="home-instructor-banner__stats" aria-label="آمارِ سایت">
-                        <li><strong><?= fa_num($countCourses) ?></strong><span>دوره</span></li>
-                        <li><strong><?= fa_num($countLessons) ?></strong><span>درس</span></li>
-                        <li><strong><?= fa_num($countArticles) ?></strong><span>مقاله</span></li>
-                        <li><strong><?= fa_num($countMedia) ?></strong><span>ویدیو و صوت</span></li>
-                    </ul>
-                </div>
-            </div>
+            <img class="home-instructor-banner__art"
+                 src="<?= e($bannerArtwork) ?>"
+                 alt="بنر فن‌بیان"
+                 width="1536"
+                 height="559"
+                 decoding="async"
+                 fetchpriority="high">
         </div>
     </div>
 </section>
@@ -189,7 +143,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
             </div>
 
             <div class="hero__instructor">
-                <span class="hero__avatar" aria-hidden="true"><img src="<?= e($avatarPhoto) ?>" alt="" width="320" height="320" loading="lazy" decoding="async"></span>
+                <span class="hero__avatar" aria-hidden="true"><img src="<?= e($avatarPhoto) ?>" alt="" width="360" height="360" loading="lazy" decoding="async"></span>
                 <div>
                     <h3><?= e($instructor['name'] ?? ha_site_name()) ?></h3>
                     <p><?= e($instructor['role'] ?? ha_site_tagline()) ?></p>
@@ -205,7 +159,6 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
         </aside>
     </div>
 
-    <!-- ۳) نوارِ حوزه‌ها — نقشه‌ی سریع، بدونِ شلوغ‌کردنِ صفحه -->
     <?php if ($cats !== []): ?>
     <div class="container topic-strip">
         <div class="topic-strip__head">
@@ -228,32 +181,21 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 <?php if ($featuredCourses !== []): ?>
 <section class="section">
     <div class="container">
-        <?= $head('دوره‌ها', (string) ($site['path_preview']['title'] ?? 'دوره‌های منتخب'), (string) ($site['path_preview']['lead'] ?? ''), url('courses'), 'همه‌ی دوره‌ها') ?>
+        <?= $head('دوره‌ها', (string) ($site['path_preview']['title'] ?? 'دوره‌های منتخب'), (string) ($site['path_preview']['lead'] ?? ''), url('courses')) ?>
         <div class="grid grid--3">
             <?php foreach ($featuredCourses as $course): ?>
                 <div class="reveal"><?= course_card($course) ?></div>
             <?php endforeach; ?>
         </div>
-        <div class="course-summary reveal">
-            <div class="course-summary__stats">
-                <span><strong><?= fa_num($countCourses) ?></strong> دوره</span>
-                <span><strong><?= fa_num($countLessons) ?></strong> درس</span>
-                <span><strong><?= e(minutes_label(course_total_minutes())) ?></strong> مطالعه</span>
-            </div>
-            <div class="course-summary__progress">
-                <span class="muted-sm">پیشرفتِ کل</span>
-                <div data-total-progress><?= progress_bar(0, '۰٪', 'پیشرفتِ کلِ درس‌ها') ?></div>
-            </div>
-        </div>
     </div>
 </section>
 <?php endif; ?>
 
-<!-- ۵) آخرین مقاله‌ها ==================================================== -->
+<!-- ۵) آخرین مقاله‌ها ===================================================== -->
 <?php if ($latest !== []): ?>
 <section class="section section--soft">
     <div class="container">
-        <?= $head('مجله‌ی HAvoice', (string) ($site['articles_teaser']['title'] ?? 'تازه‌ترین مقاله‌ها'), (string) ($site['articles_teaser']['lead'] ?? ''), url('articles'), 'همه‌ی مقاله‌ها') ?>
+        <?= $head('مقاله‌ها', 'تازه‌ترین مقاله‌ها', 'یادداشت‌های آموزشی و کاربردی برای تمرین و تصمیم‌گیری بهتر.', url('articles')) ?>
         <div class="grid grid--3">
             <?php foreach ($latest as $article): ?>
                 <div class="reveal"><?= article_card($article) ?></div>
@@ -263,39 +205,39 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۶) ویدیوهای منتخب ==================================================== -->
+<!-- ۶) ویدیوها ============================================================ -->
 <?php if ($videos !== []): ?>
 <section class="section">
     <div class="container">
-        <?= $head('ویدیو', (string) ($site['videos_teaser']['title'] ?? 'ویدیوهای آموزشی'), (string) ($site['videos_teaser']['lead'] ?? ''), url('videos'), 'همه‌ی ویدیوها') ?>
+        <?= $head('ویدیو', 'ویدیوهای منتخب', 'یادگیری با دیدن، شنیدن و تمرین.', url('videos')) ?>
         <div class="grid grid--3">
-            <?php foreach ($videos as $v): ?>
-                <div class="reveal"><?= video_card($v) ?></div>
+            <?php foreach ($videos as $video): ?>
+                <div class="reveal"><?= video_card($video) ?></div>
             <?php endforeach; ?>
         </div>
     </div>
 </section>
 <?php endif; ?>
 
-<!-- ۷) فایل‌های صوتی ===================================================== -->
+<!-- ۷) فایل‌های صوتی ====================================================== -->
 <?php if ($audios !== []): ?>
 <section class="section section--soft">
     <div class="container">
-        <?= $head('صدا', (string) ($site['audios_teaser']['title'] ?? 'پادکست و آموزشِ صوتی'), (string) ($site['audios_teaser']['lead'] ?? ''), url('audios'), 'همه‌ی صوت‌ها') ?>
+        <?= $head('صوت', 'آموزش‌های صوتی', 'برای مرور، تمرین و یادگیری در مسیر.', url('audios')) ?>
         <div class="grid grid--3">
-            <?php foreach ($audios as $a): ?>
-                <div class="reveal"><?= audio_card($a) ?></div>
+            <?php foreach ($audios as $audio): ?>
+                <div class="reveal"><?= audio_card($audio) ?></div>
             <?php endforeach; ?>
         </div>
     </div>
 </section>
 <?php endif; ?>
 
-<!-- ۸) کتاب‌ها و منابع =================================================== -->
+<!-- ۸) کتاب‌ها و پژوهش ==================================================== -->
 <?php if ($books !== [] || $research !== []): ?>
 <section class="section">
     <div class="container">
-        <?= $head('منابع', (string) ($site['books_teaser']['title'] ?? 'کتاب و خلاصه‌ی کتاب'), (string) ($site['books_teaser']['lead'] ?? ''), url('books'), 'همه‌ی کتاب‌ها') ?>
+        <?= $head('منابع', 'کتاب‌ها و پژوهش‌ها', 'منابع عمیق‌تر برای مطالعه و تحقیق.', url('books')) ?>
         <?php if ($books !== []): ?>
             <div class="grid grid--3">
                 <?php foreach ($books as $book): ?>
@@ -325,7 +267,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۹) تمرین‌ها — بخشِ تیره ============================================== -->
+<!-- ۹) تمرین‌ها =========================================================== -->
 <?php if ($exList !== []): ?>
 <section class="section section--dark">
     <div class="container">
@@ -339,7 +281,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۱۰) نظرِ کاربران — نمونه‌ای از نظراتِ تأییدشده ======================== -->
+<!-- ۱۰) نظرِ کاربران ===================================================== -->
 <?php if ($homeComments !== []): ?>
 <section class="section">
     <div class="container">
@@ -371,7 +313,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
         <div class="instructor reveal">
             <div class="instructor__media">
                 <div class="instructor__avatar">
-                    <img src="<?= e($avatarPhoto) ?>" alt="<?= e(($instructor['name'] ?? ha_site_name()) . ' — ' . ($instructor['role'] ?? ha_site_tagline())) ?>" width="320" height="320" loading="lazy" decoding="async">
+                    <img src="<?= e($avatarPhoto) ?>" alt="<?= e(($instructor['name'] ?? ha_site_name()) . ' — ' . ($instructor['role'] ?? ha_site_tagline())) ?>" width="360" height="360" loading="lazy" decoding="async">
                 </div>
                 <span class="instructor__badge"><?= e($instructor['role'] ?? ha_site_tagline()) ?></span>
             </div>
@@ -428,21 +370,14 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 <?php if ($cta !== [] && !empty($cta['title'])): ?>
 <section class="section section--tight">
     <div class="container">
-        <div class="cta-band reveal">
-            <div class="cta-band__text">
-                <h2><?= e($cta['title']) ?></h2>
-                <p><?= e($cta['text'] ?? '') ?></p>
-            </div>
-            <div class="cta-band__actions">
-                <?php if (!empty($cta['primary'])): ?>
-                    <a class="btn btn--primary btn--lg" href="<?= e(url((string) $cta['primary']['route'], ['slug' => (string) ($cta['primary']['slug'] ?? '')])) ?>">
-                        <?= ha_icon('play', 15) ?> <?= e($cta['primary']['label']) ?>
-                    </a>
-                <?php endif; ?>
-                <?php if (!empty($cta['ghost'])): ?>
-                    <a class="btn btn--ghost btn--lg" href="<?= e(url((string) $cta['ghost']['route'])) ?>"><?= e($cta['ghost']['label']) ?></a>
-                <?php endif; ?>
-            </div>
+        <?= section_head(['eyebrow' => 'شروع از همین‌جا', 'title' => (string) ($cta['title'] ?? ''), 'lead' => (string) ($cta['lead'] ?? '')], 'section-head--center') ?>
+        <div class="btn-row btn-row--center mt-sm">
+            <?php if (!empty($cta['primary'])): ?>
+                <a class="btn btn--primary btn--lg" href="<?= e(url((string) $cta['primary']['route'])) ?>"><?= e($cta['primary']['label']) ?> <?= ha_icon('chevron-left', 15) ?></a>
+            <?php endif; ?>
+            <?php if (!empty($cta['secondary'])): ?>
+                <a class="btn btn--ghost btn--lg" href="<?= e(url((string) $cta['secondary']['route'])) ?>"><?= e($cta['secondary']['label']) ?></a>
+            <?php endif; ?>
         </div>
     </div>
 </section>
