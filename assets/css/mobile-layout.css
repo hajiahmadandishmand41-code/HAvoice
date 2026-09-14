@@ -1,274 +1,238 @@
-/* HAvoice — responsive shell + homepage presentation layer */
-
+/* HAvoice — mobile layout rebuilt from first principles.
+   One source of truth for narrow-screen geometry. */
 :root { --ha-header-h: var(--header-h, 64px); }
 
-.site-header,
-.site-main,
-.site-footer { inline-size: 100%; max-inline-size: 100%; min-inline-size: 0; }
-.site-main > *,
-.site-footer > * { min-inline-size: 0; }
-
-.route-home .hero--premium { isolation: isolate; }
-.route-home .section { position: relative; }
-.route-home .section > .container { position: relative; z-index: 1; }
-.route-home .card,
-.route-home .stage-card,
-.route-home .course-summary,
-.route-home .practice-card,
-.route-home .hero__instructor {
-    transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast) var(--ease);
-}
-.route-home .card:hover,
-.route-home .stage-card:hover {
-    border-color: var(--border-strong);
-    box-shadow: var(--sh-md);
-    transform: translateY(-2px);
-}
-.route-home .section--soft { background: var(--bg-soft); }
-.route-home .topic-strip {
-    border: 1px solid var(--border);
-    border-radius: var(--r-lg);
-    background: color-mix(in srgb, var(--surface) 92%, var(--brand-soft));
-    box-shadow: var(--sh-sm);
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 @media (max-width: 1119.98px) {
-    html, body { max-inline-size: 100%; min-inline-size: 0; }
-    body { inline-size: 100%; }
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
 
-    .container,
-    .site-header__inner,
-    .site-main,
-    .site-footer,
-    .page-banner > .container,
-    .site-main > .container,
-    .site-footer > .container {
-        inline-size: 100%;
-        max-inline-size: 100%;
-        min-inline-size: 0;
-        box-sizing: border-box;
-    }
-    .container {
-        margin-inline: 0;
-        padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
-    }
+  /* Opening the drawer must not remove a scrollbar and resize the viewport. */
+  html.nav-open,
+  body.nav-open {
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    scrollbar-gutter: stable;
+  }
 
-    .site-header__inner {
-        position: static;
-        overflow: visible;
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-    }
-    .nav-toggle {
-        display: grid;
-        place-items: center;
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        min-height: 44px;
-        flex: none;
-        position: relative;
-        z-index: calc(var(--z-overlay) + 2);
-        color: var(--text);
-        background: var(--surface);
-    }
-    .nav-toggle__bars,
-    .nav-toggle__bars::before,
-    .nav-toggle__bars::after {
-        content: "";
-        display: block;
-        width: 19px;
-        height: 2px;
-        border-radius: var(--r-full);
-        background: currentColor;
-        transition: transform var(--dur) var(--ease), opacity var(--dur-fast), width var(--dur) var(--ease);
-    }
-    .nav-toggle__bars { position: relative; }
-    .nav-toggle__bars::before { position: absolute; inset-inline: 0; top: -6px; }
-    .nav-toggle__bars::after { position: absolute; inset-inline: 0; top: 6px; }
-    .nav-toggle[aria-expanded="true"] .nav-toggle__bars { background: transparent; }
-    .nav-toggle[aria-expanded="true"] .nav-toggle__bars::before { transform: translateY(6px) rotate(45deg); }
-    .nav-toggle[aria-expanded="true"] .nav-toggle__bars::after { transform: translateY(-6px) rotate(-45deg); }
-    .nav-toggle[aria-expanded="true"] { color: var(--brand); background: var(--brand-softer); border-color: var(--brand-200); }
-    .brand { min-inline-size: 0; max-inline-size: 100%; justify-self: center; overflow: hidden; }
-    .header-actions { min-inline-size: 0; max-inline-size: 100%; justify-self: end; }
+  .site-header,
+  .site-main,
+  .site-footer,
+  .container,
+  .site-header__inner {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
 
-    /* Closed drawer is completely removed from layout.
-       This is the key fix: a transformed/fixed hidden drawer must not be
-       allowed to participate in the page's overflow/layout state. */
-    .main-nav {
-        position: fixed;
-        inset-block-start: var(--ha-header-h);
-        inset-inline-end: 0;
-        inset-inline-start: auto;
-        inset-block-end: 0;
-        inline-size: min(56vw, 260px);
-        max-inline-size: calc(100vw - 18px);
-        block-size: auto;
-        max-block-size: none;
-        min-block-size: 0;
-        box-sizing: border-box;
-        margin: 0;
-        padding: .8rem .75rem max(.9rem, env(safe-area-inset-bottom));
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-gutter: stable;
-        z-index: var(--z-drawer);
-        border-inline-start: 1px solid var(--border);
-        box-shadow: var(--sh-xl);
-        background: var(--surface);
-        display: none;
-    }
-    [dir="ltr"] .main-nav {
-        inset-inline-start: 0;
-        inset-inline-end: auto;
-        border-inline-start: 0;
-        border-inline-end: 1px solid var(--border);
-    }
-    html.nav-open .main-nav,
-    body.nav-open .main-nav {
-        display: block;
-    }
-    .main-nav, .main-nav * { min-inline-size: 0; }
-    .main-nav__list, .main-nav__mega-list { min-block-size: max-content; }
-    .main-nav__list { display: flex; flex-direction: column; gap: 2px; }
-    .main-nav__list > li > a { min-height: 43px; padding: .52rem .65rem; border-radius: var(--r-sm); }
-    .main-nav__mega {
-        position: static;
-        display: block;
-        inline-size: auto;
-        max-block-size: none;
-        overflow: visible;
-        margin: .35rem 0 0;
-        padding: .6rem 0 0;
-        border-block-start: 1px solid var(--border);
-        border-radius: 0;
-        box-shadow: none;
-    }
-    .main-nav__more { display: none; }
-    .main-nav__mega-list { grid-template-columns: 1fr; gap: 2px; }
-    .main-nav__mega-list a { min-height: 41px; padding: .48rem .55rem; }
-    .main-nav__mega-title--spaced { margin-top: .8rem; padding-top: .65rem; border-top: 1px solid var(--border); }
-    .main-nav__cta { display: grid; gap: .4rem; margin-top: .8rem; padding-top: .7rem; border-top: 1px solid var(--border); }
-    .nav-backdrop {
-        position: fixed;
-        inset-block-start: var(--ha-header-h);
-        inset-inline: 0;
-        inset-block-end: 0;
-        z-index: var(--z-overlay);
-        pointer-events: none;
-    }
-    html.nav-open .nav-backdrop, body.nav-open .nav-backdrop { pointer-events: auto; }
-    .site-header, .site-header__inner { overflow: visible; }
+  .container {
+    margin-inline: 0;
+    padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+  }
+
+  .site-header__inner {
+    position: static;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: .35rem;
+    overflow: visible;
+  }
+
+  .nav-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    flex: none;
+    position: relative;
+    z-index: calc(var(--z-drawer) + 2);
+  }
+
+  .brand {
+    min-width: 0;
+    max-width: 100%;
+    justify-self: center;
+    overflow: hidden;
+  }
+
+  .header-actions {
+    min-width: 0;
+    max-width: 100%;
+    justify-self: end;
+  }
+
+  /* Closed = display:none. The drawer can therefore never create horizontal
+     scroll width while closed. No translateX is used for the closed state. */
+  .main-nav {
+    position: fixed !important;
+    top: var(--ha-header-h, var(--header-h, 64px)) !important;
+    right: 0 !important;
+    left: auto !important;
+    bottom: 0 !important;
+    width: min(78vw, 300px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: .8rem .7rem max(.9rem, env(safe-area-inset-bottom)) !important;
+    display: none !important;
+    visibility: visible !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    z-index: var(--z-drawer) !important;
+    border: 0 !important;
+    border-inline-start: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: var(--sh-xl);
+  }
+
+  [dir="ltr"] .main-nav {
+    left: 0 !important;
+    right: auto !important;
+    border-inline-start: 0 !important;
+    border-inline-end: 1px solid var(--border) !important;
+  }
+
+  html.nav-open .main-nav,
+  body.nav-open .main-nav {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Backdrop is also a pure viewport overlay; it never belongs to layout. */
+  .nav-backdrop {
+    position: fixed !important;
+    top: var(--ha-header-h, var(--header-h, 64px)) !important;
+    right: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    z-index: var(--z-overlay) !important;
+  }
+
+  .main-nav__list { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .main-nav__list > li { min-width: 0; }
+  .main-nav__list > li > a { min-height: 43px; padding: .52rem .65rem; }
+
+  /* On mobile the mega menu is part of the drawer, not a second popup. */
+  .main-nav__mega {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: .35rem 0 0 !important;
+    padding: .6rem 0 0 !important;
+    border-block-start: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
+  .main-nav__mega-list { grid-template-columns: 1fr; gap: 2px; min-width: 0; }
+  .main-nav__mega-list a { min-height: 41px; padding: .48rem .55rem; }
+  .main-nav__mega-title--spaced { margin-top: .8rem; padding-top: .65rem; }
+  .main-nav__cta { display: grid; gap: .4rem; margin-top: .8rem; padding-top: .7rem; }
+  .main-nav__more { display: none !important; }
+
+  .main-nav, .main-nav * { min-width: 0; max-width: 100%; }
+  .site-header, .site-header__inner { overflow: visible; }
 }
 
 @media (max-width: 767.98px) {
-    .header-actions__auth,
-    .header-actions .theme-toggle { display: grid; }
-    .header-actions__admin { display: none; }
-    .header-actions__cta { display: none; }
-    .header-actions { gap: 2px; min-inline-size: 0; }
+  .header-actions__auth,
+  .header-actions .theme-toggle { display: grid; }
+  .header-actions__admin,
+  .header-actions__cta { display: none; }
+  .header-actions { gap: 2px; }
 
-    .route-home .hero--premium {
-        padding-block: .9rem 1.25rem;
-        background: linear-gradient(180deg, var(--bg-soft), var(--bg));
-    }
-    .route-home .hero__grid { gap: .8rem; align-items: stretch; }
-    .route-home .hero__badge { max-inline-size: 100%; padding: .32rem .5rem; font-size: var(--fs-xs); line-height: 1.5; }
-    .route-home .hero__title--premium { margin-block: .5rem .45rem; font-size: clamp(1.6rem, 7vw, 2.2rem); line-height: 1.22; }
-    .route-home .hero__lead--premium { margin-bottom: .65rem; font-size: var(--fs-sm); line-height: 1.78; }
-    .route-home .hero .btn-row { display: grid; grid-template-columns: 1fr; gap: .4rem; width: 100%; }
-    .route-home .hero .btn-row .btn { width: 100%; min-height: 44px; }
-    .route-home .hero__stats--premium { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; margin-top: .7rem; }
-    .route-home .hero__stats--premium li { min-inline-size: 0; padding: .5rem .4rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--sh-xs); }
-    .route-home .hero__stats--premium strong { display: block; font-size: 1rem; }
-    .route-home .hero__stats--premium span { display: block; margin-top: .08rem; font-size: var(--fs-2xs); line-height: 1.45; }
-    .route-home .hero__panel { min-inline-size: 0; }
-    .route-home .practice-card { padding: .8rem; border-radius: var(--r-md); }
-    .route-home .practice-card__title { font-size: var(--fs-md); }
-    .route-home .practice-card__text { font-size: var(--fs-xs); line-height: 1.7; }
-    .route-home .topic-strip { margin-block-start: .45rem; padding-block: .55rem 0; }
-    .route-home .topic-strip__head { align-items: center; gap: .35rem; }
-    .route-home .topic-strip__list { padding-block: .4rem .12rem; }
-    .route-home .topic-pill { min-height: 38px; }
-    .route-home .section { padding-block: 1.7rem; }
-    .route-home .section-head { display: grid; gap: .5rem; margin-bottom: .8rem; }
-    .route-home .section-head__title { font-size: clamp(1.18rem, 5.5vw, 1.52rem); line-height: 1.28; }
-    .route-home .section-head__lead { font-size: var(--fs-xs); line-height: 1.72; }
-    .route-home .section-head__actions a, .route-home .section-head__actions .btn { min-height: 38px; }
-    .route-home .grid--2, .route-home .grid--3, .route-home .grid--4 { grid-template-columns: minmax(0, 1fr); }
-    .route-home .grid, .route-home .grid > *, .route-home .card, .route-home .stage-card, .route-home .course-summary, .route-home .hero__instructor { min-inline-size: 0; max-inline-size: 100%; }
-    .route-home .course-summary { margin-top: .75rem; }
-    .route-home .hero__instructor { padding: .65rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
-    .route-home .site-footer { margin-top: 0; }
-    .route-home .hero, .route-home .section, .route-home .topic-strip, .route-home .site-main { max-inline-size: 100%; }
+  .route-home .hero--premium { padding-block: .9rem 1.25rem; }
+  .route-home .hero__grid { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  .route-home .hero__title--premium { font-size: clamp(1.6rem, 7vw, 2.2rem); }
+  .route-home .hero .btn-row { display: grid; grid-template-columns: 1fr; gap: .4rem; width: 100%; }
+  .route-home .hero .btn-row .btn { width: 100%; min-height: 44px; }
+  .route-home .hero__stats--premium { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+  .route-home .grid--2,
+  .route-home .grid--3,
+  .route-home .grid--4,
+  .detail-grid,
+  .course-layout,
+  .article__grid,
+  .account-grid,
+  .contact-grid,
+  .contact-hero,
+  .two-col { grid-template-columns: minmax(0, 1fr); }
 
-    .page-banner { overflow: clip; }
-    .page-banner__title { font-size: clamp(1.5rem, 7vw, 2rem); }
-    .page-banner__lead { font-size: var(--fs-sm); line-height: 1.8; }
-    .detail-grid,
-    .course-layout,
-    .article__grid,
-    .account-grid,
-    .contact-grid,
-    .contact-hero,
-    .two-col { min-inline-size: 0; max-inline-size: 100%; }
-    .detail-grid > *,
-    .course-layout > *,
-    .article__grid > *,
-    .account-grid > *,
-    .contact-grid > *,
-    .contact-hero > *,
-    .two-col > * { min-inline-size: 0; max-inline-size: 100%; }
-    .card,
-    .stage-card,
-    .result,
-    .info-box,
-    .topic-hero,
-    .auth-card,
-    .contact-form,
-    .admin-card,
-    .admin-main,
-    .lesson,
-    .book-detail { min-inline-size: 0; max-inline-size: 100%; }
-    .card-media,
-    .media-card__thumb,
-    .book-card__cover { max-inline-size: 100%; }
-    .card__excerpt,
-    .article-card__excerpt,
-    .course-card__excerpt,
-    .media-card__excerpt,
-    .result__text,
-    .channel__value,
-    .account-profile__email { overflow-wrap: anywhere; }
-    .btn-row { width: 100%; }
-    .btn-row .btn { max-inline-size: 100%; }
-    .filter-tabs { max-inline-size: 100%; }
+  .route-home .grid,
+  .route-home .grid > *,
+  .card,
+  .stage-card,
+  .result,
+  .info-box,
+  .topic-hero,
+  .auth-card,
+  .contact-form,
+  .admin-card,
+  .admin-main,
+  .lesson,
+  .book-detail { min-width: 0; max-width: 100%; }
+
+  .card__excerpt,
+  .article-card__excerpt,
+  .course-card__excerpt,
+  .media-card__excerpt,
+  .result__text,
+  .channel__value,
+  .account-profile__email { overflow-wrap: anywhere; }
+
+  .btn-row { width: 100%; }
+  .btn-row .btn { max-width: 100%; }
+  .filter-tabs { max-width: 100%; }
+  .page-banner { overflow: clip; }
 }
 
-@media (max-width: 479.98px) {
-    .brand__text small { display: none; }
-    .site-header__inner { column-gap: .2rem; }
-    .header-actions { gap: 1px; }
-    .header-actions .icon-btn { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
-    .main-nav { inline-size: min(56vw, 250px); max-inline-size: calc(100vw - 16px); padding-inline: .68rem; }
+@media (max-width: 559.98px) {
+  .brand__text small { display: none; }
+  .header-actions__admin { display: none; }
+}
+
+@media (max-width: 419.98px) {
+  .brand__text { display: none; }
+  .brand { gap: 0; }
+  .header-actions__auth { display: none; }
+  .site-header__inner { column-gap: .2rem; }
 }
 
 @media (max-width: 359.98px) {
-    .main-nav { inline-size: 55vw; max-inline-size: 228px; }
-    .header-actions .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
-    .nav-toggle { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
-    .route-home .hero--premium { padding-block-start: .8rem; }
+  .main-nav { width: min(80vw, 270px) !important; max-width: calc(100vw - 14px) !important; }
+  .header-actions { gap: 1px; }
+  .header-actions .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
+  .nav-toggle { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
 }
 
 @media (min-width: 1120px) {
-    .main-nav { position: relative; width: auto; max-width: none; display: block; }
-    .nav-toggle { display: none; }
-    .nav-backdrop { display: none !important; }
+  .main-nav { position: relative; width: auto; max-width: none; display: flex; transform: none; visibility: visible; }
+  .nav-toggle { display: none; }
+  .nav-backdrop { display: none !important; }
 }
 
-@media (prefers-reduced-motion: reduce) { .main-nav, .nav-backdrop { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .main-nav, .nav-backdrop { transition: none !important; }
 }
