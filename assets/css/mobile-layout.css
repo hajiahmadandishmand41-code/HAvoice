@@ -1,7 +1,5 @@
-/* HAvoice — mobile layout rebuilt from first principles.
-   One source of truth for narrow-screen geometry. */
+/* HAvoice — mobile-first layout rules. Kept intentionally isolated from theme.js. */
 :root { --ha-header-h: var(--header-h, 64px); }
-
 *, *::before, *::after { box-sizing: border-box; }
 
 @media (max-width: 1119.98px) {
@@ -16,7 +14,7 @@
   body.nav-open {
     overflow-x: clip !important;
     overflow-y: auto !important;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
   }
 
   .site-header,
@@ -56,21 +54,15 @@
     z-index: calc(var(--z-drawer) + 2);
   }
 
-  .brand {
-    min-width: 0;
-    max-width: 100%;
-    justify-self: center;
-    overflow: hidden;
-  }
-
+  .brand,
   .header-actions {
     min-width: 0;
     max-width: 100%;
-    justify-self: end;
   }
+  .brand { justify-self: center; overflow: hidden; }
+  .header-actions { justify-self: end; }
 
-  /* Closed = display:none. The drawer can therefore never create horizontal
-     scroll width while closed. No translateX is used for the closed state. */
+  /* Closed state has no translated/fixed element in layout. */
   .main-nav {
     position: fixed !important;
     top: var(--ha-header-h, var(--header-h, 64px)) !important;
@@ -111,7 +103,6 @@
     flex-direction: column !important;
   }
 
-  /* Backdrop is also a pure viewport overlay; it never belongs to layout. */
   .nav-backdrop {
     position: fixed !important;
     top: var(--ha-header-h, var(--header-h, 64px)) !important;
@@ -128,7 +119,6 @@
   .main-nav__list > li { min-width: 0; }
   .main-nav__list > li > a { min-height: 43px; padding: .52rem .65rem; }
 
-  /* On mobile the mega menu is part of the drawer, not a second popup. */
   .main-nav__mega {
     position: static !important;
     display: block !important;
@@ -150,7 +140,6 @@
   .main-nav__mega-title--spaced { margin-top: .8rem; padding-top: .65rem; }
   .main-nav__cta { display: grid; gap: .4rem; margin-top: .8rem; padding-top: .7rem; }
   .main-nav__more { display: none !important; }
-
   .main-nav, .main-nav * { min-width: 0; max-width: 100%; }
   .site-header, .site-header__inner { overflow: visible; }
 }
@@ -162,12 +151,20 @@
   .header-actions__cta { display: none; }
   .header-actions { gap: 2px; }
 
-  .route-home .hero--premium { padding-block: .9rem 1.25rem; }
+  .route-home .hero--premium {
+    display: flex;
+    flex-direction: column;
+    padding-block: .75rem 1.25rem;
+  }
+  .route-home .hero--premium::before { order: 1; }
+  .route-home .hero--premium > .topic-strip { order: 2; }
+  .route-home .hero--premium > .hero__grid { order: 3; }
   .route-home .hero__grid { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
   .route-home .hero__title--premium { font-size: clamp(1.6rem, 7vw, 2.2rem); }
   .route-home .hero .btn-row { display: grid; grid-template-columns: 1fr; gap: .4rem; width: 100%; }
   .route-home .hero .btn-row .btn { width: 100%; min-height: 44px; }
   .route-home .hero__stats--premium { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+
   .route-home .grid--2,
   .route-home .grid--3,
   .route-home .grid--4,
@@ -200,11 +197,61 @@
   .result__text,
   .channel__value,
   .account-profile__email { overflow-wrap: anywhere; }
-
   .btn-row { width: 100%; }
   .btn-row .btn { max-width: 100%; }
   .filter-tabs { max-width: 100%; }
   .page-banner { overflow: clip; }
+
+  /* The banner is visual only; topic links remain real HTML controls below it. */
+  main.site-main > .hero.hero--premium::before {
+    content: "";
+    width: min(1120px, 100%);
+    max-width: 100%;
+    height: clamp(122px, 34vw, 150px);
+    margin: 0 auto .55rem;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background-color: var(--bg-ink);
+    background-image:
+      linear-gradient(90deg, rgba(8, 24, 39, .98) 0%, rgba(8, 24, 39, .90) 25%, rgba(8, 24, 39, .48) 46%, rgba(8, 24, 39, .10) 72%, rgba(8, 24, 39, .02) 100%),
+      url("../img/instructor.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 72% 28%;
+    box-shadow: var(--sh-md);
+  }
+
+  main.site-main > .hero.hero--premium::after {
+    content: "حاجی احمد صالحی\Aمدرس و پژوهشگر  •  HAvoice\Aفن بیان  •  سخنوری  •  ارتباط مؤثر  •  ارائه\Aآموزش تمرین‌محور برای بهتر صحبت‌کردن و بهتر ارائه‌دادن.";
+    position: absolute;
+    inset-inline-end: 1rem;
+    inset-block-start: 1.35rem;
+    z-index: 3;
+    width: min(63%, 500px);
+    max-width: calc(100% - 2rem);
+    padding: .55rem .7rem;
+    border-inline-end: 2px solid var(--brand-2);
+    border-radius: .7rem;
+    background: rgba(8, 24, 39, .72);
+    color: var(--on-ink);
+    font-size: clamp(.68rem, 2.3vw, .84rem);
+    font-weight: var(--fw-semi);
+    line-height: 1.7;
+    white-space: pre-line;
+    text-wrap: balance;
+    box-shadow: var(--sh-sm);
+    backdrop-filter: blur(6px);
+  }
+
+  .route-home .topic-strip {
+    width: 100%;
+    margin-block: 0 .8rem;
+    padding-block: .55rem;
+  }
+  .route-home .topic-strip__head { margin-bottom: .45rem; }
+  .route-home .topic-strip__list { overflow-x: auto; scrollbar-width: none; }
+  .route-home .topic-strip__list::-webkit-scrollbar { display: none; }
 }
 
 @media (max-width: 559.98px) {
@@ -224,122 +271,67 @@
   .header-actions { gap: 1px; }
   .header-actions .icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
   .nav-toggle { width: 42px; height: 42px; min-width: 42px; min-height: 42px; }
+  main.site-main > .hero.hero--premium::before { height: 112px; background-position: 72% 22%; }
+  main.site-main > .hero.hero--premium::after { inset-block-start: 1.12rem; inset-inline-end: .7rem; width: min(68%, 280px); font-size: .65rem; padding: .42rem .5rem; line-height: 1.62; }
+}
+
+@media (min-width: 768px) {
+  /* Same information architecture on desktop: banner → topics → main hero. */
+  main.site-main > .hero.hero--premium {
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+  }
+  main.site-main > .hero.hero--premium::before { order: 1; }
+  main.site-main > .hero.hero--premium > .topic-strip { order: 2; }
+  main.site-main > .hero.hero--premium > .hero__grid { order: 3; }
+
+  main.site-main > .hero.hero--premium::before {
+    content: "";
+    width: min(1120px, 100%);
+    max-width: 100%;
+    height: clamp(150px, 13vw, 195px);
+    margin: 0 auto .75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    background-color: var(--bg-ink);
+    background-image:
+      linear-gradient(90deg, rgba(8, 24, 39, .98) 0%, rgba(8, 24, 39, .90) 24%, rgba(8, 24, 39, .44) 47%, rgba(8, 24, 39, .09) 76%, rgba(8, 24, 39, .02) 100%),
+      url("../img/instructor.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 72% 25%;
+    box-shadow: var(--sh-lg);
+  }
+
+  main.site-main > .hero.hero--premium::after {
+    content: "حاجی احمد صالحی\Aمدرس و پژوهشگر  •  HAvoice\Aفن بیان  •  سخنوری  •  ارتباط مؤثر  •  ارائه\Aآموزش تمرین‌محور برای بهتر صحبت‌کردن و بهتر ارائه‌دادن.";
+    position: absolute;
+    inset-inline-end: max(var(--gutter), 1.25rem);
+    inset-block-start: clamp(2.25rem, 4vw, 3.1rem);
+    z-index: 3;
+    width: min(46%, 500px);
+    max-width: calc(100% - 2rem);
+    padding: .72rem 1rem;
+    border-inline-end: 3px solid var(--brand-2);
+    border-radius: var(--r-lg);
+    background: rgba(8, 24, 39, .70);
+    color: var(--on-ink);
+    font-size: clamp(.78rem, 1.05vw, .98rem);
+    font-weight: var(--fw-semi);
+    line-height: 1.82;
+    white-space: pre-line;
+    text-wrap: balance;
+    box-shadow: var(--sh-sm);
+    backdrop-filter: blur(7px);
+  }
 }
 
 @media (min-width: 1120px) {
   .main-nav { position: relative; width: auto; max-width: none; display: flex; transform: none; visibility: visible; }
   .nav-toggle { display: none; }
   .nav-backdrop { display: none !important; }
-}
-
-/* ================================================================
-   HOME — یک بنر معرفی واقعی و یکتا در ابتدای Hero.
-   از main/hero مستقل از کلاس route-home انتخاب می‌شود تا روی صفحه‌ی
-   واقعی حتماً رندر شود. خودِ عکس در assets/img/instructor.jpg است.
-   ================================================================ */
-main.site-main > .hero.hero--premium {
-  position: relative;
-  isolation: isolate;
-  padding-top: 0;
-}
-
-main.site-main > .hero.hero--premium::before {
-  content: "";
-  display: block;
-  width: min(1120px, 100%);
-  max-width: 100%;
-  height: clamp(190px, 21vw, 245px);
-  margin: 0 auto clamp(1rem, 2.6vw, 1.35rem);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  background-color: var(--bg-ink);
-  background-image:
-    linear-gradient(90deg, rgba(8, 24, 39, 0.08) 0%, rgba(8, 24, 39, 0.30) 42%, rgba(8, 24, 39, 0.82) 72%, rgba(8, 24, 39, 0.98) 100%),
-    url("../img/instructor.jpg");
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center 22%;
-  box-shadow: var(--sh-lg);
-}
-
-main.site-main > .hero.hero--premium::after {
-  content: "حاجی احمد صالحی\Aمدرس و پژوهشگر  •  HAvoice\Aآموزش مهارت‌های ارتباطی، فن بیان و رشد فردی؛ تمرین‌محور و پژوهش‌محور.";
-  position: absolute;
-  inset-inline-end: max(var(--gutter), 1.1rem);
-  inset-block-start: clamp(2.25rem, 5vw, 3.6rem);
-  z-index: 2;
-  width: min(54%, 540px);
-  max-width: calc(100% - 2rem);
-  padding: clamp(.8rem, 2vw, 1.15rem) clamp(.9rem, 2.3vw, 1.35rem);
-  border-inline-end: 3px solid var(--brand-2);
-  border-radius: var(--r-lg);
-  background: rgba(8, 24, 39, 0.74);
-  color: var(--on-ink);
-  font-size: clamp(.82rem, 1.5vw, 1rem);
-  font-weight: var(--fw-semi);
-  line-height: 1.9;
-  white-space: pre-line;
-  text-wrap: balance;
-  box-shadow: var(--sh-sm);
-  backdrop-filter: blur(7px);
-}
-
-[dir="ltr"] main.site-main > .hero.hero--premium::before {
-  background-image:
-    linear-gradient(90deg, rgba(8, 24, 39, 0.98) 0%, rgba(8, 24, 39, 0.82) 28%, rgba(8, 24, 39, 0.28) 58%, rgba(8, 24, 39, 0.08) 100%),
-    url("../img/instructor.jpg");
-}
-
-[dir="ltr"] main.site-main > .hero.hero--premium::after {
-  inset-inline-start: max(var(--gutter), 1.1rem);
-  inset-inline-end: auto;
-  border-inline-end: 0;
-  border-inline-start: 3px solid var(--brand-2);
-}
-
-@media (max-width: 767.98px) {
-  main.site-main > .hero.hero--premium::before {
-    height: clamp(145px, 38vw, 170px);
-    margin-bottom: .8rem;
-    border-radius: var(--r-lg);
-    background-position: center 17%;
-    background-image:
-      linear-gradient(90deg, rgba(8, 24, 39, 0.05) 0%, rgba(8, 24, 39, 0.34) 38%, rgba(8, 24, 39, 0.90) 82%, rgba(8, 24, 39, 0.98) 100%),
-      url("../img/instructor.jpg");
-  }
-
-  main.site-main > .hero.hero--premium::after {
-    inset-inline: 1rem;
-    inset-block-start: 3.1rem;
-    width: auto;
-    max-width: none;
-    padding: .6rem .75rem;
-    font-size: .77rem;
-    line-height: 1.75;
-    border-inline-end-width: 2px;
-    border-radius: .75rem;
-    background: rgba(8, 24, 39, 0.68);
-  }
-
-  [dir="ltr"] main.site-main > .hero.hero--premium::after {
-    inset-inline-start: 1rem;
-    inset-inline-end: 1rem;
-    border-inline-start-width: 2px;
-  }
-}
-
-@media (max-width: 380px) {
-  main.site-main > .hero.hero--premium::before {
-    height: 138px;
-    background-position: 52% 15%;
-  }
-
-  main.site-main > .hero.hero--premium::after {
-    inset-block-start: 2.45rem;
-    font-size: .72rem;
-    padding: .5rem .62rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
