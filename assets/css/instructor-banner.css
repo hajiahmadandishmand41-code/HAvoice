@@ -7,7 +7,7 @@
 
 /* ---- ۱) بنرِ صفحه‌ی اصلی ------------------------------------------------- */
 .home-instructor-banner{padding:10px 0 0}
-.home-instructor-banner__card{position:relative;display:block;width:min(900px,100%);margin-inline:auto;overflow:hidden;border-radius:20px;background:#0B1B3F;box-shadow:0 14px 34px rgba(5,15,35,.16)}
+.home-instructor-banner__card{position:relative;display:block;width:min(900px,100%);margin-inline:auto;overflow:hidden;border-radius:20px;background:var(--bg-ink,#0B1B3F);box-shadow:0 14px 34px rgba(5,15,35,.16)}
 .home-instructor-banner__art{display:block;width:100%;height:auto;max-width:100%}
 
 /* ---- ۲) عکسِ مدرس -------------------------------------------------------- */
