@@ -1,0 +1,1 @@
+The binary banner is maintained as a repository blob because the GitHub contents wrapper only accepts UTF-8 text.
