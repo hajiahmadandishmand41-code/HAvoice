@@ -21,6 +21,7 @@ require HA_ROOT . '/includes/content.php';
 require HA_ROOT . '/includes/auth.php';
 require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/meta.php';
+require HA_ROOT . '/includes/comments.php';
 
 error_reporting(E_ALL);
 ini_set('display_errors', HA_DEBUG ? '1' : '0');
@@ -185,6 +186,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'contact':
             require HA_ROOT . '/includes/handlers/contact.php';
             break;
+        case 'comments':
+            require HA_ROOT . '/includes/handlers/comment.php';
+            break;
         case 'register':
             require HA_ROOT . '/includes/handlers/register.php';
             break;
@@ -217,6 +221,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_category_delete':
         case 'admin_user_delete':
         case 'admin_message_delete':
+        case 'admin_comment_status':
+        case 'admin_comment_delete':
             // Map route to file: admin_article_save → article_save.php
             $handlerFile = HA_ROOT . '/pages/admin/' . str_replace('admin_', '', $route) . '.php';
             if (is_file($handlerFile)) {

@@ -37,7 +37,7 @@ $add = static function (string $route, array $params, string $priority, string $
 
 foreach (['home' => '1.0', 'courses' => '0.9', 'articles' => '0.8', 'videos' => '0.7', 'audios' => '0.7',
           'books' => '0.7', 'research' => '0.7', 'exercises' => '0.8', 'tips' => '0.6',
-          'about' => '0.7', 'contact' => '0.5'] as $static => $priority) {
+          'about' => '0.7', 'contact' => '0.5', 'comments' => '0.5'] as $static => $priority) {
     $add($static, [], $priority);
 }
 

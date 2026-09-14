@@ -439,6 +439,7 @@ $routes = [
     'tips'          => '/index.php?p=tips',
     'about'         => '/index.php?p=about',
     'contact'       => '/index.php?p=contact',
+    'comments'      => '/index.php?p=comments',
     'search'        => '/index.php?p=search',
     'course'        => '/index.php?p=course&slug=public-speaking-fundamentals',
     'lesson'        => '/index.php?p=lesson&slug=breathing-foundations',

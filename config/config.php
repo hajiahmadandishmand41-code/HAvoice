@@ -78,6 +78,22 @@ define('HA_FORCE_HTTPS', false);
 define('HA_SECURITY_HEADERS', true);
 
 /* ------------------------------------------------------------------ */
+/*  دیتابیس «نظرات عمومی» (MySQL/MariaDB — InfinityFree)             */
+/*                                                                    */
+/*  در پنلِ هاست (InfinityFree → MySQL Databases) یک دیتابیس بسازید  */
+/*  و مقادیر زیر را با همان مشخصات پر کنید. تا وقتی خالی باشند،      */
+/*  صفحه‌ی نظرات پیامِ «در حالِ راه‌اندازی» می‌دهد و بقیه‌ی سایت      */
+/*  سالم می‌ماند. جدول در نخستین اتصالِ موفق خودکار ساخته می‌شود؛    */
+/*  نسخه‌ی دستی: sql/001-create-comments.sql (درون‌ریزی در phpMyAdmin). */
+/* ------------------------------------------------------------------ */
+
+if (!defined('HA_DB_HOST')) { define('HA_DB_HOST', ''); }  // مثلاً sql123.epizy.com
+if (!defined('HA_DB_PORT')) { define('HA_DB_PORT', 3306); }
+if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }  // معمولاً همان نامِ کاربری
+if (!defined('HA_DB_USER')) { define('HA_DB_USER', ''); }
+if (!defined('HA_DB_PASS')) { define('HA_DB_PASS', ''); }
+
+/* ------------------------------------------------------------------ */
 /*  محدودیت نرخ (Rate Limit) فرم تماس                                 */
 /*                                                                    */
 /*  سیاست واقعی: حداکثر HA_RATE_LIMIT_MAX پیام موفق/ناموفق            */
@@ -103,6 +119,22 @@ define('HA_RATE_LIMIT_MAX_FILES', 400);
 
 /** عمر توکن CSRF (ثانیه). پس از انقضا، توکن تازه ساخته می‌شود. */
 define('HA_CSRF_TTL', 28800);
+
+/* ------------------------------------------------------------------ */
+/*  فرم «نظرات عمومی»                                                 */
+/* ------------------------------------------------------------------ */
+
+/** حداکثر ارسالِ نظر از یک IP در هر پنجره (پنجره: همین ثابتِ زیر). */
+if (!defined('HA_COMMENTS_RATE_LIMIT_MAX')) { define('HA_COMMENTS_RATE_LIMIT_MAX', 3); }
+
+/** طولِ پنجره‌ی محدودیتِ نرخِ نظرات (ثانیه). */
+if (!defined('HA_COMMENTS_RATE_LIMIT_WINDOW')) { define('HA_COMMENTS_RATE_LIMIT_WINDOW', 900); }
+
+/** فاصله‌ی حداقلی بین دو ارسالِ نظر از یک IP (ثانیه). */
+if (!defined('HA_COMMENTS_RATE_LIMIT_MIN_INTERVAL')) { define('HA_COMMENTS_RATE_LIMIT_MIN_INTERVAL', 30); }
+
+/** تعدادِ نظراتِ تأییدشده در هر صفحه‌ی فهرست. */
+if (!defined('HA_COMMENTS_PER_PAGE')) { define('HA_COMMENTS_PER_PAGE', 10); }
 
 /* ------------------------------------------------------------------ */
 /*  حساب کاربری (ورود / ثبت‌نام)                                      */
