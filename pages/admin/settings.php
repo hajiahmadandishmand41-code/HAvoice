@@ -15,7 +15,7 @@ $flash = flash();
 
 <div class="admin-card"><h2>متن‌های سایت</h2>
 <div class="field"><label>معرفی پاورقی</label><textarea class="input" name="footer_about" rows="3"><?= e($settings['footer_about'] ?? '') ?></textarea></div>
-<div class="field"><label>متن کوتاهِ بنرِ مدرس (بالای صفحه‌ی اصلی)</label><textarea class="input" name="banner_lead" rows="2" maxlength="220"><?= e($settings['banner_lead'] ?? '') ?></textarea></div>
+<div class="field"><label>متن جایگزینِ بنر (alt) — توضیحِ تصویرِ بالای صفحه‌ی اصلی برای گوگل و صفحه‌نشانِ صوتی</label><textarea class="input" name="banner_alt" rows="2" maxlength="220"><?= e($settings['banner_alt'] ?? '') ?></textarea></div>
 <div class="field"><label>متن بنر CTA — عنوان</label><input class="input" type="text" name="cta_title" value="<?= e($settings['cta_title'] ?? '') ?>"></div>
 <div class="field"><label>متن بنر CTA — متن</label><textarea class="input" name="cta_text" rows="2"><?= e($settings['cta_text'] ?? '') ?></textarea></div>
 <div class="field"><label>ساعات کاری</label><input class="input" type="text" name="work_hours" value="<?= e($settings['work_hours'] ?? '') ?>"></div>

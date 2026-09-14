@@ -20,7 +20,7 @@ $cats  = categories();
         <div class="instructor">
             <div class="instructor__media">
                 <div class="instructor__avatar">
-                    <img src="<?= e(asset('assets/img/instructor.jpg')) ?>" alt="<?= e(($inst['name'] ?? ha_site_name()) . ' — ' . ($inst['role'] ?? ha_site_tagline())) ?>" width="320" height="320" loading="lazy" decoding="async">
+                    <img src="<?= e(asset('assets/img/instructor.jpg')) ?>" alt="<?= e(($inst['name'] ?? ha_site_name()) . ' — ' . ($inst['role'] ?? ha_site_tagline())) ?>" width="360" height="360" decoding="async">
                 </div>
                 <span class="instructor__badge"><?= e($inst['role'] ?? ha_site_tagline()) ?></span>
             </div>
