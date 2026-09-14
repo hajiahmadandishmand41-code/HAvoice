@@ -69,6 +69,8 @@
     justify-self: end;
   }
 
+  /* Closed = display:none. The drawer can therefore never create horizontal
+     scroll width while closed. No translateX is used for the closed state. */
   .main-nav {
     position: fixed !important;
     top: var(--ha-header-h, var(--header-h, 64px)) !important;
@@ -109,6 +111,7 @@
     flex-direction: column !important;
   }
 
+  /* Backdrop is also a pure viewport overlay; it never belongs to layout. */
   .nav-backdrop {
     position: fixed !important;
     top: var(--ha-header-h, var(--header-h, 64px)) !important;
@@ -125,6 +128,7 @@
   .main-nav__list > li { min-width: 0; }
   .main-nav__list > li > a { min-height: 43px; padding: .52rem .65rem; }
 
+  /* On mobile the mega menu is part of the drawer, not a second popup. */
   .main-nav__mega {
     position: static !important;
     display: block !important;
@@ -229,71 +233,115 @@
 }
 
 /* ================================================================
-   HOME — تنها افزونه‌ی این فایل: بنر معرفی مدرس در بالای Hero.
-   همه‌ی رنگ‌ها از Design System می‌آیند تا حالت روشن و تاریک خراب نشود.
+   HOME — یک بنر معرفی واقعی و یکتا در ابتدای Hero.
+   از main/hero مستقل از کلاس route-home انتخاب می‌شود تا روی صفحه‌ی
+   واقعی حتماً رندر شود. خودِ عکس در assets/img/instructor.jpg است.
    ================================================================ */
-.route-home .hero--premium {
+main.site-main > .hero.hero--premium {
   position: relative;
   isolation: isolate;
   padding-top: 0;
 }
 
-.route-home .hero--premium::before {
+main.site-main > .hero.hero--premium::before {
   content: "";
   display: block;
-  width: min(100%, 1120px);
-  height: clamp(132px, 21vw, 190px);
-  margin: 0 auto clamp(1rem, 3vw, 1.5rem);
-  border-radius: 0 0 var(--r-xl) var(--r-xl);
+  width: min(1120px, 100%);
+  max-width: 100%;
+  height: clamp(190px, 21vw, 245px);
+  margin: 0 auto clamp(1rem, 2.6vw, 1.35rem);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background-color: var(--bg-ink);
   background-image:
-    linear-gradient(90deg, var(--bg-ink) 0%, color-mix(in srgb, var(--bg-ink) 94%, transparent) 43%, color-mix(in srgb, var(--bg-ink) 18%, transparent) 74%, transparent 100%),
+    linear-gradient(90deg, rgba(8, 24, 39, 0.08) 0%, rgba(8, 24, 39, 0.30) 42%, rgba(8, 24, 39, 0.82) 72%, rgba(8, 24, 39, 0.98) 100%),
     url("../img/instructor.jpg");
+  background-repeat: no-repeat;
   background-size: cover;
-  background-position: center 25%;
+  background-position: center 22%;
   box-shadow: var(--sh-lg);
-  border: 1px solid color-mix(in srgb, var(--brand-2) 28%, var(--border));
-  position: relative;
-  z-index: 0;
 }
 
-.route-home .hero--premium::after {
-  content: "حاجی احمد صالحی  •  مدرس و پژوهشگر  •  HAvoice";
+main.site-main > .hero.hero--premium::after {
+  content: "حاجی احمد صالحی\Aمدرس و پژوهشگر  •  HAvoice\Aآموزش مهارت‌های ارتباطی، فن بیان و رشد فردی؛ تمرین‌محور و پژوهش‌محور.";
   position: absolute;
-  inset-inline-start: max(var(--gutter), 1rem);
-  inset-block-start: clamp(3.1rem, 7vw, 4.75rem);
-  z-index: 1;
-  max-width: 55%;
-  padding: .65rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--brand-2) 26%, transparent);
-  border-radius: var(--r-full);
-  background: color-mix(in srgb, var(--bg-ink) 72%, transparent);
-  backdrop-filter: blur(8px);
+  inset-inline-end: max(var(--gutter), 1.1rem);
+  inset-block-start: clamp(2.25rem, 5vw, 3.6rem);
+  z-index: 2;
+  width: min(54%, 540px);
+  max-width: calc(100% - 2rem);
+  padding: clamp(.8rem, 2vw, 1.15rem) clamp(.9rem, 2.3vw, 1.35rem);
+  border-inline-end: 3px solid var(--brand-2);
+  border-radius: var(--r-lg);
+  background: rgba(8, 24, 39, 0.74);
   color: var(--on-ink);
-  font-size: clamp(.78rem, 1.4vw, .98rem);
+  font-size: clamp(.82rem, 1.5vw, 1rem);
   font-weight: var(--fw-semi);
-  line-height: 1.6;
+  line-height: 1.9;
+  white-space: pre-line;
   text-wrap: balance;
   box-shadow: var(--sh-sm);
+  backdrop-filter: blur(7px);
+}
+
+[dir="ltr"] main.site-main > .hero.hero--premium::before {
+  background-image:
+    linear-gradient(90deg, rgba(8, 24, 39, 0.98) 0%, rgba(8, 24, 39, 0.82) 28%, rgba(8, 24, 39, 0.28) 58%, rgba(8, 24, 39, 0.08) 100%),
+    url("../img/instructor.jpg");
+}
+
+[dir="ltr"] main.site-main > .hero.hero--premium::after {
+  inset-inline-start: max(var(--gutter), 1.1rem);
+  inset-inline-end: auto;
+  border-inline-end: 0;
+  border-inline-start: 3px solid var(--brand-2);
 }
 
 @media (max-width: 767.98px) {
-  .route-home .hero--premium::before {
-    height: clamp(118px, 32vw, 150px);
-    border-radius: 0 0 var(--r-lg) var(--r-lg);
-    margin-bottom: .85rem;
-    background-position: 68% 18%;
+  main.site-main > .hero.hero--premium::before {
+    height: clamp(145px, 38vw, 170px);
+    margin-bottom: .8rem;
+    border-radius: var(--r-lg);
+    background-position: center 17%;
+    background-image:
+      linear-gradient(90deg, rgba(8, 24, 39, 0.05) 0%, rgba(8, 24, 39, 0.34) 38%, rgba(8, 24, 39, 0.90) 82%, rgba(8, 24, 39, 0.98) 100%),
+      url("../img/instructor.jpg");
   }
 
-  .route-home .hero--premium::after {
+  main.site-main > .hero.hero--premium::after {
     inset-inline: 1rem;
-    inset-block-start: 3.15rem;
+    inset-block-start: 3.1rem;
+    width: auto;
     max-width: none;
-    font-size: .76rem;
-    text-align: center;
-    padding: .5rem .7rem;
+    padding: .6rem .75rem;
+    font-size: .77rem;
+    line-height: 1.75;
+    border-inline-end-width: 2px;
+    border-radius: .75rem;
+    background: rgba(8, 24, 39, 0.68);
+  }
+
+  [dir="ltr"] main.site-main > .hero.hero--premium::after {
+    inset-inline-start: 1rem;
+    inset-inline-end: 1rem;
+    border-inline-start-width: 2px;
+  }
+}
+
+@media (max-width: 380px) {
+  main.site-main > .hero.hero--premium::before {
+    height: 138px;
+    background-position: 52% 15%;
+  }
+
+  main.site-main > .hero.hero--premium::after {
+    inset-block-start: 2.45rem;
+    font-size: .72rem;
+    padding: .5rem .62rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-home .hero--premium::before { scroll-behavior: auto; }
+  .main-nav, .nav-backdrop { transition: none !important; }
 }
