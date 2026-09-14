@@ -71,7 +71,43 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 };
 ?>
 
-<!-- ۱) هیرو ============================================================== -->
+<!-- ۱) بنر مدرس: یک بنر ساده و مستقل در صدر صفحه ======================= -->
+<section class="home-instructor-banner" aria-labelledby="home-instructor-banner-title">
+    <style>
+        .home-instructor-banner{padding:18px 0 0}
+        .home-instructor-banner__card{display:flex;align-items:center;gap:20px;min-width:0;padding:18px 20px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(135deg,rgba(26,58,124,.08),rgba(79,70,229,.05));box-shadow:var(--sh-sm);overflow:hidden}
+        .home-instructor-banner__avatar{flex:0 0 74px;width:74px;height:74px;display:grid;place-items:center;border-radius:20px;background:linear-gradient(135deg,#1A3A7C,#4F46E5);color:#fff;font-size:28px;font-weight:800;box-shadow:var(--sh-md)}
+        .home-instructor-banner__body{min-width:0;flex:1}
+        .home-instructor-banner__eyebrow{margin:0 0 5px;font-size:.8rem;font-weight:700;color:var(--accent,#4F46E5)}
+        .home-instructor-banner__title{margin:0;font-size:1.35rem;line-height:1.35;color:var(--text-strong,var(--text))}
+        .home-instructor-banner__lead{margin:5px 0 0;color:var(--muted);line-height:1.8;font-size:.92rem}
+        .home-instructor-banner__action{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 15px;border-radius:12px;background:var(--accent,#4F46E5);color:#fff;text-decoration:none;font-weight:700;white-space:nowrap}
+        .home-instructor-banner__action:hover{filter:brightness(.96)}
+        @media (max-width:680px){
+            .home-instructor-banner{padding-top:10px}
+            .home-instructor-banner__card{gap:12px;padding:14px;border-radius:16px}
+            .home-instructor-banner__avatar{flex-basis:56px;width:56px;height:56px;border-radius:15px;font-size:22px}
+            .home-instructor-banner__title{font-size:1.05rem}
+            .home-instructor-banner__lead{font-size:.8rem;line-height:1.65}
+            .home-instructor-banner__action{display:none}
+        }
+    </style>
+    <div class="container">
+        <div class="home-instructor-banner__card">
+            <div class="home-instructor-banner__avatar" aria-hidden="true">
+                <?= e(mb_substr((string) ($instructor['name'] ?? ha_site_name()), 0, 1, 'UTF-8')) ?>
+            </div>
+            <div class="home-instructor-banner__body">
+                <p class="home-instructor-banner__eyebrow">مدرس و پژوهشگر · HAvoice</p>
+                <h2 id="home-instructor-banner-title" class="home-instructor-banner__title"><?= e($instructor['name'] ?? ha_site_name()) ?></h2>
+                <p class="home-instructor-banner__lead">آموزش فن بیان، سخنوری و مهارت‌های ارتباطی به‌صورت کاربردی و مرحله‌به‌مرحله.</p>
+            </div>
+            <a class="home-instructor-banner__action" href="<?= e(url('about')) ?>">آشنایی با مدرس <?= ha_icon('chevron-left', 13) ?></a>
+        </div>
+    </div>
+</section>
+
+<!-- ۲) هیرو ============================================================== -->
 <section class="hero hero--premium">
     <div class="container hero__grid">
         <div class="hero__content">
@@ -141,7 +177,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
         </aside>
     </div>
 
-    <!-- ۲) نوارِ حوزه‌ها — نقشه‌ی سریع، بدونِ شلوغ‌کردنِ صفحه -->
+    <!-- ۳) نوارِ حوزه‌ها — نقشه‌ی سریع، بدونِ شلوغ‌کردنِ صفحه -->
     <?php if ($cats !== []): ?>
     <div class="container topic-strip">
         <div class="topic-strip__head">
@@ -160,7 +196,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
     <?php endif; ?>
 </section>
 
-<!-- ۳) دوره‌های منتخب ==================================================== -->
+<!-- ۴) دوره‌های منتخب ==================================================== -->
 <?php if ($featuredCourses !== []): ?>
 <section class="section">
     <div class="container">
@@ -185,7 +221,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۴) آخرین مقاله‌ها ==================================================== -->
+<!-- ۵) آخرین مقاله‌ها ==================================================== -->
 <?php if ($latest !== []): ?>
 <section class="section section--soft">
     <div class="container">
@@ -199,7 +235,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۵) ویدیوهای منتخب ==================================================== -->
+<!-- ۶) ویدیوهای منتخب ==================================================== -->
 <?php if ($videos !== []): ?>
 <section class="section">
     <div class="container">
@@ -213,7 +249,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۶) فایل‌های صوتی ===================================================== -->
+<!-- ۷) فایل‌های صوتی ===================================================== -->
 <?php if ($audios !== []): ?>
 <section class="section section--soft">
     <div class="container">
@@ -227,7 +263,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۷) کتاب‌ها و منابع =================================================== -->
+<!-- ۸) کتاب‌ها و منابع =================================================== -->
 <?php if ($books !== [] || $research !== []): ?>
 <section class="section">
     <div class="container">
@@ -261,7 +297,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۸) تمرین‌ها — بخشِ تیره ============================================== -->
+<!-- ۹) تمرین‌ها — بخشِ تیره ============================================== -->
 <?php if ($exList !== []): ?>
 <section class="section section--dark">
     <div class="container">
@@ -275,7 +311,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۹) معرفی سایت: مدرس + چرا HAvoice + روشِ کار ========================= -->
+<!-- ۱۰) معرفی سایت: مدرس + چرا HAvoice + روشِ کار ========================= -->
 <section class="section section--soft">
     <div class="container">
         <div class="instructor reveal">
@@ -332,7 +368,7 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
     </div>
 </section>
 
-<!-- ۱۰) فراخوانِ پایانی ================================================== -->
+<!-- ۱۱) فراخوانِ پایانی ================================================== -->
 <?php if ($cta !== [] && !empty($cta['title'])): ?>
 <section class="section section--tight">
     <div class="container">
