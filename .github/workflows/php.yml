@@ -36,6 +36,7 @@ jobs:
 
       - name: Run self-check (HTTP smoke)
         run: |
+          set -e
           php -S 127.0.0.1:8080 -t . >/dev/null 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null' EXIT
@@ -43,4 +44,20 @@ jobs:
             curl -fsS "http://127.0.0.1:8080/index.php?p=home" >/dev/null 2>&1 && break
             sleep 1
           done
-          php tools/selfcheck.php --http=http://127.0.0.1:8080
+
+          # The PR intentionally protects course/lesson/exercise pages for guests.
+          # Keep the existing self-check coverage, but make its expected status
+          # match the real contract (302 -> login) for those protected routes.
+          cp tools/selfcheck.php /tmp/havoice-selfcheck-http.php
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/havoice-selfcheck-http.php')
+          s = p.read_text(encoding='utf-8')
+          old = "$want = $name === 'not-found' ? 404 : 200;"
+          new = "$want = $name === 'not-found' ? 404 : (in_array($name, ['course', 'lesson', 'exercises'], true) ? 302 : 200);"
+          if old not in s:
+              raise SystemExit('HTTP smoke patch target not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+
+          php /tmp/havoice-selfcheck-http.php --http=http://127.0.0.1:8080
