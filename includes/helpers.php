@@ -593,7 +593,12 @@ function render_drill(array $block): string
     foreach ((array)($block['items'] ?? []) as $item) {
         $items .= '<li><span class="tick">' . ha_icon('check', 15) . '</span><span>' . inline((string)$item) . '</span></li>';
     }
-    return '<section class="drill"><header class="drill__head"><h3>' . e($block['title'] ?? 'تمرین') . '</h3>' . (empty($block['time']) ? '' : '<span class="chip chip--ghost">' . minutes_label((int)$block['time']) . '</span>') . '</header><ul class="drill__list">' . $items . '</ul>' . (empty($block['note']) ? '' : '<p class="drill__note">' . inline((string)$block['note']) . '</p>') . '</section>';
+    /* معیار سنجشِ تمرین (اختیاری): پاسِ «فهمیدم که جواب داده» را از
+       حسِ کلی به نشانه‌ی قابلِ مشاهده تبدیل می‌کند. */
+    $success = empty($block['success'])
+        ? ''
+        : '<p class="drill__success"><span class="drill__success-icon">' . ha_icon('target', 14) . '</span><span><strong>معیار سنجش:</strong> ' . inline((string)$block['success']) . '</span></p>';
+    return '<section class="drill"><header class="drill__head"><h3>' . e($block['title'] ?? 'تمرین') . '</h3>' . (empty($block['time']) ? '' : '<span class="chip chip--ghost">' . minutes_label((int)$block['time']) . '</span>') . '</header><ul class="drill__list">' . $items . '</ul>' . $success . (empty($block['note']) ? '' : '<p class="drill__note">' . inline((string)$block['note']) . '</p>') . '</section>';
 }
 
 /**

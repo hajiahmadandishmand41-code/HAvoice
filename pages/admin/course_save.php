@@ -78,6 +78,11 @@ foreach ($stages as $si => $stage) {
             'goal'    => trim((string) ($lesson['goal'] ?? '')),
             'blocks'  => is_array($lesson['blocks'] ?? null) ? $lesson['blocks'] : [],
             'drill'   => is_array($lesson['drill'] ?? null) ? $lesson['drill'] : [],
+            /* فیلدهای اختیاریِ استانداردِ درس: پیش‌نیاز و منابع.
+               نرمال‌سازیِ پیشین این‌ها را حذف می‌کرد و ویرایشِ یک دوره از
+               پنل، ساختارِ آموزشیِ درس را بی‌صدا می‌شکست. */
+            'prerequisite' => slugify((string) ($lesson['prerequisite'] ?? '')),
+            'refs'         => array_values(array_filter(array_map('trim', (array) ($lesson['refs'] ?? [])), fn($r) => $r !== '')),
         ];
     }
     $cleanStages[] = [
@@ -88,6 +93,8 @@ foreach ($stages as $si => $stage) {
         'outcome'  => trim((string) ($stage['outcome'] ?? '')),
         'duration' => trim((string) ($stage['duration'] ?? '')),
         'lessons'  => $lessons,
+        /* آزمونِ مرحله (اختیاری) — از JSON مراحل نگه داشته می‌شود */
+        'assessment' => is_array($stage['assessment'] ?? null) ? $stage['assessment'] : [],
     ];
 }
 
@@ -96,6 +103,17 @@ $howTo = [];
 foreach (preg_split('/\r\n|\r|\n/', (string) ($_POST['how_to_text'] ?? '')) as $line) {
     $line = trim($line);
     if ($line !== '') $howTo[] = $line;
+}
+
+/* پروژه‌ی نهاییِ دوره (اختیاری): اگر دوره‌ی موجودِ همین نامک (چه در فایلِ
+   data/course.php و چه در ذخیره‌ی قبلیِ پنل) پروژه‌ای دارد، در ذخیره‌ی
+   پنل حفظ می‌شود تا ویرایشِ پنل ساختارِ آموزشی را نبُرد. */
+$existingProject = [];
+foreach (courses_all() as $c) {
+    if (slugify((string) ($c['slug'] ?? '')) === ($orig !== '' ? $orig : $slug)) {
+        $existingProject = is_array($c['project'] ?? null) ? $c['project'] : [];
+        break;
+    }
 }
 
 $course = [
@@ -109,6 +127,8 @@ $course = [
     'stages'   => $cleanStages,
     'featured' => !empty($_POST['featured']),
     'status'   => admin_post_status(),
+    'project'  => $existingProject,
+    'prereq'   => trim((string) ($_POST['prereq'] ?? '')),
 ];
 
 /* ---- ذخیره: به‌روزرسانی در جا (حتی هنگامِ تغییرِ نامک) یا افزودن ---- */

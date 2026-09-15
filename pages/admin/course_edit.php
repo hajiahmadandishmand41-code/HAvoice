@@ -92,6 +92,10 @@ $curCat = (string) ($course['category'] ?? '');
             <textarea class="input" id="c-intro" name="intro" rows="4"><?= e($course['intro'] ?? '') ?></textarea></div>
         <div class="field"><label for="c-howto">«چطور پیش برویم؟» — هر خط یک مورد</label>
             <textarea class="input" id="c-howto" name="how_to_text" rows="4"><?= e(implode("\n", array_map('strval', $howTo))) ?></textarea></div>
+        <div class="field"><label for="c-prereq">پیش‌نیازِ دوره (اختیاری)</label>
+            <input class="input" id="c-prereq" type="text" name="prereq" maxlength="200"
+                   value="<?= e($course['prereq'] ?? '') ?>">
+            <p class="field__help">یادداشتِ کوتاهِ پیش‌نیاز؛ زیرِ عنوانِ دوره نمایش داده می‌شود.</p></div>
         <?= admin_status_field($course ?? []) ?>
         <div class="field">
             <label class="check"><input type="checkbox" name="featured" value="1"<?= !empty($course['featured']) ? ' checked' : '' ?>>

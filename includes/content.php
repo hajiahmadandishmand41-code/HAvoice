@@ -81,6 +81,15 @@ function find_course(string $slug): ?array
     return null;
 }
 
+/**
+ * ایندکسِ درس‌ها: نامک → اطلاعاتِ کامل (دوره، مرحله، جایگاه).
+ *
+ * position/total «سراسری»اند (در میانِ همه‌ی دوره‌ها) و برای شمارش‌های
+ * کلی (جستجو، داشبورد) استفاده می‌شوند. برای شماره‌گذاریِ درس داخلِ
+ * خودِ دوره — چیزی که کاربر در صفحه‌ی درس می‌بیند — coursePosition/
+ * courseTotal ملاک‌اند؛ نسخه‌ی پیشین فقط شمارنده‌ی سراسری داشت و
+ * مثلاً درسِ اولِ یک دوره‌ی دو-درسی را «گام ۱۰ از ۱۶» نشان می‌داد.
+ */
 function course_lesson_index(): array
 {
     static $index=null;
@@ -90,17 +99,22 @@ function course_lesson_index(): array
     $all = courses();
     foreach ($all as $course) foreach ((array)($course['stages']??[]) as $stage) $total += count((array)($stage['lessons']??[]));
     foreach ($all as $course) {
+        $courseTotal = 0;
+        foreach ((array)($course['stages']??[]) as $stage) $courseTotal += count((array)($stage['lessons']??[]));
+        $coursePos = 0;
         foreach ((array)($course['stages']??[]) as $sIdx=>$stage) {
             foreach ((array)($stage['lessons']??[]) as $lIdx=>$lesson) {
-                $n++;
+                $n++; $coursePos++;
                 $index[(string)$lesson['slug']] = [
-                    'course'      => $course,
-                    'stage'       => $stage,
-                    'stageIndex'  => (int)$sIdx,
-                    'lesson'      => $lesson,
-                    'lessonIndex' => (int)$lIdx,
-                    'position'    => $n,
-                    'total'       => $total,
+                    'course'         => $course,
+                    'stage'          => $stage,
+                    'stageIndex'     => (int)$sIdx,
+                    'lesson'         => $lesson,
+                    'lessonIndex'    => (int)$lIdx,
+                    'position'       => $n,
+                    'total'          => $total,
+                    'coursePosition' => $coursePos,
+                    'courseTotal'    => $courseTotal,
                 ];
             }
         }
@@ -114,16 +128,30 @@ function course_find_lesson(string $slug): ?array
     return $index[slugify($slug)] ?? null;
 }
 
+/**
+ * درسِ قبلی/بعدی «داخلِ همان دوره».
+ *
+ * نسخه‌ی پیشین روی ایندکسِ سراسری کار می‌کرد؛ نتیجه: آخرین درسِ
+ * دوره‌ی فن بیان، «درس بعدی»اش اولین درسِ دوره‌ی ارتباط مؤثر بود و
+ * کاربر بی‌خبر از دوره‌ای به دوره‌ی دیگر می‌افتاد. اکنون پیجِر فقط
+ * تا انتهای دوره‌ی همان درس پیش می‌رود و بعدش CTA‌ی «پایان دوره»
+ * نمایش داده می‌شود.
+ */
 function course_neighbours(string $slug): array
 {
     $index = course_lesson_index();
-    $slugs = array_keys($index);
-    $cursor = array_search(slugify($slug),$slugs,true);
-    if ($cursor===false) return ['prev'=>null,'next'=>null];
-    return [
-        'prev'=> $cursor>0 ? $index[$slugs[$cursor-1]]['lesson']:null,
-        'next'=> isset($slugs[$cursor+1]) ? $index[$slugs[$cursor+1]]['lesson']:null,
-    ];
+    $key   = slugify($slug);
+    if (!isset($index[$key])) return ['prev'=>null,'next'=>null];
+    $current = $index[$key];
+    $out = ['prev'=>null,'next'=>null];
+    foreach ($index as $info) {
+        if (slugify((string)($info['course']['slug']??'')) !== slugify((string)($current['course']['slug']??''))) continue;
+        $pos = (int)$info['coursePosition'];
+        $cur = (int)$current['coursePosition'];
+        if ($pos === $cur - 1) $out['prev'] = $info['lesson'];
+        if ($pos === $cur + 1) $out['next'] = $info['lesson'];
+    }
+    return $out;
 }
 
 function course_stage_slugs(array $stage): array
