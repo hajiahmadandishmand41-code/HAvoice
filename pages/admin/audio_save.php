@@ -1,6 +1,7 @@
 <?php
 /**
- * HAvoice Admin — ذخیره‌ی فایل صوتی
+ * HAvoice Admin — ذخیره‌ی صوت
+ * مسیر: Validation → repo_save_media → PDO + JSON
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
@@ -12,52 +13,64 @@ if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url(
 
 $title = trim((string) ($_POST['title'] ?? ''));
 $slug  = admin_post_slug($title);
+$orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+$editUrl = url('admin_audio_edit', $orig !== '' ? ['slug' => $orig] : []);
+
 if ($title === '' || $slug === '') {
-    flash('error', 'عنوان و نامک الزامی.');
-    redirect(url('admin_audio_edit'));
+    flash('error', 'عنوان الزامی است.');
+    redirect($editUrl);
+}
+
+$url = ha_safe_media_url((string) ($_POST['url'] ?? ''));
+if ($url === '') {
+    flash('error', 'نشانی فایل صوتی معتبر نیست.');
+    redirect($editUrl);
 }
 
 $field = slugify((string) ($_POST['field'] ?? ''));
-if ($field !== '' && find_category($field) === null) {
+if ($field !== '' && find_category_any($field) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
-    redirect(url('admin_audio_edit', ['slug' => $slug]));
+    redirect($editUrl);
 }
+
+$course = slugify((string) ($_POST['course'] ?? ''));
+$lesson = slugify((string) ($_POST['lesson'] ?? ''));
 $category = trim((string) ($_POST['category'] ?? ''));
 if ($category === '' && $field !== '') {
     $category = category_label($field, $field);
 }
 
-$item = [
-    'type'     => 'audio',
-    'slug'     => $slug,
-    'title'    => $title,
-    'field'    => $field,
-    'category' => $category !== '' ? $category : $field,
-    'excerpt'  => trim((string) ($_POST['excerpt'] ?? '')),
-    'url'      => ha_safe_file_url((string) ($_POST['url'] ?? '')),
-    'seconds'  => max(0, (int) ($_POST['seconds'] ?? 0)),
-    'date_fa'  => trim((string) ($_POST['date_fa'] ?? '')),
-    'status'   => admin_post_status(),
-    'featured' => !empty($_POST['featured']),
-];
-
-$items = admin_load('media');
-$orig  = slugify((string) ($_POST['original_slug'] ?? ''));
-$found = false;
-foreach ($items as $i => $m) {
+$now = date('c');
+$existing = null;
+foreach (media_all() as $m) {
     $mSlug = slugify((string) ($m['slug'] ?? ''));
-    $same  = ($orig !== '' && $mSlug === $orig) || ($mSlug === $slug && ($m['type'] ?? '') === 'audio');
-    if ($same) {
-        $items[$i] = $item;
-        $found = true;
+    if (($orig !== '' && $mSlug === $orig) || ($mSlug === $slug && ($m['type'] ?? '') === 'audio')) {
+        $existing = $m;
         break;
     }
 }
-if (!$found) $items[] = $item;
 
-if (!admin_store('media', $items)) {
-    flash('error', 'ذخیره‌سازی صوت ناموفق بود؛ storage قابل نوشتن نیست.');
-    redirect(url('admin_audio_edit', ['slug' => $slug]));
+$item = [
+    'type'       => 'audio',
+    'slug'       => $slug,
+    'title'      => $title,
+    'field'      => $field,
+    'category'   => $category !== '' ? $category : $field,
+    'excerpt'    => trim((string) ($_POST['excerpt'] ?? '')),
+    'url'        => $url,
+    'course'     => $course,
+    'lesson'     => $lesson,
+    'seconds'    => max(0, (int) ($_POST['seconds'] ?? 0)),
+    'date_fa'    => trim((string) ($_POST['date_fa'] ?? '')),
+    'status'     => admin_post_status_default_draft($existing === null),
+    'featured'   => !empty($_POST['featured']),
+    'created_at' => (string) ($existing['created_at'] ?? $now),
+    'updated_at' => $now,
+];
+
+if (!repo_save_media($item, $orig)) {
+    flash('error', 'ذخیره‌سازی صوت ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
+    redirect($editUrl);
 }
-flash('success', $item['status'] === 'published' ? 'فایل صوتی ذخیره و منتشر شد.' : 'فایل صوتی به‌عنوان پیش‌نویس ذخیره شد (مخفی).');
+flash('success', $item['status'] === 'published' ? 'فایل صوتی ذخیره و منتشر شد.' : 'فایل صوتی به‌عنوان پیش‌نویس ذخیره شد.');
 redirect(url('admin_audios'));

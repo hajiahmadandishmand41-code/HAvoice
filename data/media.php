@@ -1,111 +1,13 @@
 <?php
 /**
- * HAvoice 2.0 — ویدیو و صوت (پادکست)
- * هر آیتم: slug, title, category, type(video|audio), duration (ثانیه), excerpt, url (اختیاری), date_fa
- * url اگر خالی باشد، کارت حالتِ «به‌زودی» نمایش می‌دهد — بدون لینکِ جعلی.
+ * HAvoice — ویدیو و صوت (پادکست)
+ *
+ * هر آیتم: slug, title, category, type(video|audio), seconds, excerpt, url, date_fa
+ * اختیاری: thumbnail, course, lesson, field, featured, status
+ *
+ * فقط مواردی که url واقعی دارند در Frontend عمومی نمایش داده می‌شوند.
+ * افزودن محتوا از پنل مدیریت (admin → ویدیوها / صوت‌ها).
+ * seed خالی = empty state حرفه‌ای، بدون کارتِ جعلی.
  */
 
-return [
-    // ویدیوها
-    [
-        'slug'     => 'video-breathing-46',
-        'title'    => 'الگوی تنفسِ ۴–۶؛ نسخه‌ی تصویری',
-        'category' => 'public-speaking',
-        'type'     => 'video',
-        'seconds'  => 280,
-        'excerpt'  => 'اجرای گام‌به‌گامِ تنفسِ دیافراگمی با نمایشِ محلِ دست و ریتمِ بازدم.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۲/۱۰',
-    ],
-    [
-        'slug'     => 'video-body-triangle',
-        'title'    => 'مثلثِ بدن؛ ایستادنِ مطمئن در ۳ دقیقه',
-        'category' => 'public-speaking',
-        'type'     => 'video',
-        'seconds'  => 210,
-        'excerpt'  => 'پا، دست، نگاه؛ سه قاعده‌ی ساده برای حضورِ بدنیِ بدونِ اغراق.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۲/۰۲',
-    ],
-    [
-        'slug'     => 'video-active-listening-demo',
-        'title'    => 'گوش دادن فعال؛ تمرینِ بازگویی',
-        'category' => 'communication',
-        'type'     => 'video',
-        'seconds'  => 420,
-        'excerpt'  => 'نمونه‌ی دیالوگِ بازگوییِ یک‌جمله‌ای و سکوتِ فعال در جلسه‌ی کاری.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۱/۲۵',
-    ],
-    [
-        'slug'     => 'video-goal-ifthen',
-        'title'    => 'هدف‌گذاریِ If-Then؛ از نیت تا عمل',
-        'category' => 'goals-time',
-        'type'     => 'video',
-        'seconds'  => 360,
-        'excerpt'  => 'نوشتنِ قصدِ اجرا با زمان و مکانِ دقیق برای افزایشِ احتمالِ شروع.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۱/۱۵',
-    ],
-    [
-        'slug'     => 'video-negotiation-bridge',
-        'title'    => 'فرمولِ پل در پاسخ به سؤالِ سخت',
-        'category' => 'negotiation',
-        'type'     => 'video',
-        'seconds'  => 540,
-        'excerpt'  => 'بگیر، بپذیر، پل بزن، برگرد؛ پاسخِ منظم وقتی جوابِ آماده ندارید.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۳/۱۲/۲۰',
-    ],
-    [
-        'slug'     => 'video-life-decision',
-        'title'    => 'تصمیم‌گیری؛ ماتریسِ ۲×۲ سریع',
-        'category' => 'life-skills',
-        'type'     => 'video',
-        'seconds'  => 300,
-        'excerpt'  => 'بررسیِ سریعِ اهمیت/فوریت و هزینه‌ی برگشت‌ناپذیری پیش از تصمیم.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۳/۱۲/۰۵',
-    ],
-    // پادکست / صوت
-    [
-        'slug'     => 'audio-morning-warmup',
-        'title'    => 'گرم‌کردنِ ۵ دقیقه‌ایِ صبح',
-        'category' => 'public-speaking',
-        'type'     => 'audio',
-        'seconds'  => 320,
-        'excerpt'  => 'فایلِ صوتیِ همراه برای گرم‌کردنِ لب، فک و صدا پیش از جلسه.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۲/۱۲',
-    ],
-    [
-        'slug'     => 'audio-psych-labeling',
-        'title'    => 'برچسب‌گذاریِ هیجان؛ از اضطراب تا انرژی',
-        'category' => 'psychology',
-        'type'     => 'audio',
-        'seconds'  => 540,
-        'excerpt'  => 'چگونه بازنام‌گذاریِ احساس، مسیرِ بدن-فکر را تغییر می‌دهد.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۱/۲۸',
-    ],
-    [
-        'slug'     => 'audio-success-habit',
-        'title'    => 'عادتِ دو دقیقه‌ای؛ شروعِ کوچکِ ماندگار',
-        'category' => 'success',
-        'type'     => 'audio',
-        'seconds'  => 400,
-        'excerpt'  => 'چرا کوچک‌کردنِ رفتار، مهم‌تر از انگیزه‌ی بزرگ است.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۴/۰۱/۱۸',
-    ],
-    [
-        'slug'     => 'audio-communication-feedback',
-        'title'    => 'بازخوردِ سازنده بدونِ تخریب',
-        'category' => 'communication',
-        'type'     => 'audio',
-        'seconds'  => 480,
-        'excerpt'  => 'الگوی SBI: موقعیت، رفتار، اثر؛ گفتنِ دقیق به‌جای قضاوتِ کلی.',
-        'url'      => '',
-        'date_fa'  => '۱۴۰۳/۱۲/۱۵',
-    ],
-];
+return [];

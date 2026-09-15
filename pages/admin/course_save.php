@@ -35,7 +35,7 @@ if ($title === '' || $slug === '') {
 /* ---- حوزه: باید یکی از حوزه‌های شناخته‌شده باشد ---- */
 $categoryRaw = trim((string) ($_POST['category'] ?? ''));
 $category    = slugify($categoryRaw);
-if ($category === '' || find_category($category) === null) {
+if ($category === '' || find_category_any($category) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
     redirect($editUrl);
 }
@@ -116,36 +116,36 @@ foreach (courses_all() as $c) {
     }
 }
 
-$course = [
-    'slug'     => $slug,
-    'title'    => $title,
-    'category' => $category,
-    'level'    => $level !== '' ? $level : 'مقدماتی تا متوسط',
-    'excerpt'  => $excerpt !== '' ? $excerpt : (mb_strimwidth($intro, 0, 160, '…', 'UTF-8')),
-    'intro'    => $intro,
-    'how_to'   => $howTo,
-    'stages'   => $cleanStages,
-    'featured' => !empty($_POST['featured']),
-    'status'   => admin_post_status(),
-    'project'  => $existingProject,
-    'prereq'   => trim((string) ($_POST['prereq'] ?? '')),
-];
-
-/* ---- ذخیره: به‌روزرسانی در جا (حتی هنگامِ تغییرِ نامک) یا افزودن ---- */
-$courses = admin_courses();
-$found   = false;
-foreach ($courses as $i => $c) {
-    $cSlug = slugify((string) ($c['slug'] ?? ''));
-    if (($orig !== '' && $cSlug === $orig) || $cSlug === $slug) {
-        $courses[$i] = $course;
-        $found = true;
+$now = date('c');
+$existingMeta = [];
+foreach (admin_courses() as $ec) {
+    if (slugify((string) ($ec['slug'] ?? '')) === ($orig !== '' ? $orig : $slug)) {
+        $existingMeta = $ec;
         break;
     }
 }
-if (!$found) $courses[] = $course;
+$course = [
+    'slug'       => $slug,
+    'title'      => $title,
+    'category'   => $category,
+    'level'      => $level !== '' ? $level : 'مقدماتی تا متوسط',
+    'excerpt'    => $excerpt !== '' ? $excerpt : (mb_strimwidth($intro, 0, 160, '…', 'UTF-8')),
+    'intro'      => $intro,
+    'how_to'     => $howTo,
+    'stages'     => $cleanStages,
+    'featured'   => !empty($_POST['featured']),
+    'status'     => admin_post_status_default_draft($existingMeta === [] && $orig === ''),
+    'project'    => $existingProject,
+    'prereq'     => trim((string) ($_POST['prereq'] ?? '')),
+    'created_at' => (string) ($existingMeta['created_at'] ?? $now),
+    'updated_at' => $now,
+    'order'      => (int) ($existingMeta['order'] ?? count(admin_courses())),
+];
 
-if (!admin_store('courses', $courses)) {
-    flash('error', 'ذخیره‌سازی ناموفق بود؛ پوشه‌ی storage قابلِ نوشتن نیست.');
+/* ---- ذخیره: DB (PDO) + آینه JSON ---- */
+$course['_original_slug'] = $orig;
+if (!repo_save_course($course, $orig)) {
+    flash('error', 'ذخیره‌سازی ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
 

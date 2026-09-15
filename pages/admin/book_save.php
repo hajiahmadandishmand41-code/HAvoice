@@ -28,7 +28,7 @@ if ($blocks === null) {
 }
 
 $field = slugify((string) ($_POST['field'] ?? ''));
-if ($field !== '' && find_category($field) === null) {
+if ($field !== '' && find_category_any($field) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
     redirect($editUrl);
 }
@@ -84,20 +84,8 @@ $item = [
     'featured'   => !empty($_POST['featured']),
 ];
 
-$items = admin_load('books');
-$found = false;
-foreach ($items as $i => $b) {
-    $bSlug = slugify((string) ($b['slug'] ?? ''));
-    if (($orig !== '' && $bSlug === $orig) || $bSlug === $slug) {
-        $items[$i] = $item;
-        $found = true;
-        break;
-    }
-}
-if (!$found) $items[] = $item;
-
-if (!admin_store('books', $items)) {
-    flash('error', 'ذخیره‌سازی کتاب ناموفق بود؛ storage قابل نوشتن نیست.');
+if (!repo_save_book($item, $orig)) {
+    flash('error', 'ذخیره‌سازی کتاب ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
 $msg = $item['status'] === 'published' ? 'کتاب ذخیره و منتشر شد.' : 'کتاب به‌عنوان پیش‌نویس ذخیره شد (مخفی).';

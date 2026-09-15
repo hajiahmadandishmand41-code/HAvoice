@@ -28,15 +28,7 @@ $item = [
     'status'      => admin_post_status(),
 ];
 
-$items = admin_load('categories');
-$orig  = slugify((string) ($_POST['original_slug'] ?? ''));
-$found = false;
-foreach ($items as $i => $c) {
-    $cSlug = slugify((string) ($c['slug'] ?? ''));
-    if (($orig !== '' && $cSlug === $orig) || $cSlug === $slug) { $items[$i] = $item; $found = true; break; }
-}
-if (!$found) $items[] = $item;
-
-if (!admin_store('categories', $items)) { flash('error', 'ذخیره‌سازی حوزه ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_categories')); }
+$orig = slugify((string) ($_POST['original_slug'] ?? ''));
+if (!repo_save_category($item, $orig)) { flash('error', 'ذخیره‌سازی حوزه ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.'); redirect(url('admin_categories')); }
 flash('success', $item['status'] === 'published' ? 'حوزه ذخیره و منتشر شد.' : 'حوزه به‌عنوان پیش‌نویس ذخیره شد (مخفی).');
 redirect(url('admin_categories'));

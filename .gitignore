@@ -14,6 +14,12 @@ storage/admin/*
 storage/users.json
 storage/users.json.tmp-*
 
+# Production secrets — هرگز commit نشود
+config/config.local.php
+.env
+.env.*
+!.env.example
+
 # فایل‌های سیستمی
 .DS_Store
 Thumbs.db

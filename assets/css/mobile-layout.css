@@ -237,3 +237,11 @@
 @media (prefers-reduced-motion: reduce) {
   .main-nav, .nav-backdrop { transition: none !important; }
 }
+
+@media (max-width: 767.98px) {
+  .admin-table-wrap { margin-inline: calc(var(--gutter) * -0.25); border-radius: var(--r-sm); }
+  .admin-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .lesson-callouts { grid-template-columns: minmax(0, 1fr); }
+  .course-layout { gap: 1rem; }
+  .course-aside { order: -1; }
+}

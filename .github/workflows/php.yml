@@ -13,6 +13,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: havoice_test
+          MYSQL_USER: havoice
+          MYSQL_PASSWORD: havoice
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=8s
+          --health-timeout=5s
+          --health-retries=15
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +36,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, json, xml, filter, session
+          extensions: mbstring, json, xml, filter, session, pdo, pdo_mysql, mysqli, fileinfo
           coverage: none
 
       - name: Validate PHP syntax (all files)
@@ -34,6 +50,60 @@ jobs:
       - name: Run self-check (offline)
         run: php tools/selfcheck.php
 
+      - name: Production check (offline)
+        run: php tools/production-check.php
+
+      - name: Configure test database
+        run: |
+          cat > config/config.local.php <<'PHP'
+          <?php
+          if (!defined('HA_ROOT')) { exit; }
+          define('HA_DB_HOST', '127.0.0.1');
+          define('HA_DB_PORT', 3306);
+          define('HA_DB_NAME', 'havoice_test');
+          define('HA_DB_USER', 'havoice');
+          define('HA_DB_PASS', 'havoice');
+          define('HA_DB_AUTO_SEED', false);
+          define('HA_SEED_ADMIN_EMAIL', 'admin@test.local');
+          define('HA_SEED_ADMIN_PASSWORD', 'TestAdmin_9x');
+          define('HA_SEED_ADMIN_NAME', 'Admin');
+          PHP
+
+      - name: Migrate + seed MySQL
+        run: |
+          php tools/db-migrate.php --seed
+          php tools/db-migrate.php --status
+
+      - name: Production check (with DB)
+        run: php tools/production-check.php
+
+      - name: Auth + relationship smoke (DB)
+        run: |
+          php -r '
+          define("HA_ROOT", getcwd());
+          require "config/config.php";
+          require "includes/helpers.php";
+          require "includes/db.php";
+          require "includes/repository.php";
+          require "includes/content.php";
+          require "includes/auth.php";
+          if (!db_ready()) { fwrite(STDERR, "DB not ready\n"); exit(1); }
+          $courses = repo_courses();
+          if (count($courses) < 1) { fwrite(STDERR, "no courses\n"); exit(1); }
+          $lessons = 0; $stages = 0;
+          foreach ($courses as $c) {
+            foreach (($c["stages"] ?? []) as $s) { $stages++; $lessons += count($s["lessons"] ?? []); }
+          }
+          echo "courses=".count($courses)." stages=$stages lessons=$lessons\n";
+          if ($lessons < 1) { fwrite(STDERR, "no lessons\n"); exit(1); }
+          $res = db_user_create("U", "user".bin2hex(random_bytes(3))."@t.local", "Password9x", "user");
+          if (empty($res["ok"])) { fwrite(STDERR, "user create fail\n"); exit(1); }
+          $u = db_user_find_email($res["user"]["email"]);
+          if (!$u || !password_verify("Password9x", $u["pass_hash"])) { fwrite(STDERR, "verify fail\n"); exit(1); }
+          if (auth_is_admin()) { /* not logged in */ }
+          echo "DB AUTH OK\n";
+          '
+
       - name: Run self-check (HTTP smoke)
         run: |
           set -e
@@ -46,8 +116,6 @@ jobs:
           done
 
           # The PR intentionally protects course/lesson/exercise pages for guests.
-          # Keep the full self-check coverage, but align the expected status with
-          # the authentication contract: guests receive 302 -> login.
           python3 - <<'PY'
           from pathlib import Path
           p = Path('tools/selfcheck.php')
@@ -60,3 +128,4 @@ jobs:
           PY
 
           php tools/selfcheck.php --http=http://127.0.0.1:8080
+          php tools/production-check.php --http=http://127.0.0.1:8080

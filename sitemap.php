@@ -11,6 +11,8 @@
 define('HA_ROOT', __DIR__);
 require HA_ROOT . '/config/config.php';
 require HA_ROOT . '/includes/helpers.php';
+require HA_ROOT . '/includes/db.php';
+require HA_ROOT . '/includes/repository.php';
 require HA_ROOT . '/includes/content.php';
 
 $root = site_url();

@@ -1,15 +1,13 @@
 <?php
 /**
- * HAvoice — حساب کاربری (file-based، بدون دیتابیس)
+ * HAvoice — حساب کاربری (DB با PDO در اولویت، JSON fallback)
  *
  * تصمیم‌های امنیتی:
- *  • رمز عبور فقط با password_hash() (bcrypt/argon پیش‌فرضِ PHP) ذخیره می‌شود
- *    و با password_verify() بررسی می‌شود؛ هیچ‌وقت plaintext نگه نمی‌داریم.
- *  • ایمیل به‌صورت lowercase + trim نرمال‌سازی می‌شود تا ثبتِ تکراری
- *    (با حروفِ بزرگ/کوچک یا فاصله‌ی اضافه) ممکن نباشد.
- *  • نوشتنِ کاربران با flock اتمیک است تا دو ثبتِ همزمان همدیگر را پاک نکنند.
- *  • ورود با session_regenerate_id() همراه است (ضد session fixation).
- *  • هیچ اطلاعاتِ حساسی (هشِ رمز، ایمیلِ دیگران) به قالب نشت نمی‌کند.
+ *  • رمز عبور فقط با password_hash() ذخیره و با password_verify() بررسی می‌شود.
+ *  • ایمیل lowercase + trim.
+ *  • Session: regenerate_id روی login، httponly، samesite Lax، TTL عدم‌فعالیت.
+ *  • نقش admin صریح (role=admin)؛ اولین کاربر فقط در JSON legacy مدیر است.
+ *  • CSRF روی همهٔ فرم‌های حساس (لایهٔ helpers).
  */
 
 if (!defined('HA_ROOT')) {
@@ -26,9 +24,18 @@ function auth_users_file(): string
     return storage_dir() . '/users.json';
 }
 
-/** بارگذاریِ فهرستِ کاربران. در هر حالتِ خرابی، آرایه‌ی خالی برمی‌گردد. */
+/** بارگذاریِ فهرستِ کاربران. DB در اولویت؛ در غیر این صورت JSON. */
 function auth_load_users(): array
 {
+    if (function_exists('db_ready') && db_ready() && function_exists('repo_db_has') && repo_db_has('ha_users')) {
+        return db_users_all();
+    }
+    if (function_exists('db_ready') && db_ready()) {
+        $rows = db_users_all();
+        if ($rows !== []) {
+            return $rows;
+        }
+    }
     $file = auth_users_file();
     if (!is_file($file)) {
         return [];
@@ -99,6 +106,13 @@ function auth_normalize_email(string $email): string
 function auth_find_user_by_email(string $email): ?array
 {
     $email = auth_normalize_email($email);
+    if (function_exists('db_ready') && db_ready()) {
+        $u = db_user_find_email($email);
+        if ($u !== null) {
+            return $u;
+        }
+        // اگر جدول users خالی است، به JSON هم نگاه کن (مهاجرت)
+    }
     foreach (auth_load_users() as $user) {
         if (isset($user['email']) && auth_normalize_email((string) $user['email']) === $email) {
             return $user;
@@ -109,6 +123,12 @@ function auth_find_user_by_email(string $email): ?array
 
 function auth_find_user_by_id(string $id): ?array
 {
+    if (function_exists('db_ready') && db_ready()) {
+        $u = db_user_find_id($id);
+        if ($u !== null) {
+            return $u;
+        }
+    }
     foreach (auth_load_users() as $user) {
         if (($user['id'] ?? '') === $id) {
             return $user;
@@ -158,12 +178,35 @@ function auth_validate_registration(string $name, string $email, string $passwor
  */
 function auth_create_user(string $name, string $email, string $password): array
 {
-    $users = auth_load_users();
+    $email = auth_normalize_email($email);
+    $role = 'user';
+    /* اولین کاربر سیستم → admin */
+    $existing = auth_load_users();
+    if ($existing === []) {
+        $role = 'admin';
+    }
+
+    if (function_exists('db_ready') && db_ready()) {
+        $res = db_user_create(trim($name), $email, $password, $role);
+        if (!empty($res['ok'])) {
+            /* آینه JSON برای backup */
+            $users = auth_load_users_json_only();
+            $u = $res['user'];
+            unset($u['_db']);
+            $users[] = $u;
+            auth_save_users($users);
+            return $res;
+        }
+        /* اگر DB fail شد، fallback JSON */
+    }
+
+    $users = auth_load_users_json_only();
     $user  = [
         'id'         => bin2hex(random_bytes(16)),
         'name'       => trim($name),
-        'email'      => auth_normalize_email($email),
+        'email'      => $email,
         'pass_hash'  => password_hash($password, PASSWORD_DEFAULT),
+        'role'       => $role,
         'created_at' => date('c'),
     ];
     $users[] = $user;
@@ -172,6 +215,21 @@ function auth_create_user(string $name, string $email, string $password): array
         return ['ok' => false, 'user' => null, 'error' => 'storage'];
     }
     return ['ok' => true, 'user' => $user, 'error' => null];
+}
+
+/** فقط فایل JSON (بدون DB) — برای dual-write. */
+function auth_load_users_json_only(): array
+{
+    $file = auth_users_file();
+    if (!is_file($file)) {
+        return [];
+    }
+    $raw = @file_get_contents($file);
+    if (!is_string($raw)) {
+        return [];
+    }
+    $users = json_decode($raw, true);
+    return is_array($users) ? $users : [];
 }
 
 /** بررسیِ رمز عبور با password_verify() (با rehash خودکار در صورتِ نیاز). */
@@ -192,7 +250,11 @@ function auth_verify_credentials(string $email, string $password): ?array
 
 function auth_update_password(string $id, string $password): bool
 {
-    $users = auth_load_users();
+    $ok = true;
+    if (function_exists('db_ready') && db_ready()) {
+        $ok = db_user_update_password($id, $password);
+    }
+    $users = auth_load_users_json_only();
     $changed = false;
     foreach ($users as $i => $user) {
         if (($user['id'] ?? '') === $id) {
@@ -201,7 +263,10 @@ function auth_update_password(string $id, string $password): bool
             break;
         }
     }
-    return $changed && auth_save_users($users);
+    if ($changed) {
+        auth_save_users($users);
+    }
+    return $ok || $changed;
 }
 
 /* ------------------------------------------------------------------ */
@@ -222,8 +287,11 @@ function auth_login(array $user): void
     /* توکنِ CSRF قبلی با نشستِ جدید معتبر نیست؛ دوباره ساخته می‌شود. */
     unset($_SESSION['ha_csrf'], $_SESSION['ha_csrf_t']);
 
-    /* ثبتِ آخرین ورود روی پرونده‌ی کاربر (نمایش در حساب و پنل). */
-    $users = auth_load_users();
+    /* ثبتِ آخرین ورود */
+    if (function_exists('db_ready') && db_ready()) {
+        db_user_touch_login((string) $user['id']);
+    }
+    $users = auth_load_users_json_only();
     foreach ($users as $i => $u) {
         if (($u['id'] ?? '') === (string) $user['id']) {
             $users[$i]['last_login'] = date('c');
@@ -339,15 +407,27 @@ function auth_initial(string $name): string
 /*  مدیر سایت (Admin)                                                 */
 /* ------------------------------------------------------------------ */
 
-/** آیا کاربر جاری مدیر است؟ */
+/** آیا کاربر جاری مدیر است؟ فقط role=admin (یا legacy: اولین کاربر JSON). */
 function auth_is_admin(): bool
 {
     $user = auth_current_user();
-    if ($user === null) return false;
-    // اولین کاربر ثبت‌نام‌شده همیشه مدیر است
-    $users = auth_load_users();
-    if ($users !== [] && ($users[0]['id'] ?? '') === ($user['id'] ?? '')) return true;
-    return !empty($user['role']) && $user['role'] === 'admin';
+    if ($user === null) {
+        return false;
+    }
+    if (!empty($user['role']) && $user['role'] === 'admin') {
+        return true;
+    }
+    /* سازگاری: اگر role ست نشده و اولین کاربر فایل است */
+    if (empty($user['role']) || $user['role'] === 'user') {
+        if (!empty($user['_db'])) {
+            return false; // در DB فقط role صریح
+        }
+        $users = auth_load_users_json_only();
+        if ($users !== [] && ($users[0]['id'] ?? '') === ($user['id'] ?? '')) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** محافظت از صفحه‌های مدیریت */
@@ -366,7 +446,12 @@ function auth_require_admin(): void
 /** تغییر نقش کاربر */
 function auth_set_role(string $id, string $role): bool
 {
-    $users = auth_load_users();
+    $role = $role === 'admin' ? 'admin' : 'user';
+    $ok = true;
+    if (function_exists('db_ready') && db_ready()) {
+        $ok = db_user_set_role($id, $role);
+    }
+    $users = auth_load_users_json_only();
     $changed = false;
     foreach ($users as $i => $user) {
         if (($user['id'] ?? '') === $id) {
@@ -375,7 +460,31 @@ function auth_set_role(string $id, string $role): bool
             break;
         }
     }
-    return $changed && auth_save_users($users);
+    if ($changed) {
+        auth_save_users($users);
+    }
+    return $ok || $changed;
+}
+
+/** تنظیمات سایت: DB settings table یا JSON. */
+function auth_settings_load(): array
+{
+    if (function_exists('db_ready') && db_ready()) {
+        $s = db_settings_get();
+        if ($s !== []) {
+            return $s;
+        }
+    }
+    return admin_load('settings');
+}
+
+function auth_settings_save(array $settings): bool
+{
+    $ok = admin_store('settings', $settings);
+    if (function_exists('db_ready') && db_ready()) {
+        db_settings_set($settings);
+    }
+    return $ok;
 }
 
 /*
@@ -391,7 +500,7 @@ function auth_set_role(string $id, string $role): bool
 /** بارگذاری تنظیمات سایت ذخیره‌شده توسط مدیر */
 function admin_settings(): array
 {
-    return admin_load('settings');
+    return function_exists('auth_settings_load') ? auth_settings_load() : admin_load('settings');
 }
 
 /**

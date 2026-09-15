@@ -483,6 +483,27 @@ foreach ([['روشن', $light], ['تاریک', $dark]] as [$mode, $tokens]) {
 /*  ۷) آزمونِ دودِ مسیرها (اختیاری — نیازمندِ سایتِ در دسترس)           */
 /* ------------------------------------------------------------------ */
 
+group('۶ب. لایهٔ دیتابیس (PDO)');
+check('تابع db_configured', function_exists('db_configured'));
+check('تابع db / db_ready', function_exists('db') && function_exists('db_ready'));
+check('repository repo_courses', function_exists('repo_courses'));
+check('repository repo_seed', function_exists('repo_seed'));
+check('schema SQL 002', is_file(HA_ROOT . '/sql/002-schema.sql'));
+check('migrate tool', is_file(HA_ROOT . '/tools/db-migrate.php'));
+check('config.local.example', is_file(HA_ROOT . '/config/config.local.php.example'));
+$gi = (string) @file_get_contents(HA_ROOT . '/.gitignore');
+check('gitignore: config.local.php', str_contains($gi, 'config.local.php'));
+check('gitignore: users.json', str_contains($gi, 'users.json'));
+if (function_exists('db_configured') && db_configured()) {
+    check('DB اتصال', db_ready(), db_ready() ? 'PDO ready' : 'configured but not ready');
+    if (db_ready()) {
+        check('DB categories یا fallback', count(repo_categories()) >= 1);
+        check('DB courses یا fallback', count(repo_courses()) >= 1);
+    }
+} else {
+    check('DB اختیاری (fallback فایل)', true, 'HA_DB_* خالی — content از data/*.php', false);
+}
+
 group('۷. آزمونِ دودِ مسیرها');
 
 $routes = [
