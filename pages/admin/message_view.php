@@ -1,44 +1,60 @@
 <?php
 /**
- * HAvoice Admin — مشاهده‌ی یک پیامِ تماس
+ * HAvoice Admin — مشاهده‌ی یک پیام (با علامت «خوانده‌شده»)
  *
- * پیام با ref پایدار (csv-N یا pan-N) پیدا می‌شود، نه با اندیسِ آرایه‌ی
- * نمایشی. پیش‌تر اندیسِ آرایه‌ی reverse‌شده به اینجا می‌آمد ولی این فایل
- * آرایه‌ی «بدونِ reverse» را ایندکس می‌زد ⇒ پیامِ اشتباه نشان داده می‌شد.
+ * ref پایدار: db-N (دیتابیس)، csv-N و pan-N (فایل — دوره‌ی مهاجرت).
+ * با باز شدنِ پیامِ دیتابیسی، read_at ثبت می‌شود و از شمارِ «جدید» کم می‌شود.
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 require HA_ROOT . '/pages/admin/_layout_start.php';
 
-$ref = param('slug');
-$msg = $ref !== '' ? admin_message_find($ref) : null;
+$ref = (string) ($_GET['slug'] ?? '');
+$msg = is_string($ref) && $ref !== '' ? admin_message_find($ref) : null;
 
-if ($msg === null) {
-    echo '<div class="alert alert--error" role="alert"><p>پیام پیدا نشد یا پیش‌تر حذف شده است.</p></div>';
-    echo '<a class="btn btn--ghost" href="' . e(url('admin_messages')) . '">بازگشت به فهرست</a>';
-    require HA_ROOT . '/pages/admin/_layout_end.php';
-    return;
+if ($msg !== null && (string) ($msg['source'] ?? '') === 'db') {
+    admin_message_mark_read($ref);
+    $msg = admin_message_find($ref) ?? $msg; /* read_at تازه */
 }
-?>
-<div class="admin-card msg-detail">
-    <h2><?= e($msg['subject'] ?: 'بدونِ موضوع') ?></h2>
-    <dl class="msg-detail__meta">
-        <div><dt>نام</dt><dd><?= e($msg['name'] ?? '') ?></dd></div>
-        <div><dt>ایمیل</dt><dd dir="ltr"><a href="mailto:<?= e($msg['email'] ?? '') ?>"><?= e($msg['email'] ?? '') ?></a></dd></div>
-        <div><dt>تاریخ</dt><dd><?= e($msg['time'] ?? '') ?></dd></div>
-        <div><dt>منبع</dt><dd><span class="admin-badge <?= ($msg['source'] ?? '') === 'panel' ? 'admin-badge--success' : 'admin-badge--info' ?>"><?= e(($msg['source'] ?? '') === 'panel' ? 'پنل' : 'فرم تماس') ?></span></dd></div>
-        <?php if (($msg['ip'] ?? '') !== ''): ?>
-        <div><dt>IP</dt><dd dir="ltr"><code><?= e($msg['ip'] ?? '') ?></code></dd></div>
-        <?php endif; ?>
-    </dl>
-    <div class="msg-body-text"><?= nl2br(e($msg['message'] ?? '')) ?></div>
-</div>
 
-<div class="admin-form-actions">
+$flash = flash();
+?>
+<?php if (!empty($flash['message'])): ?><div class="alert alert--<?= e($flash['type'] === 'success' ? 'success' : 'error') ?>" role="<?= $flash['type'] === 'success' ? 'status' : 'alert' ?>"><?= e($flash['message']) ?></div><?php endif; ?>
+
+<div class="admin-toolbar">
+    <a class="btn btn--ghost" href="<?= e(url('admin_messages')) ?>"><?= ha_icon('arrow-right', 15) ?> بازگشت به Inbox</a>
+    <?php if ($msg !== null): ?>
     <form method="post" action="<?= e(url('admin_message_delete')) ?>" class="inline-form"
           data-confirm="این پیام برای همیشه حذف شود؟">
         <?= csrf_field() ?><input type="hidden" name="ref" value="<?= e($ref) ?>">
-        <button class="btn btn--danger" type="submit"><?= ha_icon('trash', 15) ?> حذفِ پیام</button>
+        <button class="btn btn--ghost btn--danger-text" type="submit"><?= ha_icon('trash', 14) ?> حذف پیام</button>
     </form>
-    <a class="btn btn--ghost" href="<?= e(url('admin_messages')) ?>"><?= ha_icon('arrow-right', 15) ?> بازگشت به فهرست</a>
+    <?php endif; ?>
 </div>
+
+<?php if ($msg === null): ?>
+    <div class="alert alert--error" role="alert">پیام پیدا نشد؛ ممکن است حذف شده باشد.</div>
+<?php else:
+    $timeFa = $msg['time'] ?? '';
+?>
+<section class="admin-card admin-card--headline mb-md">
+    <div class="admin-card__row">
+        <div>
+            <p class="admin-card__eyebrow"><?= e((string) ($msg['subject'] ?? '(بدون موضوع)')) ?></p>
+            <h2 class="admin-card__title"><?= e((string) ($msg['name'] ?? '')) ?> <span class="muted-sm" dir="ltr">&lt;<?= e((string) ($msg['email'] ?? '')) ?>&gt;</span></h2>
+            <p class="muted-sm">
+                <?= e($timeFa) ?>
+                <?php if (!empty($msg['read_at'])): ?>· خوانده شده: <?= e((string) $msg['read_at']) ?><?php endif; ?>
+                <?php if ((string) ($msg['source'] ?? '') === 'db'): ?>· منبع: دیتابیس<?php endif; ?>
+            </p>
+        </div>
+    </div>
+</section>
+<section class="admin-card">
+    <h3 class="admin-card__title mb-sm">متن پیام</h3>
+    <div class="prose" style="white-space:pre-wrap"><?= e((string) ($msg['message'] ?? '')) ?></div>
+    <?php if (trim((string) ($msg['ip'] ?? '')) !== ''): ?>
+        <p class="muted-sm mt-sm">IP فرستنده: <code dir="ltr"><?= e((string) $msg['ip']) ?></code></p>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>

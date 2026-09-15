@@ -19,8 +19,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست شما تمام شده. دوباره تلاش کنید.'); redirect(url($listRoute)); }
 
 $title   = trim((string) ($_POST['title'] ?? ''));
-$slug    = slugify((string) ($_POST['slug'] ?? ''));
 $orig    = slugify((string) ($_POST['original_slug'] ?? ''));
+/* نامک خودکار: از POST ⇒ همان؛ ویرایش ⇐ از قبل (پایداری لینک)؛ جدید ⇐ از عنوان */
+$slug    = admin_post_slug_keep($title, $orig);
 $excerpt = trim((string) ($_POST['excerpt'] ?? ''));
 $intro   = trim((string) ($_POST['intro'] ?? ''));
 $level   = trim((string) ($_POST['level'] ?? ''));
@@ -28,7 +29,7 @@ $level   = trim((string) ($_POST['level'] ?? ''));
 $editUrl = url('admin_course_edit', $orig !== '' ? ['slug' => $orig] : []);
 
 if ($title === '' || $slug === '') {
-    flash('error', 'عنوان و نامک الزامی است.');
+    flash('error', 'عنوان الزامی است.');
     redirect($editUrl);
 }
 
@@ -142,6 +143,14 @@ $course = [
     'order'      => (int) ($existingMeta['order'] ?? count(admin_courses())),
 ];
 
+/* یکتاییِ نامکِ تازه — بدونِ بازنویسیِ بی‌خبر */
+if ($orig === '') {
+    $allSlugs = [];
+    foreach (courses_all() as $c) { $allSlugs[] = (string) ($c['slug'] ?? ''); }
+    $slug = admin_unique_slug($slug, $allSlugs, $orig);
+    $course['slug'] = $slug;
+}
+
 /* ---- ذخیره: DB (PDO) + آینه JSON ---- */
 $course['_original_slug'] = $orig;
 if (!repo_save_course($course, $orig)) {
@@ -152,5 +161,6 @@ if (!repo_save_course($course, $orig)) {
 $lessonCount = 0;
 foreach ($cleanStages as $st) $lessonCount += count($st['lessons']);
 flash('success', 'دوره «' . $title . '» ذخیره شد (' . fa_num($lessonCount) . ' درس).'
+    . ' از داشبورد دوره، مرحله/درس/تمرین اضافه کنید.'
     . ($duplicates !== [] ? ' هشدار: نامکِ تکراریِ درس: ' . implode('، ', array_slice(array_unique($duplicates), 0, 5)) : ''));
-redirect(url('admin_courses'));
+redirect(url('admin_course_view', ['slug' => $slug]));

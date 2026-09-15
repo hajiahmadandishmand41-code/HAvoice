@@ -40,6 +40,7 @@ foreach (admin_courses() as $c) { $panelSlugs[slugify((string) ($c['slug'] ?? ''
 <td><?= admin_source_badge($isPanel) ?></td>
 <td><?= !empty($c['featured']) ? ha_icon('star', 14) : '<span class="muted-sm">—</span>' ?></td>
 <td class="actions">
+    <a class="btn btn--primary btn--sm" href="<?= e(url('admin_course_view', ['slug' => $slug])) ?>"><?= ha_icon('compass', 14) ?> داشبورد</a>
     <a class="btn btn--ghost btn--sm" href="<?= e(url('admin_course_edit', ['slug' => $slug])) ?>"><?= ha_icon('edit', 14) ?> ویرایش</a>
     <?= admin_status_toggle('course', $slug, $c) ?>
     <?php if ($isPanel): ?>

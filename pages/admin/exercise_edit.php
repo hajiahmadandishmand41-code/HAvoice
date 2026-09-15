@@ -17,11 +17,15 @@ if ($id !== '') {
 }
 
 $curLesson = slugify((string) ($item['lesson'] ?? ''));
+if ($curLesson === '') { $curLesson = slugify(param('lesson', '')); }  /* از +تمرینِ داشبورد دوره */
 $curCourse = slugify((string) ($item['course'] ?? ''));
+if ($curCourse === '') { $curCourse = slugify(param('course', '')); }
+$backCourse = slugify(param('course', ''));
 ?>
 <?= admin_flash() ?>
 <form class="admin-form" method="post" action="<?= e(url('admin_exercise_save')) ?>">
 <?= csrf_field() ?><input type="hidden" name="original_id" value="<?= e($id) ?>">
+<input type="hidden" name="back_course" value="<?= e($backCourse) ?>">
 
 <div class="admin-card">
     <h2>مشخصاتِ تمرین</h2>
@@ -40,11 +44,11 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
 
 <div class="admin-card">
     <h2>اتصال به ساختارِ آموزشی</h2>
-    <p class="muted-sm">تمرینِ متصل به درس، در انتهای صفحه‌ی همان درس به کاربر پیشنهاد می‌شود (حوزه → دوره → درس → تمرین).</p>
+    <p class="muted-sm">هر تمرین <strong>باید</strong> به یک درس متصل شود (حوزه → دوره → مرحله → درس → تمرین) و با حذفِ درس به‌صورت خودکار پاک می‌شود — تمرینِ بی‌درس (orphan) در این سیستم وجود ندارد.</p>
     <div class="admin-form-grid">
-        <div class="field"><label for="e-lesson">درسِ متصل (اختیاری)</label>
-            <select class="input" id="e-lesson" name="lesson">
-                <option value="">— بدونِ اتصال به درس —</option>
+        <div class="field"><label for="e-lesson">درسِ متصل <span class="req">*</span></label>
+            <select class="input" id="e-lesson" name="lesson" required>
+                <option value="">— انتخابِ درس (الزامی) —</option>
                 <?php foreach (courses_all() as $c): ?>
                     <optgroup label="<?= e($c['title'] ?? '') ?>">
                     <?php foreach ((array) ($c['stages'] ?? []) as $st): foreach ((array) ($st['lessons'] ?? []) as $l): $ls = slugify((string) ($l['slug'] ?? '')); ?>
@@ -53,14 +57,14 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
                     </optgroup>
                 <?php endforeach; ?>
             </select></div>
-        <div class="field"><label for="e-course">دوره‌ی متصل (اختیاری)</label>
-            <select class="input" id="e-course" name="course">
-                <option value="">— بدونِ اتصال به دوره —</option>
+        <div class="field"><label for="e-course">دوره</label>
+            <select class="input" id="e-course" name="course" aria-describedby="e-course-help">
+                <option value="">— خودکار از رویِ درس —</option>
                 <?php foreach (courses_all() as $c): $cs = slugify((string) ($c['slug'] ?? '')); ?>
                 <option value="<?= e($cs) ?>"<?= $cs === $curCourse ? ' selected' : '' ?>><?= e($c['title'] ?? $cs) ?></option>
                 <?php endforeach; ?>
             </select>
-            <p class="field__help">اگر درس انتخاب شده باشد، دوره از همان درس هم استنباط می‌شود.</p></div>
+            <p class="field__help" id="e-course-help">با انتخابِ درس، دوره خودکار از همان درس استنباط می‌شود؛ فقط اگر می‌خواهید دوره را عوض کنید، اینجا را تغییر دهید.</p></div>
     </div>
 </div>
 

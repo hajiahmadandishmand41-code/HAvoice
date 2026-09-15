@@ -13,7 +13,7 @@ if (!csrf_verify()) { flash('error', 'نشست تمام شده. دوباره ت�
 $id     = (int) ($_POST['id'] ?? 0);
 $status = (string) ($_POST['status'] ?? '');
 
-if ($id <= 0 || !in_array($status, ['pending', 'approved'], true)) {
+if ($id <= 0 || !in_array($status, comment_statuses(), true)) {
     flash('error', 'درخواستِ نامعتبر است.');
     redirect(url($listRoute));
 }
@@ -29,7 +29,10 @@ if (!comment_set_status($id, $status)) {
     redirect(url($listRoute));
 }
 
-flash('success', $status === 'approved'
-    ? 'نظرِ «' . ($comment['name'] ?? '') . '» تأیید و منتشر شد.'
-    : 'نظرِ «' . ($comment['name'] ?? '') . '» پنهان شد (به «در انتظار» بازگشت).');
-redirect(url($listRoute, ['status' => $status === 'approved' ? 'pending' : 'approved']));
+$labels = [
+    'approved' => 'تأیید و منتشر شد.',
+    'hidden'   => 'پنهان شد (دیگر نمایش داده نمی‌شود).',
+    'pending'  => 'به «در انتظار» بازگشت.',
+];
+flash('success', 'نظرِ «' . ($comment['name'] ?? '') . '» ' . ($labels[$status] ?? 'به‌روزرسانی شد.'));
+redirect(url($listRoute, ['status' => $status]));

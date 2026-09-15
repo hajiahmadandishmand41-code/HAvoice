@@ -1,12 +1,14 @@
 -- =====================================================================
---  HAvoice — schema اصلی (MySQL 5.6+ / MariaDB — InfinityFree)
+--  HAvoice — schema اصلی v3 (MySQL 5.6+ / MariaDB — InfinityFree)
 --
 --  نصب:
 --   1) خودکار: includes/db.php در نخستین اتصال موفق (CREATE IF NOT EXISTS)
 --   2) دستی: phpMyAdmin → Import این فایل
---   3) seed: php tools/db-migrate.php --seed
+--   3) seed: php tools/db-migrate.php --seed یا Admin → داشبورد → انتقال داده
 --
---  اصول: InnoDB, utf8mb4, PK, FK, index, status, created_at, updated_at
+--  ارتقا از v2: sql/003-upgrade.sql (خودکار با db_ensure_schema)
+--
+--  اصول: InnoDB, utf8mb4, PK, FK, index, UNIQUE, status, created_at, updated_at
 --  Fake media وارد نمی‌شود.
 -- =====================================================================
 
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS ha_stages (
     created_at    DATETIME NOT NULL,
     updated_at    DATETIME NOT NULL,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_stages_key (course_id, stage_key),
     KEY idx_stages_course (course_id, sort_order),
     CONSTRAINT fk_stages_course FOREIGN KEY (course_id) REFERENCES ha_courses(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -125,6 +128,10 @@ CREATE TABLE IF NOT EXISTS ha_exercises (
     topics_json   MEDIUMTEXT NULL,
     success_text  TEXT NULL,
     note_text     TEXT NULL,
+    /* تمرین جزئی از درس است: FK واقعی + حذفِ آبشاریِ امن (orphan ممنوع).
+       ردیف‌های قدیمیِ slug-محور ممکن است lesson_id = NULL داشته باشند؛
+       ردیف‌های جدیدِ پنل همیشه lesson_id دارند. */
+    lesson_id     INT UNSIGNED NULL,
     lesson_slug   VARCHAR(120) NOT NULL DEFAULT '',
     course_slug   VARCHAR(120) NOT NULL DEFAULT '',
     field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
@@ -137,7 +144,9 @@ CREATE TABLE IF NOT EXISTS ha_exercises (
     UNIQUE KEY uq_exercises_key (ex_key),
     KEY idx_exercises_lesson (lesson_slug),
     KEY idx_exercises_course (course_slug),
-    KEY idx_exercises_status (status)
+    KEY idx_exercises_status (status),
+    KEY idx_exercises_lesson_id (lesson_id),
+    CONSTRAINT fk_exercises_lesson FOREIGN KEY (lesson_id) REFERENCES ha_lessons(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- videos + podcasts در یک جدول media (type) — بدون over-engineering
@@ -256,7 +265,7 @@ CREATE TABLE IF NOT EXISTS ha_comments (
     name VARCHAR(60) NOT NULL,
     email VARCHAR(190) NOT NULL DEFAULT '',
     body TEXT NOT NULL,
-    status ENUM('pending','approved') NOT NULL DEFAULT 'pending',
+    status ENUM('pending','approved','hidden') NOT NULL DEFAULT 'pending',
     ip VARCHAR(45) NOT NULL DEFAULT '',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
@@ -278,9 +287,11 @@ CREATE TABLE IF NOT EXISTS ha_contact_messages (
     subject       VARCHAR(200) NOT NULL DEFAULT '',
     message       TEXT NOT NULL,
     ip            VARCHAR(45)  NOT NULL DEFAULT '',
+    read_at       DATETIME NULL,
     created_at    DATETIME NOT NULL,
     PRIMARY KEY (id),
-    KEY idx_messages_created (created_at)
+    KEY idx_messages_created (created_at),
+    KEY idx_messages_read (read_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS ha_schema_meta (
@@ -291,4 +302,4 @@ CREATE TABLE IF NOT EXISTS ha_schema_meta (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '2');
+INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '3');

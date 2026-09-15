@@ -16,8 +16,11 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-/** نسخهٔ schema که ensure_schema می‌سازد. */
-define('HA_DB_SCHEMA_VERSION', '2');
+/** نسخهٔ schema که ensure_schema می‌سازد.
+ *  v2: جداول اصلی
+ *  v3: exercises→lessons FK (CASCADE) + comments 'hidden' + messages read_at
+ */
+define('HA_DB_SCHEMA_VERSION', '3');
 
 /* ------------------------------------------------------------------ */
 /*  پیکربندی و اتصال                                                  */
@@ -109,26 +112,33 @@ function db_ensure_schema(PDO $pdo): bool
             return true;
         }
 
-        $sqlFile = HA_ROOT . '/sql/002-schema.sql';
-        if (!is_file($sqlFile)) {
-            return false;
-        }
-        $sql = (string) file_get_contents($sqlFile);
-        // حذف کامنت‌های -- خطی برای اجرای ساده
-        $sql = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
-        $parts = array_filter(array_map('trim', explode(';', $sql)));
-        foreach ($parts as $stmt) {
-            if ($stmt === '' || strtoupper($stmt) === 'SET NAMES UTF8MB4') {
-                if (stripos($stmt, 'SET NAMES') === 0) {
-                    $pdo->exec($stmt);
+        /*
+         * ترتیب اجرا:
+         *   ۱) sql/002-schema.sql — schema کاملِ جاری (CREATE IF NOT EXISTS؛
+         *      برای نصبِ تازه همه‌چیز را می‌سازد و برای ارتقا هیچ جدولی را
+         *      خراب نمی‌کند چون ALTER ندارد).
+         *   ۲) sql/003-upgrade.sql — مهاجرتِ v2→v3 با محافظِ idempotent؛
+         *      روی نصبِ تازه هم اجرا می‌شود ولی همه‌ی تغییرها «فقط اگر نباشد»
+         *      هستند پس عملیاتِ بدونِ اثر است.
+         */
+        foreach (['sql/002-schema.sql', 'sql/003-upgrade.sql'] as $rel) {
+            $sqlFile = HA_ROOT . '/' . $rel;
+            if (!is_file($sqlFile)) {
+                if ($rel === 'sql/002-schema.sql') {
+                    return false;
                 }
                 continue;
             }
-            if (stripos($stmt, 'SET FOREIGN_KEY') === 0) {
+            $sql = (string) file_get_contents($sqlFile);
+            // حذف کامنت‌های -- خطی برای اجرای ساده
+            $sql = preg_replace('/^\\s*--.*$/m', '', $sql) ?? $sql;
+            $parts = array_filter(array_map('trim', explode(';', $sql)));
+            foreach ($parts as $stmt) {
+                if ($stmt === '') {
+                    continue;
+                }
                 $pdo->exec($stmt);
-                continue;
             }
-            $pdo->exec($stmt);
         }
 
         $pdo->prepare("INSERT INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', ?)
@@ -368,7 +378,17 @@ function db_courses_all(): array
 }
 
 /**
- * ذخیرهٔ کامل یک دوره + مراحل + درس‌ها (جایگزینی اتمیک stages/lessons).
+ * ذخیرهٔ کامل یک دوره + مراحل + درس‌ها — «به‌روزرسانیِ درجا» (update-in-place).
+ *
+ * چرا دیگر «حذفِ کامل و درجِ دوباره» نمی‌کنیم؟
+ * با FK جدیدِ ha_exercises.lesson_id → ha_lessons(id) ON DELETE CASCADE،
+ * حذفِ ردیفِ درس، تمرین‌های متصل را هم حذف می‌کند. نسخه‌ی قدیمی در هر
+ * ذخیره‌ی دوره همه‌ی مرحله‌ها را می‌کُشت و دوباره می‌ساخت؛ یعنی هر ویرایشِ
+ * کوچکِ دوره (مثلاً تغییرِ عنوان) بی‌صدا همه‌ی تمرین‌ها را می‌بُرد!
+ *
+ * راهبرد: تطبیق روی slug (درس‌ها — یکتا در کل سایت) و stage_key (در هر
+ * دوره). آنچه در ساختارِ ارسالی نیست حذف می‌شود (همان رفتارِ CASCADE که
+ * معماری تعریف می‌کند: تمرینِ بدونِ درس اجازه ندارد زنده بماند).
  */
 function db_course_save_full(array $course): bool
 {
@@ -383,12 +403,17 @@ function db_course_save_full(array $course): bool
     }
     $now = db_now();
 
+    /* مرتب‌سازیِ پایدار برای داده‌هایی که sort_order ندارند */
+    $sortOf = static function (array $row, int $i, string $key = 'sort_order'): int {
+        return (int) ($row[$key] ?? $row['order'] ?? $i);
+    };
+
     try {
         $pdo->beginTransaction();
 
-        $existing = db_one('SELECT id, created_at FROM ha_courses WHERE slug = ?', [$orig !== '' ? $orig : $slug]);
+        $existing = db_one('SELECT id FROM ha_courses WHERE slug = ? LIMIT 1', [$orig !== '' ? $orig : $slug]);
         if (!$existing && $orig !== $slug) {
-            $existing = db_one('SELECT id, created_at FROM ha_courses WHERE slug = ?', [$slug]);
+            $existing = db_one('SELECT id FROM ha_courses WHERE slug = ? LIMIT 1', [$slug]);
         }
 
         $fields = [
@@ -403,7 +428,7 @@ function db_course_save_full(array $course): bool
             (string) ($course['prereq'] ?? ''),
             !empty($course['featured']) ? 1 : 0,
             db_status((string) ($course['status'] ?? 'draft'), 'draft'),
-            (int) ($course['order'] ?? 0),
+            (int) ($course['order'] ?? $course['sort_order'] ?? 0),
             $now,
         ];
 
@@ -413,8 +438,6 @@ function db_course_save_full(array $course): bool
                 'UPDATE ha_courses SET slug=?, title=?, category_slug=?, level=?, excerpt=?, intro=?, how_to_json=?, project_json=?, prereq=?, featured=?, status=?, sort_order=?, updated_at=? WHERE id=?',
                 array_merge($fields, [$cid])
             );
-            // حذف stages/lessons قبلی (CASCADE lessons)
-            db_exec('DELETE FROM ha_stages WHERE course_id = ?', [$cid]);
         } else {
             db_exec(
                 'INSERT INTO ha_courses (slug, title, category_slug, level, excerpt, intro, how_to_json, project_json, prereq, featured, status, sort_order, created_at, updated_at)
@@ -423,68 +446,158 @@ function db_course_save_full(array $course): bool
             );
             $cid = db_last_id();
         }
-
         if ($cid <= 0) {
             $pdo->rollBack();
             return false;
+        }
+
+        /* --- مرحله‌ها: تطبیق روی stage_key --- */
+        $existingStages = db_all('SELECT id, stage_key FROM ha_stages WHERE course_id = ?', [$cid]);
+        $stageIds = [];
+        $keepStageIds = [];
+
+        foreach ($existingStages as $row) {
+            $stageIds[(string) $row['stage_key']] = (int) $row['id'];
         }
 
         foreach (array_values((array) ($course['stages'] ?? [])) as $si => $stage) {
             if (!is_array($stage)) {
                 continue;
             }
-            db_exec(
-                'INSERT INTO ha_stages (course_id, stage_key, label, title, summary, outcome, duration, assessment_json, sort_order, status, created_at, updated_at)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-                [
-                    $cid,
-                    (string) ($stage['id'] ?? ('stage-' . ($si + 1))),
-                    (string) ($stage['label'] ?? ''),
-                    (string) ($stage['title'] ?? ''),
-                    (string) ($stage['summary'] ?? ''),
-                    (string) ($stage['outcome'] ?? ''),
-                    (string) ($stage['duration'] ?? ''),
-                    db_json_encode($stage['assessment'] ?? []),
-                    $si,
-                    'published',
-                    $now,
-                    $now,
-                ]
-            );
-            $sid = db_last_id();
+            $stageKey = trim((string) ($stage['id'] ?? $stage['key'] ?? ''));
+            if ($stageKey === '') {
+                $stageKey = 'stage-' . ($si + 1);
+            }
+            /* دفاع در برابرِ کلیدِ تکراری در همان دوره و همان ذخیره
+               (UNIQUE روی course_id+stage_key). */
+            $baseKey = $stageKey;
+            $kN = 2;
+            while (isset($stageIds[$stageKey]) && in_array($stageIds[$stageKey], $keepStageIds, true)) {
+                $stageKey = $baseKey . '-' . $kN;
+                $kN++;
+            }
+            $stageVals = [
+                (string) ($stage['label'] ?? ''),
+                (string) ($stage['title'] ?? ''),
+                (string) ($stage['summary'] ?? ''),
+                (string) ($stage['outcome'] ?? ''),
+                (string) ($stage['duration'] ?? ''),
+                db_json_encode($stage['assessment'] ?? []),
+                $sortOf($stage, $si),
+                db_status((string) ($stage['status'] ?? 'published')),
+                $now,
+            ];
+            $sid = 0;
+            if (isset($stageIds[$stageKey])) {
+                $sid = $stageIds[$stageKey];
+                db_exec(
+                    'UPDATE ha_stages SET label=?, title=?, summary=?, outcome=?, duration=?, assessment_json=?, sort_order=?, status=?, updated_at=? WHERE id=?',
+                    array_merge($stageVals, [$sid])
+                );
+            } else {
+                db_exec(
+                    'INSERT INTO ha_stages (course_id, stage_key, label, title, summary, outcome, duration, assessment_json, sort_order, status, created_at, updated_at)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                    array_merge([$cid, $stageKey], $stageVals)
+                );
+                $sid = db_last_id();
+                $stageIds[$stageKey] = $sid;
+            }
+            if ($sid <= 0) {
+                continue;
+            }
+            $keepStageIds[] = $sid;
+
+            /* --- درس‌ها: تطبیق روی slug --- */
+            $existingLessons = db_all('SELECT id, slug FROM ha_lessons WHERE stage_id = ?', [$sid]);
+            $lessonIds = [];
+            foreach ($existingLessons as $row) {
+                $lessonIds[(string) $row['slug']] = (int) $row['id'];
+            }
+            $keepLessonIds = [];
+
             foreach (array_values((array) ($stage['lessons'] ?? [])) as $li => $lesson) {
                 if (!is_array($lesson)) {
                     continue;
                 }
                 $lSlug = slugify((string) ($lesson['slug'] ?? ''));
                 if ($lSlug === '') {
-                    $lSlug = slugify((string) ($lesson['title'] ?? ('lesson-' . ($si + 1) . '-' . ($li + 1))));
+                    $lSlug = slugify((string) ($lesson['title'] ?? ''));
                 }
                 if ($lSlug === '') {
-                    continue;
+                    $lSlug = 'lesson-' . $sid . '-' . ($li + 1);
                 }
-                db_exec(
-                    'INSERT INTO ha_lessons (course_id, stage_id, slug, title, minutes, goal, blocks_json, drill_json, prerequisite, refs_json, sort_order, status, created_at, updated_at)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                    [
-                        $cid,
-                        $sid,
-                        $lSlug,
-                        (string) ($lesson['title'] ?? ''),
-                        max(0, (int) ($lesson['minutes'] ?? 0)),
-                        (string) ($lesson['goal'] ?? ''),
-                        db_json_encode($lesson['blocks'] ?? []),
-                        db_json_encode($lesson['drill'] ?? []),
-                        slugify((string) ($lesson['prerequisite'] ?? '')),
-                        db_json_encode($lesson['refs'] ?? []),
-                        $li,
-                        db_status((string) ($lesson['status'] ?? 'published')),
-                        $now,
-                        $now,
-                    ]
-                );
+                /* slug باید در کلِ جدول یکتا باشد؛ اگر به درسِ دیگری تعلق
+                   دارد (انتقال بین مرحله‌ها یا دوره‌ها)، ردیفِ همان درس را
+                   پیدا و به این مرحله/دوره منتقل می‌کنیم (نه حذف/ساخت). */
+                $lVals = [
+                    $cid,
+                    $sid,
+                    $lSlug,
+                    (string) ($lesson['title'] ?? ''),
+                    max(0, (int) ($lesson['minutes'] ?? 0)),
+                    (string) ($lesson['goal'] ?? ''),
+                    db_json_encode($lesson['blocks'] ?? []),
+                    db_json_encode($lesson['drill'] ?? []),
+                    slugify((string) ($lesson['prerequisite'] ?? '')),
+                    db_json_encode($lesson['refs'] ?? []),
+                    (int) ($lesson['order'] ?? $li),
+                    db_status((string) ($lesson['status'] ?? 'published')),
+                    $now,
+                ];
+                $lid = 0;
+                if (isset($lessonIds[$lSlug])) {
+                    $lid = $lessonIds[$lSlug];
+                    db_exec(
+                        'UPDATE ha_lessons SET course_id=?, stage_id=?, slug=?, title=?, minutes=?, goal=?, blocks_json=?, drill_json=?, prerequisite=?, refs_json=?, sort_order=?, status=?, updated_at=? WHERE id=?',
+                        array_merge($lVals, [$lid])
+                    );
+                } else {
+                    $other = db_one('SELECT id FROM ha_lessons WHERE slug = ? LIMIT 1', [$lSlug]);
+                    if ($other) {
+                        /* جابه‌جاییِ درسِ موجود به این دوره/مرحله (حفظِ id ⇒ تمرین‌ها زنده می‌مانند) */
+                        $lid = (int) $other['id'];
+                        db_exec(
+                            'UPDATE ha_lessons SET course_id=?, stage_id=?, slug=?, title=?, minutes=?, goal=?, blocks_json=?, drill_json=?, prerequisite=?, refs_json=?, sort_order=?, status=?, updated_at=? WHERE id=?',
+                            array_merge($lVals, [$lid])
+                        );
+                    } else {
+                        db_exec(
+                            'INSERT INTO ha_lessons (course_id, stage_id, slug, title, minutes, goal, blocks_json, drill_json, prerequisite, refs_json, sort_order, status, created_at, updated_at)
+                             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                            array_merge($lVals, [$now])
+                        );
+                        $lid = db_last_id();
+                    }
+                    $lessonIds[$lSlug] = $lid;
+                }
+                if ($lid > 0) {
+                    $keepLessonIds[] = $lid;
+                }
+            }
+
+            /* حذفِ درس‌های برداشته‌شده از این مرحله — CASCADE تمرین‌ها */
+            if ($keepLessonIds === []) {
+                db_exec('DELETE FROM ha_lessons WHERE stage_id = ?', [$sid]);
+            } else {
+                $ph = implode(',', array_fill(0, count($keepLessonIds), '?'));
+                $st = $pdo->prepare("DELETE FROM ha_lessons WHERE stage_id = ? AND id NOT IN ({$ph})");
+                $st->execute(array_merge([$sid], $keepLessonIds));
             }
         }
+
+        /* حذفِ مرحله‌های برداشته‌شده — CASCADE به درس‌ها و از آنجا به تمرین‌ها */
+        if ($keepStageIds === []) {
+            db_exec('DELETE FROM ha_stages WHERE course_id = ?', [$cid]);
+        } else {
+            $ph = implode(',', array_fill(0, count($keepStageIds), '?'));
+            $st = $pdo->prepare("DELETE FROM ha_stages WHERE course_id = ? AND id NOT IN ({$ph})");
+            $st->execute(array_merge([$cid], $keepStageIds));
+        }
+
+        /* تمرین‌ها: lesson_id را (دوباره) از روی lesson_slug لینک کن تا با
+           هر جابه‌جاییِ slug درس هماهنگ بماند. */
+        db_exercise_relink();
 
         $pdo->commit();
         return true;
@@ -499,10 +612,30 @@ function db_course_save_full(array $course): bool
     }
 }
 
+/**
+ * همه‌ی تمرین‌ها را از روی lesson_slug به ردیفِ واقعیِ درس لینک می‌کند.
+ * بدونِ تطابق ⇒ NULL (ردیفِ قدیمیِ مستقل — اگر دوره/درس حذف شود مسیرِ
+ * امن، حذفِ مستقیم با course_slug نال است؛ در db_course_delete انجام می‌شود).
+ */
+function db_exercise_relink(): void
+{
+    db_exec('UPDATE ha_exercises e LEFT JOIN ha_lessons l ON l.slug = e.lesson_slug SET e.lesson_id = l.id');
+}
+
+/**
+ * حذفِ دوره — رفتارِ آبشاریِ تعریف‌شده:
+ *   ha_courses ─CASCADE→ ha_stages ─CASCADE→ ha_lessons ─CASCADE→ ha_exercises
+ * علاوه بر آن، تمرین‌های slug-محورِ کهنسالِ بدونِ lesson_id هم پاک می‌شوند
+ * (course_slug آن‌ها به همین دوره اشاره می‌کرد) تا تمرین orphan باقی نماند.
+ */
 function db_course_delete(string $slug): bool
 {
     $slug = slugify($slug);
-    return $slug !== '' && db_exec('DELETE FROM ha_courses WHERE slug = ?', [$slug]);
+    if ($slug === '') {
+        return false;
+    }
+    db_exec('DELETE FROM ha_exercises WHERE course_slug = ? AND lesson_id IS NULL', [$slug]);
+    return db_exec('DELETE FROM ha_courses WHERE slug = ?', [$slug]);
 }
 
 /* ------------------------------------------------------------------ */
@@ -752,6 +885,7 @@ function db_exercises_all(): array
             'success'    => (string) ($r['success_text'] ?? ''),
             'note'       => (string) ($r['note_text'] ?? ''),
             'lesson'     => (string) ($r['lesson_slug'] ?? ''),
+            'lesson_id'  => $r['lesson_id'] !== null ? (int) $r['lesson_id'] : null,
             'course'     => (string) ($r['course_slug'] ?? ''),
             'field'      => (string) ($r['field_slug'] ?? ''),
             'featured'   => !empty($r['featured']),
@@ -774,6 +908,13 @@ function db_exercise_upsert(array $item, string $origKey = ''): bool
     $orig = slugify($origKey !== '' ? $origKey : $key);
     $now = db_now();
     $existing = db_one('SELECT id FROM ha_exercises WHERE ex_key = ?', [$orig]);
+    /* اتصالِ واقعی به درس: lesson_id از روی نامک (FK ⇒ orphan ممنوع). */
+    $lessonSlug = slugify((string) ($item['lesson'] ?? ''));
+    $lessonId = null;
+    if ($lessonSlug !== '') {
+        $lr = db_one('SELECT id FROM ha_lessons WHERE slug = ? LIMIT 1', [$lessonSlug]);
+        $lessonId = $lr ? (int) $lr['id'] : null;
+    }
     $vals = [
         $key,
         (string) ($item['title'] ?? ''),
@@ -786,7 +927,8 @@ function db_exercise_upsert(array $item, string $origKey = ''): bool
         db_json_encode($item['topics'] ?? []),
         (string) ($item['success'] ?? ''),
         (string) ($item['note'] ?? ''),
-        slugify((string) ($item['lesson'] ?? '')),
+        $lessonId,
+        $lessonSlug,
         slugify((string) ($item['course'] ?? '')),
         (string) ($item['field'] ?? ''),
         !empty($item['featured']) ? 1 : 0,
@@ -796,13 +938,13 @@ function db_exercise_upsert(array $item, string $origKey = ''): bool
     ];
     if ($existing) {
         return db_exec(
-            'UPDATE ha_exercises SET ex_key=?, title=?, level=?, focus=?, goal=?, tool=?, seconds=?, steps_json=?, topics_json=?, success_text=?, note_text=?, lesson_slug=?, course_slug=?, field_slug=?, featured=?, status=?, sort_order=?, updated_at=? WHERE id=?',
+            'UPDATE ha_exercises SET ex_key=?, title=?, level=?, focus=?, goal=?, tool=?, seconds=?, steps_json=?, topics_json=?, success_text=?, note_text=?, lesson_id=?, lesson_slug=?, course_slug=?, field_slug=?, featured=?, status=?, sort_order=?, updated_at=? WHERE id=?',
             array_merge($vals, [(int) $existing['id']])
         );
     }
     return db_exec(
-        'INSERT INTO ha_exercises (ex_key, title, level, focus, goal, tool, seconds, steps_json, topics_json, success_text, note_text, lesson_slug, course_slug, field_slug, featured, status, sort_order, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO ha_exercises (ex_key, title, level, focus, goal, tool, seconds, steps_json, topics_json, success_text, note_text, lesson_id, lesson_slug, course_slug, field_slug, featured, status, sort_order, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         array_merge($vals, [$now])
     );
 }
@@ -1004,6 +1146,14 @@ function db_user_create(string $name, string $email, string $password, string $r
     $now = db_now();
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $email = strtolower(trim($email));
+    /*
+     * Enforce در لایه‌ی دیتابیس: نقشِ admin فقط برای «اولین» حسابِ سیستم
+     * مجاز است (Bootstrap). Registration هرگز نمی‌تواند با دست‌کاریِ
+     * پارامترِ role، خود را مدیر کند — کاربر دوم و سوم همواره user‌اند.
+     */
+    if ($role === 'admin' && db_user_count() > 0) {
+        $role = 'user';
+    }
     $ok = db_exec(
         'INSERT INTO ha_users (id, name, email, pass_hash, role, created_at, updated_at) VALUES (?,?,?,?,?,?,?)',
         [$id, trim($name), $email, $hash, $role === 'admin' ? 'admin' : 'user', $now, $now]
@@ -1105,4 +1255,141 @@ function db_set_status(string $table, string $keyCol, string $key, string $statu
     }
     $status = db_status($status, 'draft');
     return db_exec("UPDATE {$table} SET status = ?, updated_at = ? WHERE {$keyCol} = ?", [$status, db_now(), $key]);
+}
+
+/* ------------------------------------------------------------------ */
+/*  پیام‌های تماس (Database-driven)                                    */
+/* ------------------------------------------------------------------ */
+
+/** ثبتِ پیامِ جدید. id رکورد یا 0. */
+function db_message_add(array $m): int
+{
+    $ok = db_exec(
+        'INSERT INTO ha_contact_messages (name, email, subject, message, ip, created_at) VALUES (?,?,?,?,?,?)',
+        [
+            mb_substr((string) ($m['name'] ?? ''), 0, 120, 'UTF-8'),
+            mb_substr((string) ($m['email'] ?? ''), 0, 190, 'UTF-8'),
+            mb_substr((string) ($m['subject'] ?? ''), 0, 200, 'UTF-8'),
+            (string) ($m['message'] ?? ''),
+            mb_substr((string) ($m['ip'] ?? ''), 0, 45, 'UTF-8'),
+            db_now(),
+        ]
+    );
+    return $ok ? db_last_id() : 0;
+}
+
+/** @return list<array<string,mixed>> — تازه‌ترین اول */
+function db_messages_all(int $limit = 300): array
+{
+    $limit = max(1, min(1000, $limit));
+    $pdo = db();
+    if ($pdo === null) {
+        return [];
+    }
+    try {
+        $st = $pdo->prepare('SELECT * FROM ha_contact_messages ORDER BY created_at DESC, id DESC LIMIT ?');
+        $st->bindValue(1, $limit, PDO::PARAM_INT);
+        $st->execute();
+        $rows = $st->fetchAll();
+        $out = [];
+        foreach (is_array($rows) ? $rows : [] as $r) {
+            $out[] = [
+                'time'    => (string) ($r['created_at'] ?? ''),
+                'subject' => (string) ($r['subject'] ?? ''),
+                'name'    => (string) ($r['name'] ?? ''),
+                'email'   => (string) ($r['email'] ?? ''),
+                'message' => (string) ($r['message'] ?? ''),
+                'ip'      => (string) ($r['ip'] ?? ''),
+                'read_at' => $r['read_at'] ?? null,
+                'source'  => 'db',
+                'ref'     => 'db-' . (int) $r['id'],
+                '_id'     => (int) $r['id'],
+            ];
+        }
+        return $out;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function db_message_find(int $id): ?array
+{
+    if ($id <= 0) {
+        return null;
+    }
+    $r = db_one('SELECT * FROM ha_contact_messages WHERE id = ? LIMIT 1', [$id]);
+    if (!$r) {
+        return null;
+    }
+    return [
+        'time'    => (string) ($r['created_at'] ?? ''),
+        'subject' => (string) ($r['subject'] ?? ''),
+        'name'    => (string) ($r['name'] ?? ''),
+        'email'   => (string) ($r['email'] ?? ''),
+        'message' => (string) ($r['message'] ?? ''),
+        'ip'      => (string) ($r['ip'] ?? ''),
+        'read_at' => $r['read_at'] ?? null,
+        'source'  => 'db',
+        'ref'     => 'db-' . (int) $r['id'],
+        '_id'     => (int) $r['id'],
+    ];
+}
+
+/** علامت «خوانده‌شده». */
+function db_message_mark_read(int $id): bool
+{
+    return $id > 0 && db_exec(
+        'UPDATE ha_contact_messages SET read_at = ? WHERE id = ? AND read_at IS NULL',
+        [db_now(), $id]
+    );
+}
+
+function db_message_delete(int $id): bool
+{
+    return $id > 0 && db_exec('DELETE FROM ha_contact_messages WHERE id = ?', [$id]);
+}
+
+function db_messages_unread_count(): int
+{
+    $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages WHERE read_at IS NULL');
+    return (int) ($r['c'] ?? 0);
+}
+
+/** تعدادِ کل پیام‌ها (برای داشبورد). */
+function db_messages_count(): int
+{
+    $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages');
+    return (int) ($r['c'] ?? 0);
+}
+
+/* ------------------------------------------------------------------ */
+/*  درس‌ها — خواندنِ تکی (مدیریت درس)                                  */
+/* ------------------------------------------------------------------ */
+
+/** فهرستِ صافِ درس‌ها (همه‌ی دوره‌ها) — برای انتخاب‌گرهای پنل. */
+function db_lessons_flat(): array
+{
+    $rows = db_all('SELECT l.id, l.slug, l.title, l.status, l.course_id, l.stage_id, c.slug AS course_slug, c.title AS course_title
+                    FROM ha_lessons l JOIN ha_courses c ON c.id = l.course_id
+                    ORDER BY c.sort_order ASC, l.sort_order ASC, l.id ASC');
+    $out = [];
+    foreach ($rows as $r) {
+        $out[] = [
+            'id'           => (int) $r['id'],
+            'slug'         => (string) $r['slug'],
+            'title'        => (string) $r['title'],
+            'status'       => (string) ($r['status'] ?? 'published'),
+            'course_slug'  => (string) ($r['course_slug'] ?? ''),
+            'course_title' => (string) ($r['course_title'] ?? ''),
+        ];
+    }
+    return $out;
+}
+
+/** تغییرِ وضعیتِ یک درس یا مرحله (داشبوردِ دوره). */
+function db_lesson_set_status(string $slug, string $status): bool
+{
+    $slug = slugify($slug);
+    $status = db_status($status, 'draft');
+    return $slug !== '' && db_exec('UPDATE ha_lessons SET status = ?, updated_at = ? WHERE slug = ?', [$status, db_now(), $slug]);
 }

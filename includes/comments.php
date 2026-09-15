@@ -81,13 +81,51 @@ function comments_table_sql(): string
     name VARCHAR(60) NOT NULL,
     email VARCHAR(190) NOT NULL DEFAULT '',
     body TEXT NOT NULL,
-    status ENUM('pending','approved') NOT NULL DEFAULT 'pending',
+    status ENUM('pending','approved','hidden') NOT NULL DEFAULT 'pending',
     ip VARCHAR(45) NOT NULL DEFAULT '',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
     KEY idx_status_created (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+}
+
+/** وضعیت‌های مجازِ نظر. */
+function comment_statuses(): array
+{
+    return ['pending', 'approved', 'hidden'];
+}
+
+/** ساختِ نظر از سمتِ مدیر (با وضعیتِ دلخواه — مثلاً افزودنِ «تجربه» توسط مدیر). */
+function comment_admin_create(string $name, string $email, string $body, string $status = 'approved'): array
+{
+    if (!in_array($status, comment_statuses(), true)) {
+        $status = 'approved';
+    }
+    $db = comments_db();
+    if ($db === null) {
+        return ['ok' => false, 'error' => 'db'];
+    }
+    $created = date('Y-m-d H:i:s');
+    if ($db instanceof PDO) {
+        try {
+            $st = $db->prepare("INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,?,?,?)");
+            $ok = $st->execute([$name, $email, $body, $status, 'admin-panel', $created]);
+            return $ok ? ['ok' => true, 'id' => (int) $db->lastInsertId()] : ['ok' => false, 'error' => 'db'];
+        } catch (Throwable $e) {
+            return ['ok' => false, 'error' => 'db'];
+        }
+    }
+    $st = @mysqli_prepare($db, "INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,?,?,?)");
+    if ($st === false) {
+        return ['ok' => false, 'error' => 'db'];
+    }
+    $ip = 'admin-panel';
+    mysqli_stmt_bind_param($st, 'ssssss', $name, $email, $body, $status, $ip, $created);
+    $ok = @mysqli_stmt_execute($st);
+    $id = (int) mysqli_insert_id($db);
+    @mysqli_stmt_close($st);
+    return $ok ? ['ok' => true, 'id' => $id] : ['ok' => false, 'error' => 'db'];
 }
 
 /** @return array{ok:bool, error?:string, id?:int} */
@@ -188,7 +226,7 @@ function comments_count_approved(): int
 function comments_admin_counts(): array
 {
     $db = comments_db();
-    $out = ['pending' => 0, 'approved' => 0, 'all' => 0];
+    $out = ['pending' => 0, 'approved' => 0, 'hidden' => 0, 'all' => 0];
     if ($db === null) {
         return $out;
     }
@@ -204,7 +242,7 @@ function comments_admin_counts(): array
         } catch (Throwable $e) {
             return $out;
         }
-        $out['all'] = $out['pending'] + $out['approved'];
+        $out['all'] = $out['pending'] + $out['approved'] + $out['hidden'];
         return $out;
     }
     $st = @mysqli_prepare($db, "SELECT status, COUNT(*) AS c FROM ha_comments GROUP BY status");
@@ -221,7 +259,7 @@ function comments_admin_counts(): array
         }
     }
     @mysqli_stmt_close($st);
-    $out['all'] = $out['pending'] + $out['approved'];
+    $out['all'] = $out['pending'] + $out['approved'] + $out['hidden'];
     return $out;
 }
 
@@ -234,7 +272,7 @@ function comments_admin_list(string $status = '', int $limit = 100): array
     $limit = max(1, min(300, $limit));
     if ($db instanceof PDO) {
         try {
-            if ($status === 'pending' || $status === 'approved') {
+            if (in_array($status, comment_statuses(), true)) {
                 $st = $db->prepare("SELECT id, name, email, body, status, ip, created_at FROM ha_comments WHERE status = ? ORDER BY created_at DESC, id DESC LIMIT ?");
                 $st->bindValue(1, $status);
                 $st->bindValue(2, $limit, PDO::PARAM_INT);
@@ -251,7 +289,7 @@ function comments_admin_list(string $status = '', int $limit = 100): array
     $sql = "SELECT id, name, email, body, status, ip, created_at FROM ha_comments";
     $types = '';
     $params = [];
-    if ($status === 'pending' || $status === 'approved') {
+    if (in_array($status, comment_statuses(), true)) {
         $sql .= " WHERE status = ?";
         $types = 's';
         $params[] = $status;
@@ -281,7 +319,7 @@ function comments_admin_list(string $status = '', int $limit = 100): array
 
 function comment_set_status(int $id, string $status): bool
 {
-    if ($status !== 'pending' && $status !== 'approved') {
+    if (!in_array($status, comment_statuses(), true)) {
         return false;
     }
     $db = comments_db();
@@ -296,11 +334,12 @@ function comment_set_status(int $id, string $status): bool
             return false;
         }
     }
-    $st = @mysqli_prepare($db, "UPDATE ha_comments SET status = ? WHERE id = ?");
+    $st = @mysqli_prepare($db, "UPDATE ha_comments SET status = ?, updated_at = ? WHERE id = ?");
     if ($st === false) {
         return false;
     }
-    mysqli_stmt_bind_param($st, 'si', $status, $id);
+    $now = date('Y-m-d H:i:s');
+    mysqli_stmt_bind_param($st, 'ssi', $status, $now, $id);
     $ok = @mysqli_stmt_execute($st);
     @mysqli_stmt_close($st);
     return $ok;

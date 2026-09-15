@@ -42,6 +42,16 @@ if (!in_array($role, ['user', 'admin'], true)) {
     redirect(url('admin_user_edit', ['slug' => $id]));
 }
 
+/*
+ * محافظِ آخرین مدیر: تنزلِ نقشِ «آخرین admin سایت» ممنوع است، وگرنه
+ * سیستم بدونِ مدیرِ فعال باقی می‌ماند (بنفشِ strafing).
+ * (حذفِ آخرین مدیر هم در user_delete.php مسدود می‌شود.)
+ */
+if ($role === 'user' && ($user['role'] ?? '') === 'admin' && auth_count_admins() <= 1) {
+    flash('error','تنزلِ نقشِ تنها مدیرِ سایت مجاز نیست؛ ابتدا مدیرِ دیگری ارتقا بدهید.');
+    redirect(url('admin_user_edit', ['slug' => $id]));
+}
+
 $pw = (string)($_POST['new_password'] ?? '');
 if ($pw !== '' && (strlen($pw) < HA_AUTH_MIN_PASSWORD || strlen($pw) > 72)) {
     flash('error','رمز جدید باید بین ' . fa_num(HA_AUTH_MIN_PASSWORD) . ' تا ۷۲ نویسه باشد.');

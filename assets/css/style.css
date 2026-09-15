@@ -4043,7 +4043,50 @@ tbody tr.admin-row--draft:hover td { background: var(--surface-2); }
 .admin-advanced[open] > summary { margin-bottom: var(--sp-3); }
 .admin-card__more { margin-top: 1rem; }
 
-/* Admin mobile-first: cards instead of wide tables feel */
+/* ---- Admin v3: داشبوردِ دوره، کارت‌ها، فیلدهای کنار هم ---- */
+.admin-card__row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-3); flex-wrap: wrap;
+}
+.admin-card__head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3);
+}
+.admin-card__aside { display: flex; align-items: flex-start; gap: .4rem; flex-wrap: wrap; }
+.admin-card__eyebrow {
+  font-size: var(--fs-xs); color: var(--text-soft); margin: 0 0 .15rem;
+  font-weight: var(--fw-semibold); letter-spacing: .02em;
+}
+.admin-card__title { margin: 0 0 .25rem; font-size: var(--fs-md); line-height: 1.5; }
+.admin-card--headline { border-inline-start: 3px solid var(--brand); }
+.admin-card--cta { border-inline-start: 3px solid var(--warn, #b45309); background: var(--bg-soft); }
+.admin-inline-form { max-width: 640px; }
+.field-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+.field-row--2 > .field { flex: 1 1 220px; min-width: 0; }
+.admin-actions {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: var(--sp-3);
+}
+.admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.admin-list > li {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: .5rem .75rem; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--bg-soft);
+}
+.admin-row--unread { background: var(--brand-050, rgba(15,121,100,.07)); }
+.admin-row--warn { background: rgba(180, 83, 9, .06); }
+.admin-row--divider > td {
+  background: var(--bg-soft); font-weight: var(--fw-bold);
+  padding: .6rem .75rem; border-inline-start: 3px solid var(--brand);
+}
+.admin-toolbar--card { margin: var(--sp-3) 0 0; }
+.input--sm { max-width: 180px; }
+.textarea--sm { min-height: auto; }
+.textarea--mono { font-family: var(--ff-mono, ui-monospace, monospace); direction: ltr; text-align: left; }
+.field__hint { font-size: var(--fs-xs); color: var(--text-soft); margin-top: .25rem; }
+.btn--lg { min-height: 48px; padding-inline: var(--sp-4); font-size: var(--fs-md); }
+.admin-badge--warning-dot { background: var(--warn-bg, rgba(180,83,9,.15)); color: var(--warn, #b45309); }
+
+/* Admin mobile-first: cards instead of wide tables feel */: cards instead of wide tables feel */
 @media (max-width: 639.98px) {
   .admin-table { min-width: 0; }
   .admin-table thead { display: none; }

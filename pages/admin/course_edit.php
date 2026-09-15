@@ -69,11 +69,11 @@ $curCat = (string) ($course['category'] ?? '');
         <div class="field"><label for="c-title">عنوان *</label>
             <input class="input" id="c-title" type="text" name="title" required maxlength="200"
                    value="<?= e($course['title'] ?? '') ?>"></div>
-        <div class="field"><label for="c-slug">نامک (slug) *</label>
-            <input class="input" id="c-slug" type="text" name="slug" required maxlength="100" dir="ltr"
+        <div class="field"><label for="c-slug">نامک (خودکار — خالی بماند تا از عنوان ساخته شود)</label>
+            <input class="input" id="c-slug" type="text" name="slug" maxlength="100" dir="ltr"
                    value="<?= e($course['slug'] ?? '') ?>"
-                   placeholder="public-speaking-fundamentals">
-            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره. در نشانیِ صفحه‌ی دوره استفاده می‌شود.</p></div>
+                   placeholder="از عنوان ساخته می‌شود">
+            <p class="field__help">در ویرایش، خالی ⇐ همان نامکِ قبلی حفظ می‌شود (پایداریِ لینک).</p></div>
         <div class="field"><label for="c-category">حوزه *</label>
             <select class="input" id="c-category" name="category" required>
                 <option value="">— انتخاب کنید —</option>
@@ -106,8 +106,16 @@ $curCat = (string) ($course['category'] ?? '');
 
 <div class="admin-card">
     <h2>مراحل و درس‌ها</h2>
+    <?php if ($slug !== ''): ?>
+    <div class="alert alert--info" role="status">
+        <p>مدیریتِ مرحله‌ها، درس‌ها و تمرین‌های این دوره در <a href="<?= e(url('admin_course_view', ['slug' => $slug])) ?>"><strong>داشبوردِ دوره</strong></a> انجام می‌شود (افزودن/ویرایش/انتشار/حذف هر یک جداگانه).
+        این فیلدِ JSON فقط برایِ ویرایشِ تودرتوِ مستقیم (پیشرفته) است.</p>
+    </div>
+    <?php endif; ?>
+    <details class="admin-advanced"<?= $slug === '' ? ' open' : '' ?>>
+        <summary><?= $slug === '' ? 'ساختارِ اولیه‌ی مراحل (JSON)' : 'ویرایشِ مستقیمِ JSON (پیشرفته)' ?></summary>
     <div class="field">
-        <label for="c-stages">ساختارِ مراحل (JSON)</label>
+        <label for="c-stages" class="sr-only">ساختارِ مراحل (JSON)</label>
         <textarea class="input input--code" id="c-stages" name="stages_json" rows="18" dir="ltr"
                   spellcheck="false"><?= e(json_encode($stages, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></textarea>
         <p class="field__help">
@@ -119,6 +127,7 @@ $curCat = (string) ($course['category'] ?? '');
         </p>
     </div>
     <p class="muted-sm">نامکِ هر درس باید در کلِ سایت یکتا باشد؛ صفحه‌ی درس با همان نامک ساخته می‌شود.</p>
+    </details>
 </div>
 
 <div class="admin-form-actions">

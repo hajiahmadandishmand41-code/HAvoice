@@ -415,6 +415,7 @@ function ha_page_meta(string $route): array
             'admin_book_edit' => 'ویرایش کتاب', 'admin_research_edit' => 'ویرایش پژوهش',
             'admin_exercise_edit' => 'ویرایش تمرین', 'admin_tip_edit' => 'ویرایش نکته',
             'admin_category_edit' => 'ویرایش حوزه', 'admin_user_edit' => 'ویرایش کاربر',
+            'admin_course_view' => 'داشبورد دوره', 'admin_lesson_edit' => 'فرم درس',
         ];
         $title = ($adminTitles[$route] ?? $editTitles[$route] ?? 'مدیریت') . ' — پنل مدیریت';
         return array_merge($base, [

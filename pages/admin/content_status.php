@@ -2,6 +2,7 @@
 /**
  * HAvoice Admin — تغییرِ وضعیتِ انتشار (منتشرشده ⇄ پیش‌نویس)
  * مسیر: Validation → repo_set_status → PDO/JSON
+ * نوع‌های lesson/stage به داشبوردِ دوره برمی‌گردند (پارامترِ course لازم است).
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
@@ -19,10 +20,20 @@ $registry = [
     'category' => 'admin_categories',
 ];
 
-$type = (string) ($_POST['type'] ?? '');
-$goBack = url($registry[$type] ?? 'admin');
+$type       = (string) ($_POST['type'] ?? '');
+$courseSlug = slugify((string) ($_POST['course'] ?? ''));
 
-if (!isset($registry[$type])) {
+/* lesson/stage یک مسیرِ ویژه دارند: بازگشت به داشبوردِ دوره */
+$isStructure = in_array($type, ['lesson', 'stage'], true);
+if ($isStructure) {
+    $goBack = $courseSlug !== ''
+        ? url('admin_course_view', ['slug' => $courseSlug])
+        : url('admin_courses');
+} else {
+    $goBack = url($registry[$type] ?? 'admin');
+}
+
+if (!$isStructure && !isset($registry[$type])) {
     flash('error', 'نوعِ محتوا معتبر نیست.');
     redirect(url('admin'));
 }
@@ -41,7 +52,11 @@ if ($key === '') {
     redirect($goBack);
 }
 
-if (!repo_set_status($type, $key, $status)) {
+$ok = $isStructure
+    ? repo_set_status($type, $key, $status, $courseSlug)
+    : repo_set_status($type, $key, $status);
+
+if (!$ok) {
     flash('error', 'ذخیره‌سازی ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($goBack);
 }

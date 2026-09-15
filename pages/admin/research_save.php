@@ -11,8 +11,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+$slug  = admin_post_slug_keep($title, $orig);
 $editUrl = url('admin_research_edit', $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []));
 
 if ($title === '' || $slug === '') {
@@ -34,6 +34,14 @@ if ($field !== '' && find_category_any($field) === null) {
 $category = trim((string) ($_POST['category'] ?? ''));
 if ($category === '' && $field !== '') {
     $category = category_label($field, $field);
+}
+
+
+/* یکتاییِ خودکارِ نامکِ تازه (برخورد ⇒ پسوندِ -2/-3 — نه بازنویسیِ بی‌خبر) */
+if ($orig === '') {
+    $allSlugs = [];
+    foreach (research_all() as $m) { $allSlugs[] = (string) ($m['slug'] ?? ''); }
+    $slug = admin_unique_slug($slug, $allSlugs, $orig);
 }
 
 $item = [

@@ -245,6 +245,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_comment_status':
         case 'admin_comment_delete':
         case 'admin_content_status':
+        case 'admin_stage_save':
+        case 'admin_stage_delete':
+        case 'admin_lesson_save':
+        case 'admin_lesson_delete':
+        case 'admin_comment_save':
+        case 'admin_migrate':
             // Map route to file: admin_article_save → article_save.php
             $handlerFile = HA_ROOT . '/pages/admin/' . str_replace('admin_', '', $route) . '.php';
             if (is_file($handlerFile)) {

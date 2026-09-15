@@ -341,6 +341,12 @@ function routes(): array
         'admin_course_edit'     => ['file' => 'admin/course_edit.php',    'pretty' => 'admin/course-edit','title' => 'ویرایش دوره',  'admin' => true],
         'admin_course_save'     => ['file' => 'admin/course_save.php',    'pretty' => 'admin/course-save','title' => 'ذخیره دوره',   'admin' => true],
         'admin_course_delete'   => ['file' => 'admin/course_delete.php',  'pretty' => 'admin/course-del', 'title' => 'حذف دوره',    'admin' => true],
+        'admin_course_view'     => ['file' => 'admin/course_view.php',    'pretty' => 'admin/course-view','title' => 'داشبورد دوره',  'admin' => true],
+        'admin_stage_save'      => ['file' => 'admin/stage_save.php',     'pretty' => 'admin/stage-save', 'title' => 'ذخیره مرحله',  'admin' => true],
+        'admin_stage_delete'    => ['file' => 'admin/stage_delete.php',   'pretty' => 'admin/stage-del',  'title' => 'حذف مرحله',   'admin' => true],
+        'admin_lesson_edit'     => ['file' => 'admin/lesson_edit.php',    'pretty' => 'admin/lesson-edit','title' => 'درس',          'admin' => true],
+        'admin_lesson_save'     => ['file' => 'admin/lesson_save.php',    'pretty' => 'admin/lesson-save','title' => 'ذخیره درس',    'admin' => true],
+        'admin_lesson_delete'   => ['file' => 'admin/lesson_delete.php',  'pretty' => 'admin/lesson-del', 'title' => 'حذف درس',     'admin' => true],
         'admin_articles'        => ['file' => 'admin/articles.php',       'pretty' => 'admin/articles','title' => 'مدیریت مقالات',    'admin' => true],
         'admin_article_edit'    => ['file' => 'admin/article_edit.php',   'pretty' => 'admin/article-edit','title' => 'ویرایش مقاله', 'admin' => true],
         'admin_article_save'    => ['file' => 'admin/article_save.php',   'pretty' => 'admin/article-save','title' => 'ذخیره مقاله',  'admin' => true],
@@ -382,10 +388,12 @@ function routes(): array
         'admin_message_delete'  => ['file' => 'admin/message_delete.php', 'pretty' => 'admin/message-del', 'title' => 'حذف پیام',    'admin' => true],
         'admin_comments'        => ['file' => 'admin/comments.php',       'pretty' => 'admin/comments','title' => 'مدیریت نظرات',     'admin' => true],
         'admin_comment_status'  => ['file' => 'admin/comment_status.php', 'pretty' => 'admin/comment-status','title' => 'وضعیت نظر', 'admin' => true],
+        'admin_comment_save'    => ['file' => 'admin/comment_save.php',   'pretty' => 'admin/comment-save','title' => 'ثبت نظر',     'admin' => true],
         'admin_comment_delete'  => ['file' => 'admin/comment_delete.php', 'pretty' => 'admin/comment-del', 'title' => 'حذف نظر',    'admin' => true],
         'admin_settings'        => ['file' => 'admin/settings.php',       'pretty' => 'admin/settings','title' => 'تنظیمات سایت',      'admin' => true],
         'admin_settings_save'   => ['file' => 'admin/settings_save.php',  'pretty' => 'admin/settings-save','title' => 'ذخیره تنظیمات','admin' => true],
         'admin_content_status'  => ['file' => 'admin/content_status.php', 'pretty' => 'admin/content-status','title' => 'تغییر وضعیت انتشار','admin' => true],
+        'admin_migrate'         => ['file' => 'admin/migrate.php',        'pretty' => 'admin/migrate', 'title' => 'انتقال به دیتابیس', 'admin' => true],
     ];
     return $table;
 }
@@ -415,6 +423,51 @@ function slugify($value): string
     $value = strtolower((string) $value);
     $value = preg_replace('/[^a-z0-9_\-]/', '', $value);
     return (string) $value;
+}
+
+/**
+ * بازنویسیِ فارسی→لاتین برای ساختِ نامک (SEO-friendly).
+ * transliteration ساده‌ی استاندارد — بدونِ وابستگیِ خارجی.
+ */
+function ha_transliterate(string $text): string
+{
+    $map = [
+        'ا' => 'a', 'آ' => 'a', 'ب' => 'b', 'پ' => 'p', 'ت' => 't', 'ث' => 's',
+        'ج' => 'j', 'چ' => 'ch', 'ح' => 'h', 'خ' => 'kh', 'د' => 'd', 'ذ' => 'z',
+        'ر' => 'r', 'ز' => 'z', 'ژ' => 'zh', 'س' => 's', 'ش' => 'sh', 'ص' => 's',
+        'ض' => 'z', 'ط' => 't', 'ظ' => 'z', 'ع' => 'a', 'غ' => 'gh', 'ف' => 'f',
+        'ق' => 'gh', 'ک' => 'k', 'گ' => 'g', 'ل' => 'l', 'م' => 'm', 'ن' => 'n',
+        'و' => 'v', 'ه' => 'h', 'ی' => 'y', 'ة' => 'a', 'ى' => 'y', 'ئ' => 'y',
+        'ؤ' => 'v', 'أ' => 'a', 'إ' => 'e', 'ء' => '', 'ٔ' => '', 'ٓ' => '',
+        'ً' => '', 'ٌ' => '', 'ٍ' => '', 'َ' => '', 'ُ' => '', 'ِ' => '', 'ّ' => '','ٰ' => '',
+        '-' => '-', '_' => '_',
+    ];
+    $out = '';
+    foreach (preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
+        if (isset($map[$ch])) {
+            $out .= $map[$ch];
+        } elseif (preg_match('/[a-z0-9]/', $ch)) {
+            $out .= $ch;
+        } else {
+            $out .= '-';  // فاصله و بقیه‌ی نشانه‌ها
+        }
+    }
+    $out = strtolower($out);
+    $out = preg_replace('/[^a-z0-9_-]+/', '-', $out) ?? $out;
+    $out = preg_replace('/-{2,}/', '-', $out) ?? $out;
+    return trim($out, '-');
+}
+
+/** نامکِ خودکار از رویِ عنوان (فارسی→لاتین؛ خالی ⇒ پیشوند+عدد). */
+function ha_auto_slug(string $title, string $prefix = 'item'): string
+{
+    $slug = ha_transliterate($title);
+    $slug = mb_substr($slug, 0, 100, 'UTF-8');
+    $slug = trim($slug, '-');
+    if ($slug === '') {
+        $slug = $prefix . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
+    }
+    return $slug;
 }
 
 function param(string $key, string $default = ''): string

@@ -1,7 +1,8 @@
 <?php
 /**
- * HAvoice Admin — ویدیو (یک فرم واحد)
- * Title · Description · Thumbnail · URL · Course/Lesson · Status · Featured
+ * HAvoice Admin — ویدیو (یک فرم واحد و ساده)
+ * فقط: عنوان · توضیح · نشانی/آپلود · دوره/درس · وضعیت.
+ * نامک، تاریخ و ترتیب خودکار ساخته می‌شوند (سیاهه‌ی publish صریح است).
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 require HA_ROOT . '/pages/admin/_layout_start.php';
@@ -30,7 +31,6 @@ $lessonIndex = course_lesson_index();
 <form class="admin-form" method="post" action="<?= e(url('admin_video_save')) ?>" enctype="multipart/form-data">
 <?= csrf_field() ?>
 <input type="hidden" name="original_slug" value="<?= e($slug) ?>">
-<input type="hidden" name="type" value="video">
 
 <div class="admin-card">
     <h2><?= $slug === '' ? 'ویدیوی جدید' : 'ویرایش ویدیو' ?></h2>
@@ -39,10 +39,6 @@ $lessonIndex = course_lesson_index();
             <label for="v-title">عنوان *</label>
             <input class="input" id="v-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200">
         </div>
-        <div class="field">
-            <label for="v-slug">نامک (خودکار اگر خالی)</label>
-            <input class="input" id="v-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
-        </div>
         <div class="field" style="grid-column:1/-1">
             <label for="v-excerpt">توضیح</label>
             <textarea class="input" id="v-excerpt" name="excerpt" rows="3" maxlength="500"><?= e($item['excerpt'] ?? '') ?></textarea>
@@ -50,7 +46,6 @@ $lessonIndex = course_lesson_index();
         <div class="field" style="grid-column:1/-1">
             <label for="v-url">نشانی ویدیو * (آپارات / یوتیوب / Vimeo / فایل mp4)</label>
             <input class="input" id="v-url" type="url" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" required placeholder="https://…">
-            <p class="field__help">بدون نشانی واقعی، ویدیو در سایت عمومی نمایش داده نمی‌شود.</p>
         </div>
         <div class="field">
             <label for="v-thumb-url">بندانگشتی (نشانی تصویر)</label>
@@ -61,7 +56,7 @@ $lessonIndex = course_lesson_index();
             <input class="input" id="v-thumb-file" type="file" name="thumbnail_file" accept="image/jpeg,image/png,image/webp">
         </div>
         <div class="field">
-            <label for="v-course">دوره مرتبط</label>
+            <label for="v-course">دوره</label>
             <select class="input" id="v-course" name="course">
                 <option value="">— بدون اتصال —</option>
                 <?php foreach ($allCourses as $c): $cs = slugify((string) ($c['slug'] ?? '')); ?>
@@ -70,11 +65,11 @@ $lessonIndex = course_lesson_index();
             </select>
         </div>
         <div class="field">
-            <label for="v-lesson">درس مرتبط</label>
+            <label for="v-lesson">درس</label>
             <select class="input" id="v-lesson" name="lesson">
                 <option value="">— بدون اتصال —</option>
                 <?php foreach ($lessonIndex as $ls => $info): ?>
-                <option value="<?= e($ls) ?>"<?= $ls === $curLesson ? ' selected' : '' ?> data-course="<?= e(slugify((string) ($info['course']['slug'] ?? ''))) ?>">
+                <option value="<?= e($ls) ?>"<?= $ls === $curLesson ? ' selected' : '' ?>>
                     <?= e(($info['course']['title'] ?? '') . ' · ' . ($info['lesson']['title'] ?? $ls)) ?>
                 </option>
                 <?php endforeach; ?>
@@ -84,24 +79,6 @@ $lessonIndex = course_lesson_index();
         <?= admin_status_field($item ?? [], $slug === '') ?>
         <?= admin_featured_field($item ?? []) ?>
     </div>
-
-    <details class="admin-advanced">
-        <summary>پیشرفته</summary>
-        <div class="admin-form-grid">
-            <div class="field">
-                <label for="v-seconds">مدت (ثانیه)</label>
-                <input class="input" id="v-seconds" type="number" name="seconds" value="<?= e((string) ($item['seconds'] ?? 0)) ?>" min="0" max="86400">
-            </div>
-            <div class="field">
-                <label for="v-datefa">تاریخ فارسی</label>
-                <input class="input" id="v-datefa" type="text" name="date_fa" value="<?= e($item['date_fa'] ?? '') ?>" placeholder="۱۴۰۴/۰۲/۱۵">
-            </div>
-            <div class="field">
-                <label for="v-category">برچسب نمایشی</label>
-                <input class="input" id="v-category" type="text" name="category" value="<?= e($item['category'] ?? '') ?>" maxlength="80">
-            </div>
-        </div>
-    </details>
 </div>
 
 <div class="admin-form-actions">

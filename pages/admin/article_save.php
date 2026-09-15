@@ -12,8 +12,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست شما تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+$slug  = admin_post_slug_keep($title, $orig);
 
 $editParams = $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []);
 $editUrl = url('admin_article_edit', $editParams);
@@ -62,6 +62,14 @@ if (!$upDoc['ok']) {
 } elseif ($upDoc['path'] !== '') {
     $file = $upDoc['path'];
 }
+/* یکتاییِ خودکارِ نامکِ تازه (برخورد ⇒ پسوندِ -2/-3 — نه بازنویسیِ بی‌خبر) */
+if ($orig === '') {
+    $allSlugs = [];
+    foreach (articles_all() as $m) { $allSlugs[] = (string) ($m['slug'] ?? ''); }
+    $slug = admin_unique_slug($slug, $allSlugs, $orig);
+}
+
+
 
 $article = [
     'slug'        => $slug,

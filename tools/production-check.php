@@ -113,6 +113,14 @@ foreach ($need as $r) {
 pc('db.php loaded', function_exists('db') && function_exists('db_configured'));
 pc('repository loaded', function_exists('repo_courses') && function_exists('repo_seed'));
 pc('schema sql present', is_file($root . '/sql/002-schema.sql'));
+pc('schema sql 003 upgrade present', is_file($root . '/sql/003-upgrade.sql'));
+pc('comments hidden in schema', str_contains((string) @file_get_contents($root . '/sql/002-schema.sql'), "'hidden'"));
+pc('contact messages table used (db_message_add)', function_exists('db_message_add'));
+pc('message inbox DB-driven (admin_messages_all)', function_exists('admin_messages_all'));
+pc('bootstrap guard (auth_bootstrap_admin_available)', function_exists('auth_bootstrap_admin_available'));
+pc('course dashboard route', route_exists('admin_course_view'));
+pc('lesson/stage handlers', route_exists('admin_lesson_save') && route_exists('admin_stage_save') && route_exists('admin_lesson_delete'));
+pc('comment create handler', route_exists('admin_comment_save'));
 if (db_configured()) {
     $ready = db_ready();
     pc('db_ready', $ready);
