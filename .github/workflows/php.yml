@@ -2,7 +2,7 @@ name: PHP CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "arena/**" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    if: ${{ github.event_name == 'pull_request' || !startsWith(github.event.head_commit.message, 'ci-debug:') }}
     runs-on: ubuntu-latest
 
     services:
@@ -85,7 +86,7 @@ jobs:
           git config user.name "CI Debug"
           git add ci-debug/
           git commit -m "ci-debug: migrate log" || echo "nothing to commit"
-          git push origin "HEAD:${GITHUB_HEAD_REF}" || echo "push failed"
+          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push failed"
 
       - name: Production check (with DB)
         run: php tools/production-check.php
