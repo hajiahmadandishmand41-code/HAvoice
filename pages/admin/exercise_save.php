@@ -17,21 +17,32 @@ if ($id === '' || $title === '') {
     redirect(url('admin_exercise_edit'));
 }
 
-/* اعتبارسنجیِ اتصال‌ها */
+/* اعتبارسنجیِ اتصال‌ها — اتصال به «درس» الزامی است (تمرینِ orphan ممنوع:
+   معماریِ سایت Course → Stage → Lesson → Exercise را قطعی می‌کنیم). */
 $lesson = slugify((string) ($_POST['lesson'] ?? ''));
-if ($lesson !== '' && course_find_lesson($lesson) === null) {
+if ($lesson === '') {
+    flash('error', 'اتصالِ تمرین به یک درس الزامی است (تمرینِ بدونِ درس مجاز نیست).');
+    redirect(url('admin_exercise_edit', ['slug' => $id]));
+}
+/* وجودِ درس باید «حتی در دوره‌های پیش‌نویسِ پنل» بررسی شود، نه فقط
+   فهرستِ عمومیِ منتشرشده (پنل محتوای draft را هم مدیریت می‌کند). */
+$lessonInfo = repo_course_find_by_lesson($lesson);
+if ($lessonInfo === null && course_find_lesson($lesson) === null) {
     flash('error', 'درسِ انتخاب‌شده معتبر نیست.');
     redirect(url('admin_exercise_edit', ['slug' => $id]));
 }
 $course = slugify((string) ($_POST['course'] ?? ''));
-if ($course !== '' && find_course($course) === null) {
+/* دوره می‌تواند پیش‌نویسِ پنل باشد — در فهرستِ عمومی (courses()) نیست */
+if ($course !== '' && find_course($course) === null && repo_course_find($course) === null) {
     flash('error', 'دوره‌ی انتخاب‌شده معتبر نیست.');
     redirect(url('admin_exercise_edit', ['slug' => $id]));
 }
 /* اگر درس انتخاب شده و دوره خالی مانده، از رویِ درس استنباط می‌شود */
 if ($course === '' && $lesson !== '') {
     $info = course_find_lesson($lesson);
-    $course = slugify((string) ($info['course']['slug'] ?? ''));
+    $course = $info !== null
+        ? slugify((string) ($info['course']['slug'] ?? ''))
+        : slugify((string) ($lessonInfo['slug'] ?? $lessonInfo['course_slug'] ?? ''));
 }
 
 $item = [
@@ -56,4 +67,8 @@ if (!repo_save_exercise($item, $orig)) {
     redirect(url('admin_exercises'));
 }
 flash('success', $item['status'] === 'published' ? 'تمرین ذخیره و منتشر شد.' : 'تمرین به‌عنوان پیش‌نویس ذخیره شد (مخفی).');
+$backCourse = slugify((string) ($_POST['back_course'] ?? ''));
+if ($backCourse !== '' && (find_course($backCourse) !== null || repo_course_find($backCourse) !== null)) {
+    redirect(url('admin_course_view', ['slug' => $backCourse]));
+}
 redirect(url('admin_exercises'));

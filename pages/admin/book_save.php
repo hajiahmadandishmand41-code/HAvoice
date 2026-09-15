@@ -11,8 +11,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+$slug  = admin_post_slug_keep($title, $orig);
 $editParams = $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []);
 $editUrl = url('admin_book_edit', $editParams);
 
@@ -62,6 +62,20 @@ if (!$upDoc['ok']) {
     $file = $upDoc['path'];
 }
 
+
+/* یکتاییِ خودکارِ نامکِ تازه (برخورد ⇒ پسوندِ -2/-3 — نه بازنویسیِ بی‌خبر) */
+if ($orig === '') {
+    $allSlugs = [];
+    foreach (books_all() as $m) { $allSlugs[] = (string) ($m['slug'] ?? ''); }
+    $slug = admin_unique_slug($slug, $allSlugs, $orig);
+}
+
+/* نسخه‌ی قبلی (برای حفظِ تاریخ/فیلدهای خودکار هنگام ویرایش) */
+$oldItem = null;
+if ($orig !== '') {
+    foreach (books_all() as $b) { if (slugify((string) ($b['slug'] ?? '')) === $orig) { $oldItem = $b; break; } }
+}
+
 $item = [
     'slug'       => $slug,
     'title'      => $title,
@@ -73,7 +87,7 @@ $item = [
     'excerpt'    => trim((string) ($_POST['excerpt'] ?? '')),
     'summary'    => trim((string) ($_POST['summary'] ?? '')),
     'lessons'    => admin_lines('lessons_text'),
-    'date_fa'    => trim((string) ($_POST['date_fa'] ?? '')),
+    'date_fa'    => trim((string) ($_POST['date_fa'] ?? '')) ?: (string) ($oldItem['date_fa'] ?? ''),
     'minutes'    => max(1, (int) ($_POST['minutes'] ?? 10)),
     'tags'       => array_map('trim', array_filter(explode(',', (string) ($_POST['tags'] ?? '')))),
     'image'      => $image,

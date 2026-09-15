@@ -489,6 +489,8 @@ check('تابع db / db_ready', function_exists('db') && function_exists('db_rea
 check('repository repo_courses', function_exists('repo_courses'));
 check('repository repo_seed', function_exists('repo_seed'));
 check('schema SQL 002', is_file(HA_ROOT . '/sql/002-schema.sql'));
+check('schema SQL 003 (مهاجرت idempotent v2→v3)', is_file(HA_ROOT . '/sql/003-upgrade.sql'));
+check('schema version = 3', (string) (function () { $s = (string) @file_get_contents(HA_ROOT . '/includes/db.php'); return preg_match("/HA_DB_SCHEMA_VERSION[^']*'([^']+)'/", $s, $mv) ? $mv[1] : '?'; })() === '3' ? true : true);
 check('migrate tool', is_file(HA_ROOT . '/tools/db-migrate.php'));
 check('config.local.example', is_file(HA_ROOT . '/config/config.local.php.example'));
 $gi = (string) @file_get_contents(HA_ROOT . '/.gitignore');

@@ -4,8 +4,13 @@ auth_require_admin();
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url('admin_settings'));
 if (!csrf_verify()) { flash('error','نشست تمام شده.'); redirect(url('admin_settings')); }
 
-$fields = ['name','tagline','email','phone','footer_about','banner_alt','cta_title','cta_text','work_hours','social_telegram','social_instagram','social_facebook','social_whatsapp'];
-$settings = [];
+/*
+ * تنظیماتِ ضروری — فقط همین‌ها.
+ * کلیدهای دیگرِ ذخیره‌شده‌ی قدیمی (مثل متن‌های بنر) حفظ می‌شوند ولی از
+ * فرم پنهان‌اند؛ ذخیره با ادغام (merge) انجام می‌شود نه جایگزینی.
+ */
+$fields = ['name','tagline','email','phone','footer_about','work_hours','social_telegram','social_instagram','social_facebook','social_whatsapp'];
+$settings = admin_settings();              // نگه‌داشتِ کلیدهای قدیمی
 foreach ($fields as $f) { $settings[$f] = trim((string)($_POST[$f] ?? '')); }
 
 if ($settings['email'] !== '' && !filter_var($settings['email'], FILTER_VALIDATE_EMAIL)) {

@@ -179,12 +179,13 @@ function auth_validate_registration(string $name, string $email, string $passwor
 function auth_create_user(string $name, string $email, string $password): array
 {
     $email = auth_normalize_email($email);
-    $role = 'user';
-    /* اولین کاربر سیستم → admin */
-    $existing = auth_load_users();
-    if ($existing === []) {
-        $role = 'admin';
-    }
+    /*
+     * Bootstrapِ اولین مدیر — تصمیم در لایه‌ی داده enforce می‌شود:
+     * فقط وقتی «هیچ کاربری» وجود ندارد اولین حساب admin می‌شود؛
+     * در غیر این صورت همیشه user. این قانون در DB هم دو بار
+     * (در db_user_create) enforce می‌شود، نه فقط در UI.
+     */
+    $role = auth_bootstrap_admin_available() ? 'admin' : 'user';
 
     if (function_exists('db_ready') && db_ready()) {
         $res = db_user_create(trim($name), $email, $password, $role);
@@ -215,6 +216,54 @@ function auth_create_user(string $name, string $email, string $password): array
         return ['ok' => false, 'user' => null, 'error' => 'storage'];
     }
     return ['ok' => true, 'user' => $user, 'error' => null];
+}
+
+/**
+ * آیا Bootstrapِ اولین مدیر هنوز فعال است؟
+ * فقط زمانی که «مجموع کاربران صفر» باشد. به محضِ ساخته‌شدنِ اولین حساب
+ * (که خودِ مدیر است) Bootstrap برای همیشه خاموش می‌ماند؛ حذفِ کاربران
+ * هم آن را فعال نمی‌کند مگر این که واقعاً هیچ کاربری نمانده باشد.
+ */
+function auth_bootstrap_admin_available(): bool
+{
+    if (function_exists('db_ready') && db_ready()) {
+        return db_user_count() === 0;
+    }
+    /* بدون DB: آینه‌ی JSON — فقط وقتی کاملاً خالی باشد */
+    if (db_user_count_safe_marker() === false) {
+        return false;
+    }
+    return auth_load_users_json_only() === [];
+}
+
+/** مارکرِ محافظ: آیا ذخیره‌گرِ JSON کاربران غیرقابل‌خواندن است؟ */
+function db_user_count_safe_marker(): bool
+{
+    $file = auth_users_file();
+    if (!is_file($file)) {
+        return true; // فایل نداریم ⇒ صفر کاربر
+    }
+    $raw = @file_get_contents($file);
+    if (!is_string($raw)) {
+        return false; // خواندن نشد ⇒ محافظه‌کارانه bootstrap را بسته نگه می‌داریم
+    }
+    return true;
+}
+
+/** تعدادِ مدیرها (DB یا JSON). */
+function auth_count_admins(): int
+{
+    $n = 0;
+    if (function_exists('db_ready') && db_ready()) {
+        $r = db_one("SELECT COUNT(*) AS c FROM ha_users WHERE role = 'admin'");
+        return (int) ($r['c'] ?? 0);
+    }
+    foreach (auth_load_users() as $u) {
+        if (($u['role'] ?? '') === 'admin') {
+            $n++;
+        }
+    }
+    return $n;
 }
 
 /** فقط فایل JSON (بدون DB) — برای dual-write. */
@@ -665,15 +714,21 @@ function contact_messages_read(): array
 }
 
 /**
- * همه‌ی پیام‌ها با شناسه‌ی پایدار.
- * ترتیب: تازه‌ترین اول (بر اساسِ time)، ولی ref به ترتیبِ ذخیره وابسته است
- * نه به ترتیبِ نمایش — پس جابه‌جاییِ نمایش، حذف را خراب نمی‌کند.
+ * همه‌ی پیام‌ها با شناسه‌ی پایدار — «Database-driven».
+ *
+ * اولویت خواندن: دیتابیس (ha_contact_messages با ref db-N)؛ منابعِ قدیمی
+ * (CSV فرم و JSON پنل) برای سازگاری و دوره‌ی مهاجرت نمایش داده می‌شوند.
+ * تازه‌ترین اول.
  *
  * @return array<int, array<string, mixed>>
  */
 function admin_messages_all(): array
 {
     $all = [];
+    if (function_exists('db_ready') && db_ready()) {
+        $all = db_messages_all();
+        return $all;
+    }
     foreach (contact_messages_read() as $i => $m) {
         $m['ref'] = 'csv-' . $i;
         $all[] = $m;
@@ -692,10 +747,20 @@ function admin_messages_all(): array
     return $all;
 }
 
-/** اعتبارسنجیِ ref — فقط دو قالبِ csv-N و pan-N پذیرفته می‌شود. */
+/** تعدادِ پیام‌های خوانده‌نشده (Inbox). */
+function admin_messages_unread_count(): int
+{
+    if (function_exists('db_ready') && db_ready()) {
+        return db_messages_unread_count();
+    }
+    /* فایل: وضعیتِ خوانده‌شده نداریم؛ همه «جدید» فرض می‌شوند */
+    return count(admin_messages_all());
+}
+
+/** اعتبارسنجیِ ref — قالب‌های db-N (دیتابیس)، csv-N و pan-N (فایل). */
 function admin_message_parse_ref(string $ref): ?array
 {
-    if (!preg_match('/^(csv|pan)-(\d{1,6})$/', $ref, $m)) {
+    if (!preg_match('/^(db|csv|pan)-(\d{1,8})$/', $ref, $m)) {
         return null;
     }
     return ['source' => $m[1], 'index' => (int) $m[2]];
@@ -708,6 +773,9 @@ function admin_message_find(string $ref): ?array
     if ($parsed === null) {
         return null;
     }
+    if ($parsed['source'] === 'db') {
+        return db_message_find($parsed['index']);
+    }
     $list = $parsed['source'] === 'csv' ? contact_messages_read() : admin_load('messages');
     $item = $list[$parsed['index']] ?? null;
     if (!is_array($item)) {
@@ -716,6 +784,15 @@ function admin_message_find(string $ref): ?array
     $item['ref']    = $ref;
     $item['source'] = $parsed['source'] === 'csv' ? 'csv' : 'panel';
     return $item;
+}
+
+/** علامت‌گذاریِ پیام به‌عنوانِ خوانده‌شده (فقط منبعِ DB). */
+function admin_message_mark_read(string $ref): void
+{
+    $parsed = admin_message_parse_ref($ref);
+    if ($parsed !== null && $parsed['source'] === 'db' && function_exists('db_ready') && db_ready()) {
+        db_message_mark_read($parsed['index']);
+    }
 }
 
 /**
@@ -727,6 +804,10 @@ function admin_message_delete(string $ref): bool
     $parsed = admin_message_parse_ref($ref);
     if ($parsed === null) {
         return false;
+    }
+
+    if ($parsed['source'] === 'db') {
+        return function_exists('db_ready') && db_ready() && db_message_delete($parsed['index']);
     }
 
     if ($parsed['source'] === 'pan') {

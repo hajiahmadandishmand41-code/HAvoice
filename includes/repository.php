@@ -188,7 +188,300 @@ function repo_delete_course(string $slug): bool
         return slugify((string) ($c['slug'] ?? '')) !== $slug;
     }));
     $jsonOk = admin_store('courses', $courses);
+    /* آینه‌ی CASCADE: تمرین‌های آن دوره هم از آینه‌ی JSON پاک شوند */
+    repo_mirror_delete('exercises', 'course', $slug);
     return repo_write_ok($dbOk, $jsonOk);
+}
+
+/* ------------------------------------------------------------------ */
+/*  ساختارِ دوره: مرحله و درس (یک مسیرِ ذخیره: repo_save_course)       */
+/* ------------------------------------------------------------------ */
+
+/** یافتنِ دوره (از منبعِ repo: DB یا فایل+آینه‌ی پنل). */
+function repo_course_find(string $slug): ?array
+{
+    $slug = slugify($slug);
+    if ($slug === '') {
+        return null;
+    }
+    foreach (repo_courses() as $c) {
+        if (slugify((string) ($c['slug'] ?? '')) === $slug) {
+            return $c;
+        }
+    }
+    return null;
+}
+
+/** یافتنِ دوره‌ای که درسِ slug را دارد. */
+function repo_course_find_by_lesson(string $lessonSlug): ?array
+{
+    $lessonSlug = slugify($lessonSlug);
+    foreach (repo_courses() as $c) {
+        foreach ((array) ($c['stages'] ?? []) as $st) {
+            foreach ((array) ($st['lessons'] ?? []) as $l) {
+                if (slugify((string) ($l['slug'] ?? '')) === $lessonSlug) {
+                    return $c;
+                }
+            }
+        }
+    }
+    return null;
+}
+
+/** همه‌ی نامک‌های درس‌ها در کلِ سایت (یکتاییِ slug). */
+function repo_all_lesson_slugs(): array
+{
+    $out = [];
+    foreach (repo_courses() as $c) {
+        foreach ((array) ($c['stages'] ?? []) as $st) {
+            foreach ((array) ($st['lessons'] ?? []) as $l) {
+                $ls = slugify((string) ($l['slug'] ?? ''));
+                if ($ls !== '') {
+                    $out[$ls] = true;
+                }
+            }
+        }
+    }
+    return $out;
+}
+
+/** ساختِ نامکِ یکتای درس (در صورتِ برخورد: -2، -3…). */
+function repo_unique_lesson_slug(string $base, string $currentSlug = ''): string
+{
+    $base = slugify($base);
+    if ($base === '') {
+        $base = 'lesson';
+    }
+    $taken = repo_all_lesson_slugs();
+    unset($taken[slugify($currentSlug)]);
+    $slug = $base;
+    $n = 2;
+    while (isset($taken[$slug])) {
+        $slug = $base . '-' . $n;
+        $n++;
+    }
+    return $slug;
+}
+
+/**
+ * ذخیره‌ی یک درس در دوره — ساخت/ویرایش.
+ * ورودیِ $lesson: slug (خالی ⇒ خودکار از عنوان)، title، goal، blocks،
+ * minutes، drill (اختیاری)، status. خروجی: نامکِ نهایی یا null.
+ */
+function repo_save_lesson(string $courseSlug, array $lesson, string $origSlug = '', string $stageKey = ''): ?string
+{
+    $course = repo_course_find($courseSlug);
+    if ($course === null) {
+        return null;
+    }
+    $stages = array_values((array) ($course['stages'] ?? []));
+    if ($stages === []) {
+        /* دوره هنوز مرحله ندارد؛ به‌صورت خودکار «مرحله‌ی ۱» ساخته می‌شود */
+        $stages[] = [
+            'id' => 'stage-1', 'label' => 'مرحله‌ی ۱', 'title' => 'مرحله‌ی ۱',
+            'summary' => '', 'outcome' => '', 'duration' => '', 'lessons' => [],
+        ];
+    }
+    /* مرحله‌ی مقصد */
+    $targetIdx = -1;
+    if ($stageKey !== '') {
+        foreach ($stages as $i => $st) {
+            if ((string) ($st['id'] ?? '') === $stageKey) {
+                $targetIdx = $i;
+                break;
+            }
+        }
+    }
+    if ($targetIdx < 0) {
+        $targetIdx = 0;
+    }
+
+    /* اگر ویرایش است و مرحله عوض شده، درس را از مرحله‌ی قبلی بردار */
+    if ($origSlug !== '') {
+        foreach ($stages as $i => $st) {
+            $lessons = [];
+            foreach ((array) ($st['lessons'] ?? []) as $l) {
+                if (slugify((string) ($l['slug'] ?? '')) !== slugify($origSlug)) {
+                    $lessons[] = $l;
+                }
+            }
+            $stages[$i]['lessons'] = array_values($lessons);
+        }
+    }
+
+    $newSlug = slugify((string) ($lesson['slug'] ?? ''));
+    if ($newSlug === '' || ($origSlug === '')) {
+        $newSlug = repo_unique_lesson_slug($newSlug !== '' ? $newSlug : (string) ($lesson['title'] ?? ''), $origSlug);
+    } elseif (slugify($origSlug) !== $newSlug) {
+        $newSlug = repo_unique_lesson_slug($newSlug, $origSlug);
+    }
+
+    $clean = [
+        'slug'    => $newSlug,
+        'title'   => trim((string) ($lesson['title'] ?? '')),
+        'minutes' => max(0, (int) ($lesson['minutes'] ?? 0)),
+        'goal'    => trim((string) ($lesson['goal'] ?? '')),
+        'blocks'  => is_array($lesson['blocks'] ?? null) ? array_values($lesson['blocks']) : [],
+        'drill'   => is_array($lesson['drill'] ?? null) ? $lesson['drill'] : [],
+        'prerequisite' => slugify((string) ($lesson['prerequisite'] ?? '')),
+        'refs'    => array_values(array_filter(array_map('trim', (array) ($lesson['refs'] ?? [])))),
+        'status'  => db_status((string) ($lesson['status'] ?? 'draft'), 'draft'),
+    ];
+    if ($clean['title'] === '') {
+        return null;
+    }
+
+    $list = array_values((array) ($stages[$targetIdx]['lessons'] ?? []));
+    $replaced = false;
+    if ($origSlug !== '') {
+        foreach ($list as $i => $l) {
+            if (slugify((string) ($l['slug'] ?? '')) === slugify($origSlug)) {
+                $list[$i] = $clean;
+                $replaced = true;
+                break;
+            }
+        }
+    }
+    if (!$replaced) {
+        $list[] = $clean;  /* order خودکار: انتهای مرحله */
+    }
+    $stages[$targetIdx]['lessons'] = $list;
+
+    $course['stages'] = $stages;
+    if (!repo_save_course($course, slugify((string) ($course['slug'] ?? '')))) {
+        return null;
+    }
+    return $newSlug;
+}
+
+/**
+ * حذفِ درس از دوره — CASCADE مشخص و امن:
+ *   DB: FK lesson→exercise حذف می‌کند.
+ *   آینه‌ی JSON: تمرین‌های متصل به همان درس هم حذف می‌شوند.
+ */
+function repo_delete_lesson(string $courseSlug, string $lessonSlug): bool
+{
+    $lessonSlug = slugify($lessonSlug);
+    $course = repo_course_find($courseSlug);
+    if ($course === null || $lessonSlug === '') {
+        return false;
+    }
+    $stages = [];
+    $removed = false;
+    foreach ((array) ($course['stages'] ?? []) as $st) {
+        $lessons = [];
+        foreach ((array) ($st['lessons'] ?? []) as $l) {
+            if (slugify((string) ($l['slug'] ?? '')) === $lessonSlug) {
+                $removed = true;
+                continue;
+            }
+            $lessons[] = $l;
+        }
+        $st['lessons'] = array_values($lessons);
+        $stages[] = $st;
+    }
+    if (!$removed) {
+        return false;
+    }
+    $course['stages'] = $stages;
+    $ok = repo_save_course($course, slugify((string) ($course['slug'] ?? '')));
+    /* آینه‌ی تمرین‌ها (DB خودش با FK حذف کرده) */
+    repo_mirror_delete('exercises', 'lesson', $lessonSlug);
+    return $ok;
+}
+
+/** ذخیره‌ی مرحله (افزودن/ویرایشِ عنوان و خلاصه). درس‌ها دست‌نخورده می‌مانند. */
+function repo_save_stage(string $courseSlug, array $stage, string $origKey = ''): ?string
+{
+    $course = repo_course_find($courseSlug);
+    if ($course === null) {
+        return null;
+    }
+    $stages = array_values((array) ($course['stages'] ?? []));
+    $key = trim((string) ($stage['id'] ?? ''));
+    if ($key === '') {
+        $key = $origKey !== '' ? $origKey : 'stage-' . (count($stages) + 1);
+    }
+    /* یکتاییِ کلید در همین دوره */
+    $base = $key;
+    $n = 2;
+    $exists = static function (string $k) use ($stages, $origKey): bool {
+        foreach ($stages as $st) {
+            if ((string) ($st['id'] ?? '') === $k && $k !== $origKey) {
+                return true;
+            }
+        }
+        return false;
+    };
+    while ($exists($key)) {
+        $key = $base . '-' . $n++;
+    }
+
+    $found = false;
+    foreach ($stages as $i => $st) {
+        if ((string) ($st['id'] ?? '') === ($origKey !== '' ? $origKey : $key)) {
+            $stages[$i] = array_merge($st, [
+                'id'       => $key,
+                'label'    => trim((string) ($stage['label'] ?? ($st['label'] ?? ''))),
+                'title'    => trim((string) ($stage['title'] ?? '')) ?: (string) ($st['title'] ?? ''),
+                'summary'  => (string) ($stage['summary'] ?? ($st['summary'] ?? '')),
+                'outcome'  => (string) ($stage['outcome'] ?? ($st['outcome'] ?? '')),
+                'duration' => (string) ($stage['duration'] ?? ($st['duration'] ?? '')),
+            ]);
+            $found = true;
+            break;
+        }
+    }
+    if (!$found) {
+        $stages[] = [
+            'id'       => $key,
+            'label'    => trim((string) ($stage['label'] ?? ('مرحله‌ی ' . fa_num(count($stages) + 1)))),
+            'title'    => trim((string) ($stage['title'] ?? '')),
+            'summary'  => (string) ($stage['summary'] ?? ''),
+            'outcome'  => (string) ($stage['outcome'] ?? ''),
+            'duration' => (string) ($stage['duration'] ?? ''),
+            'lessons'  => [],
+        ];
+    }
+    $course['stages'] = $stages;
+    if (!repo_save_course($course, slugify((string) ($course['slug'] ?? '')))) {
+        return null;
+    }
+    return $key;
+}
+
+/** حذفِ مرحله — CASCADE: درس‌های آن (و تمرین‌هایشان) هم می‌روند. */
+function repo_delete_stage(string $courseSlug, string $stageKey): bool
+{
+    $course = repo_course_find($courseSlug);
+    if ($course === null || $stageKey === '') {
+        return false;
+    }
+    $stages = [];
+    $removed = false;
+    $lessonSlugs = [];
+    foreach ((array) ($course['stages'] ?? []) as $st) {
+        if ((string) ($st['id'] ?? '') === $stageKey) {
+            $removed = true;
+            foreach ((array) ($st['lessons'] ?? []) as $l) {
+                $ls = slugify((string) ($l['slug'] ?? ''));
+                if ($ls !== '') {
+                    $lessonSlugs[] = $ls;
+                }
+            }
+            continue;
+        }
+        $stages[] = $st;
+    }
+    if (!$removed) {
+        return false;
+    }
+    $course['stages'] = array_values($stages);
+    $ok = repo_save_course($course, slugify((string) ($course['slug'] ?? '')));
+    foreach ($lessonSlugs as $ls) {
+        repo_mirror_delete('exercises', 'lesson', $ls);
+    }
+    return $ok;
 }
 
 function repo_save_article(array $item, string $orig = ''): bool
@@ -325,8 +618,80 @@ function repo_delete_category(string $slug): bool
     return repo_write_ok($dbOk, $jsonOk);
 }
 
-function repo_set_status(string $type, string $key, string $status): bool
+function repo_set_status(string $type, string $key, string $status, string $contextCourse = ''): bool
 {
+    /* درس و مرحله: از مسیرِ ساختارِ دوره ذخیره می‌شوند (DB + آینه‌ی JSON). */
+    if ($type === 'lesson') {
+        $status = db_status($status, 'draft');
+        $key = slugify($key);
+        if ($key === '') {
+            return false;
+        }
+        $dbOk = true;
+        if (db_ready()) {
+            $dbOk = db_lesson_set_status($key, $status);
+        }
+        $jsonOk = true;
+        $courses = admin_load('courses');
+        if ($courses !== []) {
+            $changed = false;
+            foreach ($courses as $ci => $c) {
+                foreach ((array) ($c['stages'] ?? []) as $si => $st) {
+                    foreach ((array) ($st['lessons'] ?? []) as $li => $l) {
+                        if (slugify((string) ($l['slug'] ?? '')) === $key) {
+                            $courses[$ci]['stages'][$si]['lessons'][$li]['status'] = $status;
+                            $changed = true;
+                        }
+                    }
+                }
+            }
+            if ($changed) {
+                $jsonOk = admin_store('courses', $courses);
+            }
+        }
+        /* اگر درس از فایل می‌آید و هنوز آینه‌ای ندارد، کلِ دوره را mirror کن */
+        if (!db_ready()) {
+            $found = false;
+            foreach (admin_load('courses') as $c) {
+                foreach ((array) ($c['stages'] ?? []) as $st) {
+                    foreach ((array) ($st['lessons'] ?? []) as $l) {
+                        if (slugify((string) ($l['slug'] ?? '')) === $key) { $found = true; }
+                    }
+                }
+            }
+            if (!$found) {
+                $course = repo_course_find_by_lesson($key);
+                if ($course !== null) {
+                    foreach ((array) ($course['stages'] ?? []) as $si => $st) {
+                        foreach ((array) ($st['lessons'] ?? []) as $li => $l) {
+                            if (slugify((string) ($l['slug'] ?? '')) === $key) {
+                                $course['stages'][$si]['lessons'][$li]['status'] = $status;
+                            }
+                        }
+                    }
+                    $jsonOk = repo_save_course($course, slugify((string) ($course['slug'] ?? '')));
+                }
+            }
+        }
+        return repo_write_ok($dbOk, $jsonOk);
+    }
+
+    if ($type === 'stage') {
+        $status = db_status($status, 'draft');
+        $course = repo_course_find($contextCourse);
+        if ($course === null) {
+            return false;
+        }
+        $changed = false;
+        foreach ((array) ($course['stages'] ?? []) as $i => $st) {
+            if ((string) ($st['id'] ?? '') === $key) {
+                $course['stages'][$i]['status'] = $status;
+                $changed = true;
+            }
+        }
+        return $changed && repo_save_course($course, slugify((string) ($course['slug'] ?? '')));
+    }
+
     $map = [
         'course'   => ['ha_courses', 'slug', 'courses', 'slug'],
         'article'  => ['ha_articles', 'slug', 'articles', 'slug'],

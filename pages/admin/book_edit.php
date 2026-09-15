@@ -1,8 +1,8 @@
 <?php
 /**
- * HAvoice Admin — ویرایش/ثبتِ کتاب
- * کتاب می‌تواند: خلاصه داشته باشد، فایلِ کامل (PDF) آپلود/لینک شود، و
- * در صورتِ ثبتِ متنِ کامل (بلوک‌ها) داخلِ سایت خوانده شود.
+ * HAvoice Admin — ویرایش/ثبتِ کتاب (فرم ساده)
+ * مشخصاتِ پایه (نام، نویسنده، توضیح، ناشر/پیوند، حوزه/دوره، وضعیت) +
+ * متن کامل اختیاری برای مطالعه‌ی درون‌سایت. نامک و تاریخ خودکار.
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 require HA_ROOT . '/pages/admin/_layout_start.php';
@@ -25,12 +25,9 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
     <h2>مشخصاتِ کتاب</h2>
     <div class="admin-form-grid">
         <div class="field"><label for="b-title">عنوان *</label><input class="input" id="b-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200"></div>
-        <div class="field"><label for="b-slug">نامک (slug) *</label><input class="input" id="b-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" required dir="ltr" maxlength="100"></div>
         <div class="field"><label for="b-author">نویسنده</label><input class="input" id="b-author" type="text" name="author" value="<?= e($item['author'] ?? '') ?>" maxlength="120"></div>
         <div class="field"><label for="b-translator">مترجم (اختیاری)</label><input class="input" id="b-translator" type="text" name="translator" value="<?= e($item['translator'] ?? '') ?>" maxlength="120"></div>
         <?= admin_field_select($item ?? []) ?>
-        <div class="field"><label for="b-category">برچسبِ موضوع (نمایشی)</label><input class="input" id="b-category" type="text" name="category" value="<?= e($item['category'] ?? '') ?>" maxlength="80"></div>
-        <div class="field"><label for="b-datefa">تاریخ فارسی</label><input class="input" id="b-datefa" type="text" name="date_fa" value="<?= e($item['date_fa'] ?? '') ?>" placeholder="۱۴۰۴/۰۱/۰۱"></div>
         <div class="field"><label for="b-minutes">زمان مطالعه‌ی خلاصه (دقیقه)</label><input class="input" id="b-minutes" type="number" name="minutes" value="<?= e((string)($item['minutes'] ?? 10)) ?>" min="1" max="600"></div>
         <div class="field"><label for="b-course">دوره‌ی مرتبط (اختیاری)</label>
             <select class="input" id="b-course" name="course">
@@ -40,8 +37,7 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
                 <?php endforeach; ?>
             </select></div>
         <div class="field"><label for="b-tags">برچسب‌ها (کاما)</label><input class="input" id="b-tags" type="text" name="tags" value="<?= e(implode(', ', $item['tags'] ?? [])) ?>"></div>
-        <div class="field"><label for="b-lessons">برداشت‌های کلیدی — هر خط یک مورد</label><textarea class="input" id="b-lessons" name="lessons_text" rows="3"><?= e(implode("\n", array_map('strval', (array) ($item['lessons'] ?? [])))) ?></textarea></div>
-        <?= admin_status_field($item ?? []) ?>
+        <?= admin_status_field($item ?? [], $slug === '') ?>
         <?= admin_featured_field($item ?? []) ?>
     </div>
 </div>
@@ -61,13 +57,17 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
 </div>
 
 <div class="admin-card">
-    <h2>خلاصه و متنِ کامل</h2>
+    <h2>توضیح</h2>
     <div class="field"><label for="b-excerpt">چکیده (روی کارت)</label><textarea class="input" id="b-excerpt" name="excerpt" rows="3" maxlength="400"><?= e($item['excerpt'] ?? '') ?></textarea></div>
-    <div class="field"><label for="b-summary">خلاصه و برداشت</label><textarea class="input" id="b-summary" name="summary" rows="6"><?= e($item['summary'] ?? '') ?></textarea></div>
-    <div class="field"><label for="b-blocks">متنِ کاملِ کتاب برای مطالعه‌ی درون‌سایت (بلوک‌ها — JSON)</label>
-        <textarea class="input input--code" id="b-blocks" name="blocks_json" rows="10" dir="ltr" spellcheck="false" placeholder='[{"type":"h2","text":"فصل ۱"},{"type":"p","text":"…"}]'><?= e(json_encode($item['blocks'] ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></textarea>
-        <p class="field__help">اگر پر شود، صفحه‌ی کتاب دکمه‌ی «مطالعه در سایت» می‌گیرد و متن همان‌جا خوانده می‌شود. اگر خالی بماند، کتاب فقط با خلاصه و فایل/پیوند نمایش داده می‌شود.</p></div>
+    <div class="field"><label for="b-summary">خلاصه</label><textarea class="input" id="b-summary" name="summary" rows="5"><?= e($item['summary'] ?? '') ?></textarea></div>
 </div>
+
+<details class="admin-advanced">
+    <summary>متن کامل برای مطالعه‌ی درون‌سایت (اختیاری)</summary>
+    <div class="field"><label for="b-lessons">برداشت‌های کلیدی — هر خط یک مورد</label><textarea class="input" id="b-lessons" name="lessons_text" rows="3"><?= e(implode("\n", array_map('strval', (array) ($item['lessons'] ?? [])))) ?></textarea></div>
+    <div class="field"><label for="b-blocks">متنِ کاملِ کتاب (بلوک‌ها — JSON)</label>
+        <textarea class="input input--code textarea--mono" id="b-blocks" name="blocks_json" rows="10" dir="ltr" spellcheck="false" placeholder='[{"type":"h2","text":"فصل ۱"},{"type":"p","text":"…"}]'><?= e(json_encode($item['blocks'] ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></textarea></div>
+</details>
 
 <div class="admin-form-actions">
     <button class="btn btn--primary" type="submit"><?= ha_icon('check', 15) ?> ذخیره‌ی کتاب</button>

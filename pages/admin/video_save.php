@@ -11,8 +11,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+$slug  = admin_post_slug_keep($title, $orig);
 $editUrl = url('admin_video_edit', $orig !== '' ? ['slug' => $orig] : []);
 
 if ($title === '' || $slug === '') {
@@ -82,19 +82,26 @@ foreach ($items as $m) {
     }
 }
 
+/* یکتاییِ خودکارِ نامکِ تازه (برخورد ⇒ پسوندِ -2/-3 — نه بازنویسیِ بی‌خبر) */
+if ($existing === null) {
+    $allSlugs = [];
+    foreach (media_all() as $m) { $allSlugs[] = (string) ($m['slug'] ?? ''); }
+    $slug = admin_unique_slug($slug, $allSlugs, $orig);
+}
+
 $item = [
     'type'        => 'video',
     'slug'        => $slug,
     'title'       => $title,
     'field'       => $field,
-    'category'    => $category !== '' ? $category : $field,
+    'category'    => $category !== '' ? $category : ($existing['category'] ?? $field),
     'excerpt'     => trim((string) ($_POST['excerpt'] ?? '')),
     'url'         => $url,
     'thumbnail'   => $thumb,
     'course'      => $course,
     'lesson'      => $lesson,
-    'seconds'     => max(0, (int) ($_POST['seconds'] ?? 0)),
-    'date_fa'     => trim((string) ($_POST['date_fa'] ?? '')),
+    'seconds'     => max(0, (int) ($_POST['seconds'] ?? (int) ($existing['seconds'] ?? 0))),
+    'date_fa'     => trim((string) ($_POST['date_fa'] ?? '')) ?: (string) ($existing['date_fa'] ?? ''),
     'status'      => admin_post_status_default_draft($existing === null),
     'featured'    => !empty($_POST['featured']),
     'created_at'  => (string) ($existing['created_at'] ?? $now),

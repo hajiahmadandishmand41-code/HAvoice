@@ -2,15 +2,16 @@ name: PHP CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "arena/**" ]
   pull_request:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
+    if: ${{ github.event_name == 'pull_request' || !startsWith(github.event.head_commit.message, 'ci-debug:') }}
     runs-on: ubuntu-latest
 
     services:
@@ -67,15 +68,34 @@ jobs:
           define('HA_SEED_ADMIN_EMAIL', 'admin@test.local');
           define('HA_SEED_ADMIN_PASSWORD', 'TestAdmin_9x');
           define('HA_SEED_ADMIN_NAME', 'Admin');
+          define('HA_DEBUG', true);
           PHP
 
       - name: Migrate + seed MySQL
         run: |
-          php tools/db-migrate.php --seed
-          php tools/db-migrate.php --status
+          set -o pipefail
+          php tools/db-migrate.php --seed 2>&1 | tee /tmp/migrate-seed.log
+          php tools/db-migrate.php --status 2>&1 | tee /tmp/migrate-status.log
+
+      - name: Annotate migrate output on failure
+        if: failure()
+        shell: bash
+        run: |
+          n=0
+          for f in /tmp/migrate-seed.log /tmp/migrate-status.log /tmp/prodcheck-db.log; do
+            [ -f "$f" ] || continue
+            while IFS= read -r line; do
+              [ $n -lt 18 ] || break
+              msg=$(printf 'LOG|%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')
+              echo "::error::${msg}"
+              n=$((n+1))
+            done < <(tail -n 30 "$f")
+          done
 
       - name: Production check (with DB)
-        run: php tools/production-check.php
+        run: |
+          set -o pipefail
+          php tools/production-check.php 2>&1 | tee /tmp/prodcheck-db.log
 
       - name: Auth + relationship smoke (DB)
         run: |

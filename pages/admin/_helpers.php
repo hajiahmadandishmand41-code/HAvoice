@@ -136,12 +136,58 @@ function admin_lines(string $key): array
     return $out;
 }
 
-/** نامک از POST + fallback به ساخت از رویِ عنوان. */
+/** نامک از POST + fallback به ساختِ خودکار از رویِ عنوان (فارسی→لاتین). */
 function admin_post_slug(string $title = ''): string
 {
     $slug = slugify((string) ($_POST['slug'] ?? ''));
     if ($slug === '' && $title !== '') {
-        $slug = slugify($title);
+        $slug = ha_auto_slug($title, 'item');
+    }
+    return $slug;
+}
+
+/**
+ * حفظِ نامکِ حاضر در ویرایش (پایداریِ لینک‌ها):
+ *   ۱) اگر slug در POST هست ⇒ همان معتبر است.
+ *   ۲) ویرایش بدونِ POSTِ slug ⇒ نامکِ قبلی حفظ می‌شود.
+ *   ۳) موردِ جدید بدونِ slug ⇒ خودکار از عنوان.
+ */
+function admin_post_slug_keep(string $title, string $orig): string
+{
+    $slug = slugify((string) ($_POST['slug'] ?? ''));
+    if ($slug !== '') {
+        return $slug;
+    }
+    if ($orig !== '') {
+        return $orig;
+    }
+    return $title !== '' ? ha_auto_slug($title, 'item') : '';
+}
+
+/**
+ * یکتاییِ نامک در میانِ سایر موارد: برخورد ⇒ «-2», «-3» …
+ * تا بازنویسیِ بی‌خبرِ موردِ دیگر (UNIQUE در DB و جایگزینی در آینه‌ی
+ * JSON) رخ ندهد. نامکِ خودکار با برخورد ⇒ پسوندِ خودکار.
+ */
+function admin_unique_slug(string $slug, array $allSameScopeSlugs, string $orig = ''): string
+{
+    $slug = trim($slug);
+    if ($slug === '') {
+        return $slug;
+    }
+    $taken = [];
+    foreach ($allSameScopeSlugs as $x) {
+        $taken[slugify((string) $x)] = true;
+    }
+    unset($taken[$orig]);
+    if (!isset($taken[$slug])) {
+        return $slug;
+    }
+    $base = $slug;
+    $n = 2;
+    while (isset($taken[$slug])) {
+        $slug = $base . '-' . $n;
+        $n++;
     }
     return $slug;
 }

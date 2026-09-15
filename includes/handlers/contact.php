@@ -108,8 +108,12 @@ $record = [
     'message' => $clean($body),
 ];
 
-/* ۷) ذخیره در فایل (CSV تا با اکسل/متن باز شود) */
+/* ۷) ذخیره — اولِ دیتابیس (Database-driven)، بعد CSV به‌عنوانِ پشتیبان */
 $saved = false;
+
+if (function_exists('db_ready') && db_ready() && function_exists('db_message_add')) {
+    $saved = db_message_add($record) > 0;
+}
 
 if (HA_STORE_MESSAGES) {
     $dir  = storage_dir('messages');
@@ -127,16 +131,16 @@ if (HA_STORE_MESSAGES) {
                 if ($new) {
                     fputcsv($fp, ['زمان', 'موضوع', 'نام', 'ایمیل', 'متن', 'IP']);
                 }
-                fputcsv($fp, [
+                $csvOk = fputcsv($fp, [
                     $record['time'],
                     $record['subject'],
                     $record['name'],
                     $record['email'],
                     str_replace("\n", ' / ', $record['message']),
                     $record['ip'],
-                ]);
+                ]) !== false;
                 flock($fp, LOCK_UN);
-                $saved = true;
+                $saved = $saved || $csvOk;
             }
             fclose($fp);
         }
