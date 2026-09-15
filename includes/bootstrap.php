@@ -19,6 +19,7 @@ require HA_ROOT . '/includes/helpers.php';
 require HA_ROOT . '/includes/icons.php';
 require HA_ROOT . '/includes/content.php';
 require HA_ROOT . '/includes/auth.php';
+require HA_ROOT . '/includes/uploads.php';
 require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/meta.php';
 require HA_ROOT . '/includes/comments.php';
@@ -162,6 +163,19 @@ if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  گیتِ احراز هویت برای محتوای محافظت‌شده                             */
+/*                                                                    */
+/*  مسیرهایی که در routes() فلگ 'auth' => true دارند (دوره، درس،      */
+/*  تمرین) فقط برای کاربرِ واردشده بازند. مهمان با پیامِ راهنما به      */
+/*  صفحه‌ی ورود می‌رود و نشانیِ همین صفحه در پارامترِ next حفظ می‌شود   */
+/*  تا پس از ورود/ثبت‌نام به همان‌جا برگردد.                            */
+/* ------------------------------------------------------------------ */
+
+if (route_meta($route, 'auth', false) === true && !auth_is_logged_in()) {
+    auth_require_guest();
+}
+
+/* ------------------------------------------------------------------ */
 /*  سرصفحه‌های امنیتی                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -223,6 +237,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_message_delete':
         case 'admin_comment_status':
         case 'admin_comment_delete':
+        case 'admin_content_status':
             // Map route to file: admin_article_save → article_save.php
             $handlerFile = HA_ROOT . '/pages/admin/' . str_replace('admin_', '', $route) . '.php';
             if (is_file($handlerFile)) {

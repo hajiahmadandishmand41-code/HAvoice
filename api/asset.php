@@ -11,13 +11,26 @@
 define('HA_ROOT', dirname(__DIR__));
 
 $path = isset($_GET['path']) && is_string($_GET['path']) ? $_GET['path'] : '';
-$base = HA_ROOT . '/assets';
+$path = ltrim(str_replace("\\", '/', $path), '/');
+
+/* فهرستِ سفیدِ ریشه‌های قابلِ سرو: assets و uploads (فایل‌های مدیر). */
+$rootName = 'assets';
+if (str_starts_with($path, 'uploads/')) {
+    $rootName = 'uploads';
+    $path = substr($path, strlen('uploads/'));
+}
+$base = HA_ROOT . '/' . $rootName;
 $realBase = realpath($base);
-$full = $base . '/' . ltrim(str_replace("\\", '/', $path), '/');
+$full = $base . '/' . $path;
 $real = is_string($full) ? realpath($full) : false;
 
+/* هر اسکریپتی — هر کجا — سرو نمی‌شود (دفاع در برابر web-shell). */
+$extCheck = strtolower((string) pathinfo((string) $real, PATHINFO_EXTENSION));
+$blocked  = ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'htaccess', 'cgi', 'pl'];
+
 if ($realBase === false || $real === false || !is_file($real)
-    || strpos($real, $realBase . DIRECTORY_SEPARATOR) !== 0) {
+    || strpos($real, $realBase . DIRECTORY_SEPARATOR) !== 0
+    || in_array($extCheck, $blocked, true)) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Not Found';

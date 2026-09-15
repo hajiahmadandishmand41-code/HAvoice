@@ -60,8 +60,23 @@ if(count($relatedArticles)<2) $relatedArticles = latest_articles(2);
                 <?= render_drill((array)$data['drill']) ?>
             <?php endif; ?>
 
-            <!-- تمرین‌های مرتبط -->
-            <?php if(!empty($data['drill'])): ?>
+            <?php
+            /* تمرین‌های متصل به همین درس (از پنل: exercise.lesson = نامکِ درس) —
+               زنجیره‌ی کامل «حوزه → دوره → درس → تمرین». */
+            $linkedExercises = exercises_for_lesson((string) ($data['slug'] ?? ''));
+            ?>
+            <?php if($linkedExercises !== []): ?>
+            <section class="lesson-exercises" aria-label="تمرین‌های این درس">
+                <h2 class="lesson-exercises__title"><?= ha_icon('timer', 17) ?> تمرین‌های همین درس</h2>
+                <p class="muted-sm mb-sm">این درس با <?= fa_num(count($linkedExercises)) ?> تمرینِ اختصاصی کامل می‌شود؛ پس از مطالعه حتماً اجرا کنید.
+                    <a class="link-arrow" href="<?= e(url('exercises', ['lesson' => (string) ($data['slug'] ?? '')])) ?>">همه‌ی تمرین‌های این درس</a></p>
+                <div class="grid grid--2">
+                    <?php foreach($linkedExercises as $lex): ?>
+                        <?= exercise_card($lex, url('exercises') . '#ex-' . (string) ($lex['id'] ?? '')) ?>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <?php elseif(!empty($data['drill'])): ?>
             <div class="card side-card mt-md">
                 <h2>بعد از درس — تمرینِ پیشنهادی</h2>
                 <p class="muted-sm">این درس را با تایمر و چک‌لیست در صفحه‌ی تمرین‌ها کامل کنید.</p>

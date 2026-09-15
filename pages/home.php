@@ -30,12 +30,14 @@ if (count($featuredCourses) < $LIMIT) {
     }
 }
 
-$latest   = latest_articles($LIMIT);
-$videos   = array_slice(videos(), 0, $LIMIT);
-$audios   = array_slice(audios(), 0, $LIMIT);
-$books    = array_slice(books(), 0, $LIMIT);
-$research = array_slice(research_items(), 0, 2);
-$exList   = array_slice(exercises(), 0, $LIMIT);
+/* صفحه‌ی نخست فقط «منتخب‌ها» را نشان می‌دهد: اول مواردی که مدیر نشانِ
+   ویژه زده، بعد تازه‌ترین‌ها — حداکثر سه قلم از هر نوع. */
+$latest   = ha_featured_first(all_articles_sorted(), $LIMIT);
+$videos   = ha_featured_first(videos(), $LIMIT);
+$audios   = ha_featured_first(audios(), $LIMIT);
+$books    = ha_featured_first(books(), $LIMIT);
+$research = ha_featured_first(research_items(), 2);
+$exList   = ha_featured_first(exercises(), $LIMIT);
 $why      = (array) ($site['why'] ?? []);
 $method   = (array) ($site['method'] ?? []);
 $cta      = (array) ($site['cta_band'] ?? []);

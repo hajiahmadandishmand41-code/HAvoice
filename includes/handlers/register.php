@@ -9,11 +9,13 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$backUrl = url('register');
+/* نشانیِ بازگشتِ کاربر پس از ثبت‌نامِ موفق (فقط نسبیِ داخلی). */
+$next    = ha_safe_next((string) ($_POST['next'] ?? ''));
+$backUrl = url('register', $next !== '' ? ['next' => $next] : []);
 
 /* ۱) فقط POST */
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-    redirect($backUrl);
+    redirect(url('register'));
 }
 
 /* ۲) CSRF */
@@ -63,9 +65,9 @@ if (!$result['ok'] || $result['user'] === null) {
     redirect($backUrl);
 }
 
-/* ۸) ورودِ خودکار پس از ثبت‌نام و پاک‌سازیِ فرم */
+/* ۸) ورودِ خودکار پس از ثبت‌نام و بازگشت به همان صفحه‌ی درخواستی */
 auth_login($result['user']);
 old_clear();
 unset($_SESSION['ha_errors']);
 flash('success', 'حساب شما با موفقیت ساخته شد. خوش آمدید!');
-redirect(url('account'));
+redirect($next !== '' ? $next : url('account'));

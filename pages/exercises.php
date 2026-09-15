@@ -9,10 +9,16 @@ if (!defined('HA_ROOT')) {
 
 $exercises = exercises();
 $level     = param('level');
+$lessonFlt = slugify(param('lesson'));
 $levels    = array_keys(exercises_by_level());
 $filtered  = $exercises;
 
-if ($level !== '' && in_array($level, $levels, true)) {
+/* فیلترِ درس: وقتی از صفحه‌ی یک درس به اینجا می‌آییم، فقط تمرین‌های
+   همان درس نشان داده می‌شوند (زنجیره‌ی درس → تمرین). */
+$lessonInfo = $lessonFlt !== '' ? course_find_lesson($lessonFlt) : null;
+if ($lessonFlt !== '' && $lessonInfo !== null) {
+    $filtered = exercises_for_lesson($lessonFlt);
+} elseif ($level !== '' && in_array($level, $levels, true)) {
     $filtered = array_values(array_filter($exercises, static function (array $ex) use ($level) {
         return (string) ($ex['level'] ?? '') === $level;
     }));
@@ -44,7 +50,13 @@ $allTopics = array_values(array_unique($allTopics));
             </div>
         </div>
 
-<?php if (count($levels) > 1): ?>
+<?php if ($lessonFlt !== '' && $lessonInfo !== null): ?>
+        <div class="card side-card mb-md">
+            <h2><?= ha_icon('steps', 15) ?> تمرین‌های درسِ «<?= e($lessonInfo['lesson']['title'] ?? '') ?>»</h2>
+            <p class="muted-sm">این تمرین‌ها مخصوص همین درس‌اند؛ برای دیدنِ همه، فیلتر را بردارید.</p>
+            <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">همه‌ی تمرین‌ها</a>
+        </div>
+<?php elseif (count($levels) > 1): ?>
         <nav class="chip-row" aria-label="فیلتر سطح">
             <a class="chip<?= $level === '' ? ' is-active' : '' ?>" href="<?= e(url('exercises')) ?>">همه سطوح</a>
 <?php foreach ($levels as $name): ?>

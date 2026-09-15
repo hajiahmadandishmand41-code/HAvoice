@@ -1,6 +1,10 @@
 <?php
 /**
- * HAvoice 2.0 — صفحه‌ی مقاله
+ * HAvoice 2.0 — صفحه‌ی مقاله (علمی/آموزشی)
+ *
+ * علاوه بر متنِ بلوک‌بندی‌شده، مشخصاتِ علمیِ مقاله نمایش داده می‌شود:
+ * نویسنده، منبع/نشریه (+ نشانی)، فهرستِ مراجع، تصویرِ جلد و فایلِ پیوست —
+ * همه فقط با تأیید و ذخیره‌ی مدیر (هیچ ورودِ خودکاری از بیرون نیست).
  */
 
 if (!defined('HA_ROOT')) {
@@ -17,29 +21,79 @@ if ($article===null){
 }
 
 $related = related_articles($article,3);
+
+/* حوزه: اول اتصالِ مستقیم (field)، بعد نگاشتِ برچسبِ فارسی */
 $cat = null;
-foreach(categories() as $c){ if(mb_strpos($article['category']??'',$c['short'])!==false || ($article['category']??'')=== $c['title']) {$cat=$c; break;} }
+$fieldSlug = ha_item_field_slug($article);
+if ($fieldSlug !== '') {
+    $cat = find_category($fieldSlug);
+}
+if ($cat === null) {
+    foreach(categories() as $c){ if(mb_strpos($article['category']??'',$c['short'])!==false || ($article['category']??'')=== $c['title']) {$cat=$c; break;} }
+}
+
+$author     = trim((string) ($article['author'] ?? ''));
+$sourceName = trim((string) ($article['source_name'] ?? ''));
+$sourceUrl  = ha_safe_file_url((string) ($article['source_url'] ?? ''));
+$refs       = array_values(array_filter(array_map('strval', (array) ($article['refs'] ?? []))));
+$coverImage = ha_safe_file_url((string) ($article['image'] ?? ''));
+$attachFile = ha_safe_file_url((string) ($article['file'] ?? ''));
 ?>
 
 <article class="article">
     <header class="article__head">
         <div class="container container--narrow">
-            <?= breadcrumbs([['label'=>'مقاله‌ها','url'=>url('articles')],['label'=>$article['category']??'',['url'=>url('articles',['category'=>$article['category']??''])]],['label'=>$article['title']]]) ?>
+            <?= breadcrumbs([['label'=>'مقاله‌ها','url'=>url('articles')],['label'=>$article['category']??'','url'=>url('articles',['category'=>$article['category']??''])],['label'=>$article['title']]]) ?>
             <h1 class="article__title"><?= e($article['title']) ?></h1>
             <p class="article__excerpt"><?= e($article['excerpt']) ?></p>
             <div class="article__meta">
-                <span class="chip chip--soft"><?= e(ha_site_name()) ?></span>
+                <span class="chip chip--soft"><?= $author !== '' ? ha_icon('user', 12) . ' ' . e($author) : e(ha_site_name()) ?></span>
                 <time datetime="<?= e($article['date']??'') ?>"><?= e($article['date_fa']??'') ?></time>
                 <span class="meta-dot" aria-hidden="true"></span>
                 <span><?= e(minutes_label((int)($article['minutes']??5))) ?> مطالعه</span>
                 <?php if($cat): ?><span class="badge"><?= e($cat['short']) ?></span><?php endif; ?>
             </div>
+            <?php if ($sourceName !== ''): ?>
+                <p class="article__source">
+                    <?= ha_icon('research', 13) ?>
+                    منبع/نشریه:
+                    <?php if ($sourceUrl !== ''): ?>
+                        <a href="<?= e($sourceUrl) ?>" rel="noopener nofollow" target="_blank"><?= e($sourceName) ?></a>
+                    <?php else: ?>
+                        <?= e($sourceName) ?>
+                    <?php endif; ?>
+                </p>
+            <?php endif; ?>
         </div>
     </header>
+
+    <?php if ($coverImage !== ''): ?>
+        <div class="container container--narrow">
+            <figure class="article-cover">
+                <img src="<?= e($coverImage) ?>" alt="<?= e($article['title']) ?>" loading="lazy" decoding="async">
+            </figure>
+        </div>
+    <?php endif; ?>
 
     <div class="container container--narrow article__grid">
         <div class="prose">
             <?= render_blocks((array)($article['blocks']??[])) ?>
+
+            <?php if ($attachFile !== ''): ?>
+                <p class="article__attachment">
+                    <a class="btn btn--ghost btn--sm" href="<?= e($attachFile) ?>" rel="noopener" target="_blank"><?= ha_icon('download', 14) ?> دریافتِ فایلِ پیوستِ مقاله</a>
+                </p>
+            <?php endif; ?>
+
+            <?php if ($refs !== []): ?>
+                <section class="card side-card mt-md article__refs">
+                    <h2><?= ha_icon('research', 15) ?> منابع و مراجع</h2>
+                    <ol class="rich-list rich-list--num">
+                        <?php foreach ($refs as $ref): ?><li><?= e($ref) ?></li><?php endforeach; ?>
+                    </ol>
+                </section>
+            <?php endif; ?>
+
             <?= tag_list((array)($article['tags']??[])) ?>
         </div>
         <aside class="article__side">

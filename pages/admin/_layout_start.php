@@ -9,6 +9,7 @@
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
+require HA_ROOT . '/pages/admin/_helpers.php';
 $adminUser = auth_current_user();
 $adminRoute = active_route();
 $pendingComments = comments_admin_counts()['pending'];

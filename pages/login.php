@@ -7,8 +7,10 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
+$next = ha_safe_next(param('next'));
+
 if (auth_is_logged_in()) {
-    redirect(url('account'));
+    redirect($next !== '' ? $next : url('account'));
 }
 
 $flash  = flash();
@@ -42,8 +44,13 @@ $errText = static function (string $f) use ($errors): string {
                 </div>
             <?php endif; ?>
 
+            <?php if ($next !== ''): ?>
+                <p class="auth-card__next"><?= ha_icon('arrow-left', 14) ?> پس از ورود، به همان صفحه‌ای که درخواست کرده بودید برمی‌گردید.</p>
+            <?php endif; ?>
+
             <form class="auth-form" method="post" action="<?= e(url('login')) ?>" novalidate>
                 <?= csrf_field() ?>
+                <?php if ($next !== ''): ?><input type="hidden" name="next" value="<?= e($next) ?>"><?php endif; ?>
                 <div class="honeypot" aria-hidden="true"><label for="website">وب‌سایت</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
 
                 <div class="field">
@@ -61,7 +68,7 @@ $errText = static function (string $f) use ($errors): string {
                 <button class="btn btn--primary btn--lg btn--block" type="submit"><?= ha_icon('arrow-left', 16) ?> ورود</button>
             </form>
 
-            <p class="auth-card__alt">هنوز حساب ندارید؟ <a href="<?= e(url('register')) ?>">ثبت‌نام کنید</a></p>
+            <p class="auth-card__alt">هنوز حساب ندارید؟ <a href="<?= e(url('register', $next !== '' ? ['next' => $next] : [])) ?>">ثبت‌نام کنید</a></p>
         </div>
     </div>
 </section>

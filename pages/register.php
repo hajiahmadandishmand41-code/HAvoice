@@ -7,8 +7,10 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
+$next = ha_safe_next(param('next'));
+
 if (auth_is_logged_in()) {
-    redirect(url('account'));
+    redirect($next !== '' ? $next : url('account'));
 }
 
 $flash  = flash();
@@ -44,6 +46,7 @@ $errText = static function (string $f) use ($errors): string {
 
             <form class="auth-form" method="post" action="<?= e(url('register')) ?>" novalidate>
                 <?= csrf_field() ?>
+                <?php if ($next !== ''): ?><input type="hidden" name="next" value="<?= e($next) ?>"><?php endif; ?>
                 <div class="honeypot" aria-hidden="true"><label for="website">وب‌سایت</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
 
                 <div class="field">
@@ -75,7 +78,7 @@ $errText = static function (string $f) use ($errors): string {
                 <p class="auth-form__note">با ثبت‌نام، ایمیل شما فقط برای ورود و اطلاع‌رسانیِ خودِ سایت نگه داشته می‌شود.</p>
             </form>
 
-            <p class="auth-card__alt">از قبل حساب دارید؟ <a href="<?= e(url('login')) ?>">وارد شوید</a></p>
+            <p class="auth-card__alt">از قبل حساب دارید؟ <a href="<?= e(url('login', $next !== '' ? ['next' => $next] : [])) ?>">وارد شوید</a></p>
         </div>
     </div>
 </section>

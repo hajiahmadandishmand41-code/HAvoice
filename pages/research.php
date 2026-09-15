@@ -15,7 +15,7 @@ if ($slug!=='') {
         echo not_found('پژوهش');
         return;
     }
-    $cat = find_category($item['category'] ?? '');
+    $cat = find_category(ha_item_field_slug($item));
     $related = related_research($item, 2);
     ?>
     <article class="article">
@@ -36,6 +36,9 @@ if ($slug!=='') {
         <div class="container container--narrow article__grid">
             <div class="prose">
                 <?= render_blocks((array)($item['blocks'] ?? [])) ?>
+                <?php if(!empty($item['link'])): $rlink = ha_safe_file_url((string) $item['link']); if ($rlink !== ''): ?>
+                    <p class="article__attachment"><a class="btn btn--ghost btn--sm" href="<?= e($rlink) ?>" rel="noopener nofollow" target="_blank"><?= ha_icon('external', 14) ?> مشاهده‌ی منبعِ بیرونی</a></p>
+                <?php endif; endif; ?>
                 <?php if(!empty($item['refs'])): ?>
                     <section class="card side-card mt-md">
                         <h2>منابع</h2>
@@ -77,14 +80,14 @@ $all = research_items();
 $cats = categories();
 $filter = param('category');
 if($filter!=='' && find_category($filter)===null) $filter='';
-$list = $filter ? array_values(array_filter($all, fn($r)=>($r['category']??'')=== $filter)) : $all;
+$list = $filter ? research_by_category($filter) : $all;
 ?>
 <section class="section section--tight">
     <div class="container">
         <div class="filter-tabs" aria-label="فیلتر حوزه">
             <a class="chip<?= $filter===''?' is-active':'' ?>" href="<?= e(url('research')) ?>">همه</a>
             <?php foreach($cats as $cat):
-                $cnt = count(array_filter($all, fn($r)=>($r['category']??'')=== $cat['slug']));
+                $cnt = count(research_by_category((string) ($cat['slug'] ?? '')));
                 if($cnt===0) continue;
             ?>
                 <a class="chip<?= $filter=== $cat['slug']?' is-active':'' ?>" href="<?= e(url('research',['category'=>$cat['slug']])) ?>"><?= e($cat['title']) ?> <span class="chip__n"><?= fa_num($cnt) ?></span></a>

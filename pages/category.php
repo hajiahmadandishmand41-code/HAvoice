@@ -44,13 +44,11 @@ $booksInCat    = books_by_category($catSlug);
 $researchInCat = research_by_category($catSlug);
 $lessonsInCat  = lessons_by_category($catSlug);
 
-/* مقاله‌ها موضوعِ فارسیِ آزاد دارند نه slugِ حوزه؛ با find_category_by_title()
-   موضوع را به حوزه نگاشت می‌کنیم تا فهرست واقعاً مرتبط باشد.
-   (نسخه‌ی پیشین یک فیلترِ `return true` داشت — یعنی همه‌ی مقاله‌ها
-   بدونِ هیچ ارتباطی زیرِ عنوانِ «مقالاتِ این حوزه» چاپ می‌شدند.) */
+/* مقاله‌ها یا اتصالِ مستقیمِ حوزه دارند (field از پنل) یا موضوعِ فارسیِ
+   آزاد؛ با ha_item_field_slug() حوزه‌ی مؤثرِ هر مقاله پیدا می‌شود تا
+   فهرست واقعاً مرتبط باشد. */
 $articlesInCat = array_values(array_filter(all_articles_sorted(), static function ($a) use ($catSlug) {
-    $mapped = find_category_by_title((string) ($a['category'] ?? ''));
-    return $mapped !== null && (string) ($mapped['slug'] ?? '') === $catSlug;
+    return ha_item_field_slug($a) === $catSlug;
 }));
 
 $style = card_style($cat);
