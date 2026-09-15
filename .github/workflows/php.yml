@@ -76,17 +76,20 @@ jobs:
           php tools/db-migrate.php --seed 2>&1 | tee /tmp/migrate-seed.log
           php tools/db-migrate.php --status 2>&1 | tee /tmp/migrate-status.log
 
-      - name: Publish migrate log to branch (debug)
-        if: always()
+      - name: Annotate migrate output on failure
+        if: failure()
+        shell: bash
         run: |
-          mkdir -p ci-debug
-          cp /tmp/migrate-seed.log ci-debug/migrate-seed.log 2>/dev/null || echo '(no seed log)' > ci-debug/migrate-seed.log
-          cp /tmp/migrate-status.log ci-debug/migrate-status.log 2>/dev/null || echo '(no status log)' > ci-debug/migrate-status.log
-          git config user.email "ci@local"
-          git config user.name "CI Debug"
-          git add ci-debug/
-          git commit -m "ci-debug: migrate log" || echo "nothing to commit"
-          git push origin "HEAD:${GITHUB_REF_NAME}" || echo "push failed"
+          n=0
+          for f in /tmp/migrate-seed.log /tmp/migrate-status.log; do
+            [ -f "$f" ] || continue
+            while IFS= read -r line; do
+              [ $n -lt 18 ] || break
+              msg=$(printf 'LOG|%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')
+              echo "::error::${msg}"
+              n=$((n+1))
+            done < <(tail -n 30 "$f")
+          done
 
       - name: Production check (with DB)
         run: php tools/production-check.php
