@@ -3875,3 +3875,62 @@ body.admin-nav-open .admin-sidebar {
     a { text-decoration: underline; }
     .container { max-width: none; padding-inline: 0; }
 }
+
+/* ===== ۲۳) ارتقای محتوایی: تصاویر کارت‌ها، مقاله‌ی علمی، کتاب، اتصال تمرین ===== */
+
+/* تصویرِ واقعی داخل مدیا‌ی کارت (مقاله با تصویر) — نسبتِ فریم حفظ می‌شود */
+.card-media { position: relative; overflow: hidden; }
+.card-media--img { display: block; padding: 0; min-height: 0; background: var(--surface-2); }
+.card-media--img img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.card-media--img .card-media__tag { position: absolute; inset-inline-start: var(--sp-3); bottom: var(--sp-3); }
+.card-media--img .card-media__badge { position: absolute; inset-inline-end: var(--sp-3); bottom: var(--sp-3); }
+.card-media__badge { background: rgb(0 0 0 / .55); color: #fff; font-size: var(--fs-xs); padding: 3px var(--sp-2); border-radius: 999px; }
+
+.article-card__author { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 var(--sp-2); color: var(--text-soft); font-size: var(--fs-sm); }
+.article-card__author svg { flex-shrink: 0; }
+
+/* جلدِ واقعی کتاب */
+.book-card__cover--img { background: var(--surface-2); }
+.book-card__cover--img img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.book-detail__cover img { border-radius: var(--r-md); box-shadow: var(--sh-md); }
+
+/* صفحه‌ی مقاله‌ی علمی */
+.article-cover { margin: 0 0 var(--sp-6); }
+.article-cover img { display: block; width: 100%; max-height: 480px; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--sh-md); }
+.article__source { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0 0; font-size: var(--fs-sm); color: var(--text-soft); }
+.article__source a { color: var(--brand); font-weight: 700; }
+.article__attachment { margin: var(--sp-6) 0; }
+.article__refs h2 { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* مطالعه‌ی درون‌سایت کتاب */
+.book-read { margin-top: var(--sp-8); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--sh-sm); }
+.book-read__head { padding: var(--sp-5) var(--sp-5) var(--sp-4); border-bottom: 1px solid var(--border); }
+.book-read__head h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-xl); display: flex; align-items: center; gap: var(--sp-2); }
+.book-read__head .muted-sm { margin: 0; }
+.book-read__body { padding: var(--sp-5) var(--sp-5) var(--sp-6); }
+
+/* تمرین‌های متصل به درس */
+.lesson-exercises { margin-top: var(--sp-7); }
+.lesson-exercises__title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xl); margin-bottom: var(--sp-2); }
+.exercise-card__lesson { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 var(--sp-2); color: var(--text-soft); font-size: var(--fs-sm); }
+.exercise-card__lesson a { color: var(--brand); font-weight: 700; }
+.exercise-card__lesson svg { flex-shrink: 0; }
+
+/* برچسب «بعدی» در صفحه‌ی ورود/ثبت‌نام */
+.auth-card__next { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: -4px 0 var(--sp-5); font-size: var(--fs-sm); color: var(--text-soft); }
+.auth-card__next .btn--link { padding: 0; font-size: var(--fs-sm); }
+
+/* ===== ادمین: انتشار/پنهان، ردیف پیش‌نویس، چیدمان فرم ===== */
+.admin-row--draft td { background: rgb(0 0 0 / .025); color: var(--text-soft); }
+tbody tr.admin-row--draft:hover td { background: var(--surface-2); }
+.admin-badge--warn { background: var(--warning-soft); color: var(--warning); border-color: rgb(147 55 13 / .35); }
+.field--full { grid-column: 1 / -1; }
+.admin-form-grid .field .input[type="checkbox"] { accent-color: var(--brand); width: 18px; height: 18px; }
+.card__media--thumb-sm { width: 72px; height: 48px; border-radius: var(--r-xs); object-fit: cover; display: block; }
+.admin-status-form { display: inline-block; margin: 0; }
+.admin-status-form .btn { white-space: nowrap; }
+
+/* جدول پاسخگو در صفحاتِ باریک ادمین */
+@media (max-width: 900px) {
+    .table th, .table td { padding: 10px 12px; font-size: var(--fs-sm); }
+}

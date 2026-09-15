@@ -12,6 +12,7 @@
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
+require HA_ROOT . '/pages/admin/_helpers.php';
 
 $listRoute = 'admin_courses';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
@@ -107,6 +108,7 @@ $course = [
     'how_to'   => $howTo,
     'stages'   => $cleanStages,
     'featured' => !empty($_POST['featured']),
+    'status'   => admin_post_status(),
 ];
 
 /* ---- ذخیره: به‌روزرسانی در جا (حتی هنگامِ تغییرِ نامک) یا افزودن ---- */

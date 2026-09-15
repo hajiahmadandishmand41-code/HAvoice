@@ -19,6 +19,7 @@
     { "src": "/sitemap\\.php", "dest": "/api/sitemap.php" },
     { "src": "/robots\\.txt", "dest": "/api/robots.php" },
     { "src": "/assets/(.*)", "dest": "/api/asset.php?path=$1" },
+    { "src": "/uploads/(.*)", "dest": "/api/asset.php?path=uploads/$1" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }

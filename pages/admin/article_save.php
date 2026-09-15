@@ -1,29 +1,107 @@
 <?php
+/**
+ * HAvoice Admin — ذخیره‌ی مقاله‌ی علمی
+ * فقط آنچه مدیر تأیید و ذخیره کند منتشر می‌شود؛ اعتبارسنجیِ کامل دارد.
+ */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url('admin_articles'));
-if (!csrf_verify()) { flash('error', 'نشست شما تمام شده.'); redirect(url('admin_articles')); }
+require HA_ROOT . '/pages/admin/_helpers.php';
 
-$title = trim((string)($_POST['title'] ?? ''));
-$slug = slugify((string)($_POST['slug'] ?? ''));
-$category = trim((string)($_POST['category'] ?? 'عمومی'));
-$excerpt = trim((string)($_POST['excerpt'] ?? ''));
-$date = trim((string)($_POST['date'] ?? date('Y-m-d')));
-$date_fa = trim((string)($_POST['date_fa'] ?? ''));
-$minutes = max(1, (int)($_POST['minutes'] ?? 5));
-$tags = array_map('trim', array_filter(explode(',', (string)($_POST['tags'] ?? ''))));
-$blocksJson = (string)($_POST['blocks_json'] ?? '[]');
-$blocks = json_decode($blocksJson, true);
-if (!is_array($blocks)) $blocks = [];
-$originalSlug = (string)($_POST['original_slug'] ?? '');
+$listRoute = 'admin_articles';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
+if (!csrf_verify()) { flash('error', 'نشست شما تمام شده.'); redirect(url($listRoute)); }
 
-if ($title === '' || $slug === '') { flash('error', 'عنوان و نامک الزامی است.'); redirect(url('admin_article_edit')); }
+$title = trim((string) ($_POST['title'] ?? ''));
+$slug  = admin_post_slug($title);
+$orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+
+$editParams = $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []);
+$editUrl = url('admin_article_edit', $editParams);
+
+if ($title === '' || $slug === '') {
+    flash('error', 'عنوان و نامک الزامی است.');
+    redirect($editUrl);
+}
+
+$blocks = admin_post_blocks('blocks_json');
+if ($blocks === null) {
+    flash('error', 'JSON بلوک‌های مقاله معتبر نیست: ' . json_last_error_msg());
+    redirect($editUrl);
+}
+
+/* حوزه: اگر انتخاب شده باید معتبر باشد */
+$field = slugify((string) ($_POST['field'] ?? ''));
+if ($field !== '' && find_category($field) === null) {
+    flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
+    redirect($editUrl);
+}
+
+/* برچسبِ موضوع: اگر خالی بود از عنوانِ حوزه پر می‌شود تا کارت خالی نماند */
+$category = trim((string) ($_POST['category'] ?? ''));
+if ($category === '' && $field !== '') {
+    $category = category_label($field, $field);
+}
+if ($category === '') {
+    $category = 'عمومی';
+}
+
+/* آپلودها (اختیاری؛ در خطا متوقف نمی‌شویم ولی پیام می‌دهیم) */
+$uploadNotes = [];
+$kinds  = ha_upload_kinds();
+$image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
+$upImg  = ha_upload_store('image_file', $kinds['image']);
+if (!$upImg['ok']) {
+    $uploadNotes[] = 'تصویر آپلود نشد: ' . $upImg['error'];
+} elseif ($upImg['path'] !== '') {
+    $image = $upImg['path'];
+}
+$file  = ha_safe_file_url((string) ($_POST['file'] ?? ''));
+$upDoc = ha_upload_store('file_upload', $kinds['document']);
+if (!$upDoc['ok']) {
+    $uploadNotes[] = 'فایل آپلود نشد: ' . $upDoc['error'];
+} elseif ($upDoc['path'] !== '') {
+    $file = $upDoc['path'];
+}
+
+$article = [
+    'slug'        => $slug,
+    'title'       => $title,
+    'field'       => $field,
+    'category'    => $category,
+    'author'      => trim((string) ($_POST['author'] ?? '')),
+    'excerpt'     => trim((string) ($_POST['excerpt'] ?? '')),
+    'date'        => trim((string) ($_POST['date'] ?? date('Y-m-d'))),
+    'date_fa'     => trim((string) ($_POST['date_fa'] ?? '')),
+    'minutes'     => max(1, (int) ($_POST['minutes'] ?? 5)),
+    'tags'        => array_map('trim', array_filter(explode(',', (string) ($_POST['tags'] ?? '')))),
+    'source_name' => trim((string) ($_POST['source_name'] ?? '')),
+    'source_url'  => ha_safe_file_url((string) ($_POST['source_url'] ?? '')),
+    'refs'        => admin_lines('refs_text'),
+    'image'       => $image,
+    'file'        => $file,
+    'blocks'      => $blocks,
+    'status'      => admin_post_status(),
+    'featured'    => !empty($_POST['featured']),
+];
 
 $articles = admin_load('articles');
-$article = ['slug'=>$slug,'title'=>$title,'category'=>$category,'excerpt'=>$excerpt,'date'=>$date,'date_fa'=>$date_fa,'minutes'=>$minutes,'tags'=>$tags,'blocks'=>$blocks];
 $found = false;
-foreach ($articles as $i => $a) { if (($a['slug'] ?? '') === $originalSlug || ($a['slug'] ?? '') === $slug) { $articles[$i] = $article; $found = true; break; } }
+foreach ($articles as $i => $a) {
+    $aSlug = slugify((string) ($a['slug'] ?? ''));
+    if (($orig !== '' && $aSlug === $orig) || $aSlug === $slug) {
+        $articles[$i] = $article;
+        $found = true;
+        break;
+    }
+}
 if (!$found) $articles[] = $article;
-if (!admin_store('articles', $articles)) { flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ storage قابل نوشتن نیست.'); redirect(url('admin_articles')); }
-flash('success', 'مقاله ذخیره شد.');
+
+if (!admin_store('articles', $articles)) {
+    flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ storage قابل نوشتن نیست.');
+    redirect($editUrl);
+}
+
+$msg = $article['status'] === 'published' ? 'مقاله ذخیره و منتشر شد.' : 'مقاله به‌عنوان پیش‌نویس ذخیره شد (در سایت مخفی است).';
+if ($uploadNotes !== []) $msg .= ' ' . implode(' ', $uploadNotes);
+flash($uploadNotes === [] ? 'success' : 'error', $msg);
 redirect(url('admin_articles'));

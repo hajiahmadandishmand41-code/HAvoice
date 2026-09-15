@@ -9,11 +9,13 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-$backUrl = url('login');
+/* نشانیِ بازگشتِ کاربر پس از ورودِ موفق (فقط نسبیِ داخلی). */
+$next    = ha_safe_next((string) ($_POST['next'] ?? ''));
+$backUrl = url('login', $next !== '' ? ['next' => $next] : []);
 
 /* ۱) فقط POST */
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
-    redirect($backUrl);
+    redirect(url('login'));
 }
 
 /* ۲) CSRF */
@@ -56,8 +58,8 @@ if ($user === null) {
     redirect($backUrl);
 }
 
-/* ۷) ورودِ موفق + بازسازیِ شناسه‌ی نشست */
+/* ۷) ورودِ موفق + بازسازیِ شناسه‌ی نشست + بازگشت به همان صفحه‌ی درخواستی */
 auth_login($user);
 old_clear();
 flash('success', 'خوش آمدید، ' . $user['name'] . '!');
-redirect(url('account'));
+redirect($next !== '' ? $next : url('account'));

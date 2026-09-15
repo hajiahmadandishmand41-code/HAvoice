@@ -151,13 +151,25 @@ function card_media(string $icon, string $tag = '', string $badge = '', string $
 function article_card(array $article, bool $featured = false): string
 {
     $href = url('article', ['slug' => (string) ($article['slug'] ?? '')]);
-    $cat  = find_category_by_title((string) ($article['category'] ?? ''));
+    $cat  = ha_item_field_slug($article) !== '' ? find_category(ha_item_field_slug($article)) : null;
+    if ($cat === null) {
+        $cat = find_category_by_title((string) ($article['category'] ?? ''));
+    }
     $icon = $cat !== null ? (string) ($cat['icon'] ?? 'article') : 'article';
     $tag  = $cat !== null ? cat_label($cat, (string) ($article['category'] ?? 'عمومی')) : (string) ($article['category'] ?? 'عمومی');
+    $image = ha_safe_file_url((string) ($article['image'] ?? ''));
 
     ob_start(); ?>
     <article class="card article-card<?= $featured ? ' article-card--featured' : '' ?>" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
-        <?= card_media($icon, $tag, minutes_label((int) ($article['minutes'] ?? 5)), card_style($cat)) ?>
+        <?php if ($image !== ''): ?>
+            <div class="card-media card-media--img">
+                <img src="<?= e($image) ?>" alt="<?= e($article['title'] ?? '') ?>" loading="lazy" decoding="async">
+                <span class="card-media__tag"><?= e($tag) ?></span>
+                <span class="card-media__badge"><?= e(minutes_label((int) ($article['minutes'] ?? 5))) ?></span>
+            </div>
+        <?php else: ?>
+            <?= card_media($icon, $tag, minutes_label((int) ($article['minutes'] ?? 5)), card_style($cat)) ?>
+        <?php endif; ?>
         <div class="card__body">
             <div class="article-card__top">
                 <span class="badge"><?= e($tag) ?></span>
@@ -165,6 +177,9 @@ function article_card(array $article, bool $featured = false): string
                 <time datetime="<?= e($article['date'] ?? '') ?>"><?= e($article['date_fa'] ?? '') ?></time>
             </div>
             <h3 class="article-card__title"><a href="<?= e($href) ?>"><?= e($article['title'] ?? '') ?></a></h3>
+            <?php if (!empty($article['author'])): ?>
+                <p class="article-card__author"><?= ha_icon('user', 12) ?> <?= e($article['author']) ?></p>
+            <?php endif; ?>
             <p class="article-card__excerpt"><?= excerpt_of($article, $featured ? 210 : 140) ?></p>
         </div>
         <footer class="article-card__foot">
@@ -227,8 +242,11 @@ function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $sta
 
 function exercise_card(array $ex, string $detailUrl = ''): string
 {
+    $lessonSlug  = slugify((string) ($ex['lesson'] ?? ''));
+    $lessonInfo  = $lessonSlug !== '' ? course_find_lesson($lessonSlug) : null;
+    $lessonTitle = $lessonInfo !== null ? (string) ($lessonInfo['lesson']['title'] ?? '') : '';
     ob_start(); ?>
-    <article class="card exercise-card" data-exercise="<?= e($ex['id'] ?? '') ?>">
+    <article class="card exercise-card" id="ex-<?= e($ex['id'] ?? '') ?>" data-exercise="<?= e($ex['id'] ?? '') ?>">
         <header class="exercise-card__head">
             <span class="badge badge--level"><?= ha_icon('target', 12) ?> <?= e($ex['level'] ?? 'عمومی') ?></span>
             <?php if (!empty($ex['focus'])): ?>
@@ -236,6 +254,9 @@ function exercise_card(array $ex, string $detailUrl = ''): string
             <?php endif; ?>
         </header>
         <h3 class="exercise-card__title"><?= e($ex['title'] ?? '') ?></h3>
+        <?php if ($lessonTitle !== ''): ?>
+            <p class="exercise-card__lesson"><?= ha_icon('steps', 12) ?> درسِ مرتبط: <a href="<?= e(url('lesson', ['slug' => $lessonSlug])) ?>"><?= e($lessonTitle) ?></a></p>
+        <?php endif; ?>
         <?php if (!empty($ex['goal'])): ?>
             <p class="exercise-card__goal"><?= e($ex['goal']) ?></p>
         <?php endif; ?>
@@ -330,7 +351,7 @@ function video_card(array $item): string
 {
     $hasUrl = !empty($item['url']);
     $href   = $hasUrl ? (string) $item['url'] : url('videos');
-    $cat    = find_category((string) ($item['category'] ?? ''));
+    $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
 
     ob_start(); ?>
@@ -373,7 +394,7 @@ function video_card(array $item): string
 function audio_card(array $item): string
 {
     $hasUrl = !empty($item['url']);
-    $cat    = find_category((string) ($item['category'] ?? ''));
+    $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
 
     ob_start(); ?>
@@ -412,16 +433,25 @@ function audio_card(array $item): string
 function book_card(array $book): string
 {
     $href = url('books', ['slug' => (string) ($book['slug'] ?? '')]);
-    $cat  = find_category((string) ($book['category'] ?? ''));
+    $cat  = find_category(ha_item_field_slug($book));
+    $image = ha_safe_file_url((string) ($book['image'] ?? ''));
+    $hasOnlineRead = !empty($book['blocks']);
 
     ob_start(); ?>
     <article class="card book-card">
-        <div class="book-card__cover" style="<?= e(card_style($cat)) ?>" role="img" aria-label="جلدِ <?= e($book['title'] ?? '') ?>">
-            <?= ha_icon('book', 30) ?>
+        <div class="book-card__cover<?= $image !== '' ? ' book-card__cover--img' : '' ?>" style="<?= e(card_style($cat)) ?>" role="img" aria-label="جلدِ <?= e($book['title'] ?? '') ?>">
+            <?php if ($image !== ''): ?>
+                <img src="<?= e($image) ?>" alt="" loading="lazy" decoding="async">
+            <?php else: ?>
+                <?= ha_icon('book', 30) ?>
+            <?php endif; ?>
         </div>
         <div class="book-card__body">
             <div class="book-card__top">
                 <span class="badge badge--soft"><?= e(cat_label($cat, (string) ($book['category'] ?? ''))) ?></span>
+                <?php if ($hasOnlineRead): ?>
+                    <span class="badge badge--level"><?= ha_icon('book', 12) ?> متن کامل</span>
+                <?php endif; ?>
                 <?php if (!empty($book['minutes'])): ?>
                     <span><?= minutes_label((int) $book['minutes']) ?></span>
                 <?php endif; ?>
@@ -433,7 +463,7 @@ function book_card(array $book): string
             <p class="book-card__excerpt"><?= e($book['excerpt'] ?? '') ?></p>
         </div>
         <footer class="book-card__foot">
-            <a class="card-cta" href="<?= e($href) ?>">خلاصه و برداشت <?= ha_icon('arrow-left', 14) ?></a>
+            <a class="card-cta" href="<?= e($href) ?>"><?= $hasOnlineRead ? 'مطالعه و خلاصه' : 'خلاصه و برداشت' ?> <?= ha_icon('arrow-left', 14) ?></a>
             <?php if (!empty($book['date_fa'])): ?>
                 <span><?= e($book['date_fa']) ?></span>
             <?php endif; ?>
@@ -449,7 +479,7 @@ function book_card(array $book): string
 function research_card(array $item): string
 {
     $href = url('research', ['slug' => (string) ($item['slug'] ?? '')]);
-    $cat  = find_category((string) ($item['category'] ?? ''));
+    $cat  = find_category(ha_item_field_slug($item));
 
     ob_start(); ?>
     <article class="card research-card">

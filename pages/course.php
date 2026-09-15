@@ -71,6 +71,9 @@ if (count($relatedArticles) < 3) {
 }
 $videosRelated = array_slice(array_filter(videos(), fn($v)=>($v['category']??'')===($courseData['category']??'')),0,2);
 $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')===($courseData['category']??'')),0,2);
+
+/* تمرین‌های متصل به این دوره (مستقیم یا از طریقِ درس‌هایش) */
+$courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'] ?? '')), 0, 4);
 ?>
 
 <section class="section section--tight">
@@ -110,6 +113,29 @@ $audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')
                         <?php foreach($videosRelated as $v): ?><li><a href="<?= e(url('videos')) ?>"><?= e($v['title']) ?></a> <span class="muted-sm">— ویدیو</span></li><?php endforeach; ?>
                         <?php foreach($audiosRelated as $a): ?><li><a href="<?= e(url('audios')) ?>"><?= e($a['title']) ?></a> <span class="muted-sm">— صوت</span></li><?php endforeach; ?>
                     </ul>
+                </div>
+                <?php endif; ?>
+
+                <?php if($courseExercises): ?>
+                <div class="card">
+                    <h2><?= ha_icon('timer', 15) ?> تمرین‌های این دوره</h2>
+                    <ul class="rich-list">
+                        <?php foreach($courseExercises as $cex):
+                            $cexLesson = !empty($cex['lesson']) ? course_find_lesson((string) $cex['lesson']) : null;
+                            $cexHref = $cexLesson !== null
+                                ? url('exercises', ['lesson' => (string) $cex['lesson']])
+                                : url('exercises') . '#ex-' . (string) ($cex['id'] ?? '');
+                        ?>
+                        <li><a href="<?= e($cexHref) ?>"><?= e($cex['title'] ?? '') ?></a>
+                            <?php if ($cexLesson !== null): ?>
+                                <span class="muted-sm">— <?= e($cexLesson['lesson']['title'] ?? '') ?></span>
+                            <?php else: ?>
+                                <span class="muted-sm">— عمومی</span>
+                            <?php endif; ?>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <a class="btn btn--ghost btn--sm btn--block" href="<?= e(url('exercises')) ?>">همه‌ی تمرین‌ها</a>
                 </div>
                 <?php endif; ?>
             </aside>

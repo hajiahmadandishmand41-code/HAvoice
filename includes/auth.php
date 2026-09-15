@@ -218,8 +218,19 @@ function auth_login(array $user): void
     $_SESSION['ha_user_id']   = (string) $user['id'];
     $_SESSION['ha_user_name'] = (string) ($user['name'] ?? '');
     $_SESSION['ha_login_at']  = time();
+    $_SESSION['ha_last_activity'] = time();
     /* توکنِ CSRF قبلی با نشستِ جدید معتبر نیست؛ دوباره ساخته می‌شود. */
     unset($_SESSION['ha_csrf'], $_SESSION['ha_csrf_t']);
+
+    /* ثبتِ آخرین ورود روی پرونده‌ی کاربر (نمایش در حساب و پنل). */
+    $users = auth_load_users();
+    foreach ($users as $i => $u) {
+        if (($u['id'] ?? '') === (string) $user['id']) {
+            $users[$i]['last_login'] = date('c');
+            auth_save_users($users);
+            break;
+        }
+    }
 }
 
 function auth_logout(): void
@@ -243,6 +254,21 @@ function auth_current_user(): ?array
     if (!is_string($id) || $id === '') {
         return null;
     }
+
+    /* انقضای عدم‌فعالیت: اگر از آخرین فعالیتِ کاربر بیش از
+       HA_AUTH_SESSION_TTL گذشته باشد، نشست باطل می‌شود (اثرِ لغزان —
+       با هر درخواستِ موفق، ساعت از نو شروع می‌شود). */
+    $ttl = defined('HA_AUTH_SESSION_TTL') ? (int) HA_AUTH_SESSION_TTL : 0;
+    if ($ttl > 0) {
+        $now  = time();
+        $last = (int) ($_SESSION['ha_last_activity'] ?? ($_SESSION['ha_login_at'] ?? $now));
+        if ($now - $last > $ttl) {
+            auth_logout();
+            return null;
+        }
+        $_SESSION['ha_last_activity'] = $now;
+    }
+
     $user = auth_find_user_by_id($id);
     return $user !== null ? $user : null;
 }
@@ -261,6 +287,23 @@ function auth_require(string $redirectUrl = ''): void
     $to = $redirectUrl !== '' ? $redirectUrl : url('login');
     flash('error', 'برای مشاهده‌ی این صفحه ابتدا وارد حساب کاربری شوید.');
     redirect($to);
+}
+
+/**
+ * گیتِ محتوای محافظت‌شده (دوره، درس، تمرین و…):
+ * مهمان به ورود/ثبت‌نام هدایت می‌شود و نشانیِ همین صفحه در پارامترِ
+ * next حفظ می‌ماند تا پس از ورود به همان‌جا برگردد.
+ */
+function auth_require_guest(string $message = ''): void
+{
+    if (auth_is_logged_in()) {
+        return;
+    }
+    if ($message === '') {
+        $message = 'برای دسترسی به دوره‌ها، درس‌ها و تمرین‌ها ابتدا وارد حساب کاربری شوید؛ اگر حساب ندارید، ثبت‌نام رایگان است.';
+    }
+    flash('error', $message);
+    redirect(url('login', ['next' => ha_current_request_url()]));
 }
 
 /* ------------------------------------------------------------------ */

@@ -240,8 +240,11 @@ function ha_security_headers(): array
         "script-src 'self'",
         // style-src-attr: صفات style="" در قالب‌ها (کنترل‌شده و ثابت) استفاده می‌شوند
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data:",
-        "media-src 'self'",
+        // https: برای تصاویر/رسانه‌هایی که مدیر با نشانیِ معتبر ثبت می‌کند
+        // (تصویرِ جلدِ مقاله/کتاب، فایلِ صوت/ویدیوی بیرونی). تصویر/رسانه
+        // قادر به اجرای اسکریپت نیست و script-src همچنان 'self' است.
+        "img-src 'self' data: https:",
+        "media-src 'self' https:",
         "font-src 'self'",
         "connect-src 'self'",
         "frame-src " . $frameSrc,
@@ -311,8 +314,9 @@ function routes(): array
     $table = [
         'home'      => ['file' => 'home.php',      'pretty' => 'home',      'title' => 'خانه'],
         'courses'   => ['file' => 'courses.php',   'pretty' => 'courses',   'title' => 'دوره‌ها'],
-        'course'    => ['file' => 'course.php',    'pretty' => 'course',    'title' => 'دوره'],
-        'lesson'    => ['file' => 'lesson.php',    'pretty' => 'lesson',    'title' => 'درس'],
+        // auth: مهمان به صفحه‌ی ورود هدایت می‌شود و پس از ورود به همین‌جا برمی‌گردد
+        'course'    => ['file' => 'course.php',    'pretty' => 'course',    'title' => 'دوره',   'auth' => true],
+        'lesson'    => ['file' => 'lesson.php',    'pretty' => 'lesson',    'title' => 'درس',    'auth' => true],
         'articles'  => ['file' => 'articles.php',  'pretty' => 'articles',  'title' => 'مقالات'],
         'article'   => ['file' => 'article.php',   'pretty' => 'articles',  'title' => 'مقاله'],
         'videos'    => ['file' => 'videos.php',    'pretty' => 'videos',    'title' => 'ویدیوهای آموزشی'],
@@ -320,7 +324,7 @@ function routes(): array
         'books'     => ['file' => 'books.php',     'pretty' => 'books',     'title' => 'کتاب‌ها'],
         'research'  => ['file' => 'research.php',  'pretty' => 'research',  'title' => 'تحقیقات'],
         'category'  => ['file' => 'category.php',  'pretty' => 'category',  'title' => 'حوزه آموزشی'],
-        'exercises' => ['file' => 'exercises.php', 'pretty' => 'exercises', 'title' => 'تمرین‌ها'],
+        'exercises' => ['file' => 'exercises.php', 'pretty' => 'exercises', 'title' => 'تمرین‌ها', 'auth' => true],
         'tips'      => ['file' => 'tips.php',      'pretty' => 'tips',      'title' => 'نکات کوتاه'],
         'about'     => ['file' => 'about.php',     'pretty' => 'about',     'title' => 'درباره مدرس'],
         'contact'   => ['file' => 'contact.php',   'pretty' => 'contact',   'title' => 'تماس با ما', 'session' => true],
@@ -381,6 +385,7 @@ function routes(): array
         'admin_comment_delete'  => ['file' => 'admin/comment_delete.php', 'pretty' => 'admin/comment-del', 'title' => 'حذف نظر',    'admin' => true],
         'admin_settings'        => ['file' => 'admin/settings.php',       'pretty' => 'admin/settings','title' => 'تنظیمات سایت',      'admin' => true],
         'admin_settings_save'   => ['file' => 'admin/settings_save.php',  'pretty' => 'admin/settings-save','title' => 'ذخیره تنظیمات','admin' => true],
+        'admin_content_status'  => ['file' => 'admin/content_status.php', 'pretty' => 'admin/content-status','title' => 'تغییر وضعیت انتشار','admin' => true],
     ];
     return $table;
 }
@@ -836,7 +841,145 @@ function ha_rate_limit_acquire(string $scope, string $ip, int $max, int $window,
 /*  دسته‌ها                                                           */
 /* ------------------------------------------------------------------ */
 
-function categories(): array { return array_merge(data('categories'), admin_load('categories')); }
+/**
+ * ادغامِ محتوای پایه‌ی فایل با محتوای پنل، بر پایه‌ی کلیدِ یکتا.
+ *
+ * قاعده: اگر مدیر موردی را با همان slug/id ذخیره کرده باشد، نسخه‌ی پنل
+ * «در همان جای» نسخه‌ی فایل جایگزین می‌شود (نه اینکه هر دو نمایش داده
+ * شوند و نسخه‌ی قدیمی همیشه برنده شود). مواردِ تازه‌ی پنل به انتهای
+ * فهرست اضافه می‌شوند. بدین‌ترتیب فایلِ پایه محفوظ می‌ماند و ویرایشِ
+ * مدیر هم واقعاً اعمال می‌شود.
+ */
+function ha_merge_overrides(array $base, array $overrides, string $key = 'slug'): array
+{
+    $positions = [];
+    foreach ($base as $i => $item) {
+        if (!is_array($item)) continue;
+        $k = slugify((string) ($item[$key] ?? ''));
+        if ($k !== '') $positions[$k] = $i;
+    }
+
+    $used = [];
+    foreach ($overrides as $item) {
+        if (!is_array($item)) continue;
+        $k = slugify((string) ($item[$key] ?? ''));
+        if ($k === '') continue;
+        $used[$k] = true;
+        if (isset($positions[$k])) {
+            $base[$positions[$k]] = $item;  // جایگزینی در همان جایگاه
+        }
+    }
+    foreach ($overrides as $item) {
+        if (!is_array($item)) continue;
+        $k = slugify((string) ($item[$key] ?? ''));
+        if ($k === '' || !isset($positions[$k])) {
+            $base[] = $item;                // موردِ تازه‌ی پنل
+            if ($k !== '') $positions[$k] = count($base) - 1;
+        }
+    }
+    return array_values($base);
+}
+
+/**
+ * آیا این محتوا «منتشرشده» است؟
+ * مقدارِ پیش‌فرض (نبودِ کلیدِ status) منتشر است تا محتوای موجودِ پایه
+ * هیچ تغییری در رفتارش نبیند. مدیر می‌تواند status=draft یا hidden=1
+ * بگذارد تا محتوا از دیدِ عمومی مخفی شود (بدونِ حذف).
+ */
+function ha_is_published(array $item): bool
+{
+    if (!empty($item['hidden'])) return false;
+    $status = strtolower(trim((string) ($item['status'] ?? 'published')));
+    return $status !== 'draft' && $status !== 'hidden' && $status !== 'unlisted';
+}
+
+/** فقط مواردِ منتشرشده (با حفظِ ترتیب). */
+function ha_visible(array $items): array
+{
+    return array_values(array_filter($items, 'ha_is_published'));
+}
+
+/**
+ * فهرستِ کاملِ یک نوع محتوا برای «پنل مدیریت»: ادغامِ فایل و پنل با
+ * اعمالِ بازنویسی‌ها، بدونِ فیلترِ انتشار (مدیر باید پیش‌نویس‌ها را هم
+ * ببیند). نسخه‌ی عمومیِ همان فهرست را توابعِ content.php با همان نامِ
+ * کوتاه (articles() و…) برمی‌گردانند.
+ */
+function ha_content_admin(string $name, string $key = 'slug'): array
+{
+    $name = (string) preg_replace('/[^a-z_]/', '', strtolower($name));
+    return ha_merge_overrides(data($name), admin_load($name), $key);
+}
+
+/**
+ * نامکِ حوزه‌ی مؤثرِ یک محتوا.
+ * اولویت با فیلدِ اتصالِ مستقیمِ پنل (`field`) است؛ بعد فیلدِ category
+ * اگر خودش نامکِ حوزه باشد؛ و در غیر این صورت نگاشتِ موضوعِ فارسی
+ * (find_category_by_title). اگر هیچ‌کدام نشد ''.
+ */
+function ha_item_field_slug(array $item): string
+{
+    $field = slugify((string) ($item['field'] ?? ''));
+    if ($field !== '' && find_category($field) !== null) {
+        return $field;
+    }
+    $catSlug = slugify((string) ($item['category'] ?? ''));
+    if ($catSlug !== '' && find_category($catSlug) !== null) {
+        return $catSlug;
+    }
+    $mapped = find_category_by_title((string) ($item['category'] ?? ''));
+    return $mapped !== null ? (string) ($mapped['slug'] ?? '') : '';
+}
+
+/* ------------------------------------------------------------------ */
+/*  بازگشت پس از ورود (next)                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * اعتبارسنجیِ نشانیِ «بازگشت پس از ورود».
+ * فقط نشانی‌های نسبیِ داخلی پذیرفته می‌شوند؛ هر طرحِ مطلق، protocol-relative
+ * یا کاراکترِ کنترلی رد می‌شود تا open-redirect بسته بماند.
+ */
+function ha_safe_next(string $next): string
+{
+    $next = trim(str_replace('\\', '/', $next));
+    if ($next === '' || strlen($next) > 400) {
+        return '';
+    }
+    if (preg_match('/[\\x00-\\x1F\\x7F]/', $next)) {
+        return '';
+    }
+    if (str_starts_with($next, '//')) {
+        return '';
+    }
+    if (preg_match('#^[a-z][a-z0-9+.\\-]*:#i', $next)) {
+        return ''; // هر طرحی (http:, javascript:, …) ممنوع است
+    }
+    if ($next[0] !== '/' && !str_starts_with($next, 'index.php')) {
+        return '';
+    }
+    return $next;
+}
+
+/**
+ * نشانیِ جاریِ درخواست به‌صورتِ نسبیِ امن — برای پر کردنِ next هنگامِ
+ * هدایتِ مهمان به صفحه‌ی ورود.
+ */
+function ha_current_request_url(): string
+{
+    $uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+    $uri = (string) preg_replace('/[\\x00-\\x1F\\x7F]/', '', $uri);
+    if ($uri !== '' && $uri[0] === '/' && !str_starts_with($uri, '//')) {
+        return substr($uri, 0, 400);
+    }
+    /* وقتی REQUEST_URI قابلِ اتکا نیست، از مسیر+نامک بازسازی می‌کنیم. */
+    $route = active_route();
+    $slug  = (string) ($GLOBALS['HA_SLUG'] ?? '');
+    $params = $slug !== '' ? ['slug' => $slug] : [];
+    return url($route === '404' ? 'home' : $route, $params);
+}
+
+function categories(): array { return ha_visible(ha_merge_overrides(data('categories'), admin_load('categories'))); }
 function find_category(string $slug): ?array {
     $slug = slugify($slug);
     foreach (categories() as $cat) if (slugify($cat['slug']??'')=== $slug) return $cat;

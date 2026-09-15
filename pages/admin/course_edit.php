@@ -21,7 +21,7 @@ if ($slug !== '') {
         if (slugify((string) ($c['slug'] ?? '')) === slugify($slug)) { $course = $c; break; }
     }
     if ($course === null) {
-        foreach (courses() as $c) {
+        foreach (courses_all() as $c) {
             if (slugify((string) ($c['slug'] ?? '')) === slugify($slug)) { $course = $c; $fromFile = true; break; }
         }
     }
@@ -92,6 +92,7 @@ $curCat = (string) ($course['category'] ?? '');
             <textarea class="input" id="c-intro" name="intro" rows="4"><?= e($course['intro'] ?? '') ?></textarea></div>
         <div class="field"><label for="c-howto">«چطور پیش برویم؟» — هر خط یک مورد</label>
             <textarea class="input" id="c-howto" name="how_to_text" rows="4"><?= e(implode("\n", array_map('strval', $howTo))) ?></textarea></div>
+        <?= admin_status_field($course ?? []) ?>
         <div class="field">
             <label class="check"><input type="checkbox" name="featured" value="1"<?= !empty($course['featured']) ? ' checked' : '' ?>>
                 <span>دوره‌ی ویژه (در صفحه‌ی اصلی نمایش داده شود)</span></label>

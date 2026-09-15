@@ -24,15 +24,19 @@ if (!defined('HA_ROOT')) {
  * الگویی که برای بقیه‌ی محتواها استفاده شده و ویرایشِ رویِ داده‌ی فایل
  * را ممکن می‌کند).
  */
-function courses(): array
+/**
+ * فهرستِ کاملِ دوره‌ها (فایل + پنل، با اعمالِ بازنویسیِ پنل، بدونِ
+ * فیلترِ انتشار) — برای پنل مدیریت و شمارش‌های داخلی.
+ */
+function courses_all(): array
 {
     $raw = data('course');
     if (isset($raw['courses']) && is_array($raw['courses'])) {
-        return array_merge($raw['courses'], admin_courses());
+        return ha_merge_overrides($raw['courses'], admin_courses());
     }
     // fallback: legacy single course
     if (isset($raw['stages'])) {
-        return array_merge([[
+        return ha_merge_overrides([[
             'slug'     => 'public-speaking-fundamentals',
             'title'    => $raw['title'] ?? 'مسیر آموزشی',
             'category' => 'public-speaking',
@@ -45,6 +49,11 @@ function courses(): array
         ]], admin_courses());
     }
     return admin_courses();
+}
+
+function courses(): array
+{
+    return ha_visible(courses_all());
 }
 
 /** فقط دوره‌هایی که از پنلِ مدیریت ذخیره شده‌اند. */
@@ -140,7 +149,9 @@ function lessons_by_category(string $category): array
 /*  مقالات                                                            */
 /* ------------------------------------------------------------------ */
 
-function articles(): array { return array_merge(data('articles'), admin_load('articles')); }
+/** همه‌ی مقاله‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function articles_all(): array { return ha_content_admin('articles'); }
+function articles(): array { return ha_visible(articles_all()); }
 function all_articles_sorted(): array
 {
     $articles = articles();
@@ -184,17 +195,85 @@ function related_articles(array $current, int $limit=3): array
 /*  تمرین‌ها و نکته‌ها                                                 */
 /* ------------------------------------------------------------------ */
 
-function exercises(): array { return array_merge(data('exercises'), admin_load('exercises')); }
-function tips(): array { return array_merge(data('tips'), admin_load('tips')); }
+/** همه‌ی تمرین‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function exercises_all(): array { return ha_content_admin('exercises', 'id'); }
+function exercises(): array { return ha_visible(exercises_all()); }
+/** همه‌ی نکته‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function tips_all(): array { return ha_content_admin('tips', 'id'); }
+function tips(): array { return ha_visible(tips_all()); }
 function exercises_by_level(): array { $grouped=[]; foreach(exercises() as $ex){ $level=(string)($ex['level']??'عمومی'); $grouped[$level][]=$ex; } return $grouped; }
+
+/**
+ * تمرین‌های متصل به یک درس مشخص (با نامکِ درس).
+ * اگر تمرینی فقط به دوره متصل شده باشد اینجا نمی‌آید — آن‌ها را
+ * exercises_for_course() برمی‌گرداند.
+ */
+function exercises_for_lesson(string $lessonSlug): array
+{
+    $lessonSlug = slugify($lessonSlug);
+    if ($lessonSlug === '') return [];
+    return array_values(array_filter(exercises(), static function ($ex) use ($lessonSlug) {
+        return slugify((string) ($ex['lesson'] ?? '')) === $lessonSlug;
+    }));
+}
+
+/** تمرین‌های متصل به یک دوره (مستقیم یا از طریقِ درس‌های همان دوره). */
+function exercises_for_course(string $courseSlug): array
+{
+    $courseSlug = slugify($courseSlug);
+    if ($courseSlug === '') return [];
+    $lessonSlugs = [];
+    $course = find_course($courseSlug);
+    if ($course !== null) {
+        foreach ((array) ($course['stages'] ?? []) as $stage) {
+            foreach ((array) ($stage['lessons'] ?? []) as $lesson) {
+                $ls = slugify((string) ($lesson['slug'] ?? ''));
+                if ($ls !== '') $lessonSlugs[$ls] = true;
+            }
+        }
+    }
+    return array_values(array_filter(exercises(), static function ($ex) use ($courseSlug, $lessonSlugs) {
+        if (slugify((string) ($ex['course'] ?? '')) === $courseSlug) return true;
+        $ls = slugify((string) ($ex['lesson'] ?? ''));
+        return $ls !== '' && isset($lessonSlugs[$ls]);
+    }));
+}
+
+/**
+ * انتخابِ «منتخب» برای صفحه‌ی نخست: اول مواردی که مدیر نشانِ ویژه
+ * زده، بعد تازه‌ترین‌ها تا رسیدن به سقف — بدونِ تکرار.
+ */
+function ha_featured_first(array $items, int $limit): array
+{
+    $picked = [];
+    foreach ($items as $item) {
+        if (!empty($item['featured'])) $picked[] = $item;
+    }
+    foreach ($items as $item) {
+        if (count($picked) >= $limit) break;
+        $id = slugify((string) ($item['slug'] ?? ($item['id'] ?? '')));
+        $dup = false;
+        foreach ($picked as $p) {
+            if (slugify((string) ($p['slug'] ?? ($p['id'] ?? ''))) === $id) { $dup = true; break; }
+        }
+        if (!$dup) $picked[] = $item;
+    }
+    return array_slice($picked, 0, $limit);
+}
 
 /* ------------------------------------------------------------------ */
 /*  کتاب، پژوهش، مدیا، مسیر                                            */
 /* ------------------------------------------------------------------ */
 
-function books(): array { return array_merge(data('books'), admin_load('books')); }
-function research_items(): array { return array_merge(data('research'), admin_load('research')); }
-function media_items(): array { return array_merge(data('media'), admin_load('media')); }
+/** همه‌ی کتاب‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function books_all(): array { return ha_content_admin('books'); }
+function books(): array { return ha_visible(books_all()); }
+/** همه‌ی پژوهش‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function research_all(): array { return ha_content_admin('research'); }
+function research_items(): array { return ha_visible(research_all()); }
+/** همه‌ی رسانه‌ها (فایل + پنل) بدونِ فیلترِ انتشار — برای پنل مدیریت. */
+function media_all(): array { return ha_content_admin('media'); }
+function media_items(): array { return ha_visible(media_all()); }
 function videos(): array { return array_values(array_filter(media_items(), fn($m)=>($m['type']??'')==='video')); }
 function audios(): array { return array_values(array_filter(media_items(), fn($m)=>($m['type']??'')==='audio')); }
 function learning_paths(): array { return data('learning_paths'); }
@@ -203,9 +282,9 @@ function find_book(string $slug): ?array { foreach(books() as $b) if(slugify($b[
 function find_research(string $slug): ?array { foreach(research_items() as $r) if(slugify($r['slug']??'')===slugify($slug)) return $r; return null; }
 function find_media(string $slug): ?array { foreach(media_items() as $m) if(slugify($m['slug']??'')===slugify($slug)) return $m; return null; }
 
-function books_by_category(string $cat): array { return array_values(array_filter(books(), fn($b)=>($b['category']??'')=== $cat)); }
-function research_by_category(string $cat): array { return array_values(array_filter(research_items(), fn($r)=>($r['category']??'')=== $cat)); }
-function media_by_category(string $cat, ?string $type=null): array { return array_values(array_filter(media_items(), function($m) use($cat,$type){ if(($m['category']??'')!== $cat) return false; if($type && ($m['type']??'')!== $type) return false; return true; })); }
+function books_by_category(string $cat): array { return array_values(array_filter(books(), fn($b)=>ha_item_field_slug($b)=== $cat)); }
+function research_by_category(string $cat): array { return array_values(array_filter(research_items(), fn($r)=>ha_item_field_slug($r)=== $cat)); }
+function media_by_category(string $cat, ?string $type=null): array { return array_values(array_filter(media_items(), function($m) use($cat,$type){ if(ha_item_field_slug($m)!== $cat) return false; if($type && ($m['type']??'')!== $type) return false; return true; })); }
 
 function related_books(array $current, int $limit=3): array {
     $out=[]; foreach(books() as $b){ if(($b['slug']??'')===($current['slug']??'')) continue; if(($b['category']??'')===($current['category']??'')) $out[]=$b; }

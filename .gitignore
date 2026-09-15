@@ -21,3 +21,8 @@ Thumbs.db
 .idea/
 .vscode/
 node_modules/
+
+# فایل‌های آپلودشده‌ی کاربر (زمانِ اجرا) — هاردنینگ و پلیس‌هولدر در مخزن می‌ماند
+uploads/*
+!uploads/.htaccess
+!uploads/index.html
