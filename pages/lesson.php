@@ -20,9 +20,14 @@ $data     = $lesson['lesson'];
 $stage    = $lesson['stage'];
 $course   = $lesson['course'] ?? find_course($stage['category'] ?? '') ?? courses()[0];
 $neigh    = course_neighbours($slug);
-$total    = (int)$lesson['total'];
-$position = (int)$lesson['position'];
+/* شماره‌ی «گام X از Y» درونِ همان دوره است، نه در میانِ همه‌ی دوره‌های سایت */
+$total    = (int)($lesson['courseTotal'] ?? $lesson['total']);
+$position = (int)($lesson['coursePosition'] ?? $lesson['position']);
 $cat      = find_category($course['category'] ?? '');
+
+/* پیش‌نیازِ درس (اختیاری): نمایش فقط وقتی که تعریف شده و قابلِ حل است */
+$prereqSlug = slugify((string)($data['prerequisite'] ?? ''));
+$prereq     = $prereqSlug !== '' ? course_find_lesson($prereqSlug) : null;
 
 // مرتبط‌ها: مقاله‌های همین حوزه، ویدیو/صوت، پژوهش
 $relatedVideos = array_slice(array_filter(videos(), fn($v)=>($v['category']??'')===($course['category']??'')),0,2);
@@ -45,8 +50,15 @@ if(count($relatedArticles)<2) $relatedArticles = latest_articles(2);
             <div class="lesson__meta">
                 <span class="chip"><?= e(minutes_label((int)($data['minutes']??10))) ?></span>
                 <span class="chip chip--soft">گام <?= fa_num($position) ?> از <?= fa_num($total) ?></span>
+                <?php if(!empty($course['level'])): ?><span class="chip chip--soft"><?= e($course['level']) ?></span><?php endif; ?>
                 <?php if($cat): ?><span class="badge"><?= e($cat['short']) ?></span><?php endif; ?>
             </div>
+            <?php if($prereq !== null): ?>
+            <p class="lesson__prereq">
+                <?= ha_icon('steps', 14) ?>
+                پیش‌نیاز این درس: <a href="<?= e(url('lesson',['slug'=>(string)$prereq['lesson']['slug']])) ?>"><?= e($prereq['lesson']['title'] ?? '') ?></a>
+            </p>
+            <?php endif; ?>
         </div>
     </header>
 
@@ -58,6 +70,19 @@ if(count($relatedArticles)<2) $relatedArticles = latest_articles(2);
 
             <?php if(!empty($data['drill'])): ?>
                 <?= render_drill((array)$data['drill']) ?>
+            <?php endif; ?>
+
+            <?php
+            /* منابع و مراجعِ درس (اختیاری) — ادعاهای علمی قابلِ ردیابی می‌شوند */
+            $lessonRefs = array_values(array_filter(array_map('trim', (array)($data['refs'] ?? [])), fn($r) => $r !== ''));
+            ?>
+            <?php if($lessonRefs !== []): ?>
+            <section class="lesson-refs" aria-label="منابع و مراجع">
+                <h2 class="lesson-refs__title"><?= ha_icon('research', 15) ?> منابع و بیشتر بخوانید</h2>
+                <ul class="rich-list">
+                    <?php foreach($lessonRefs as $ref): ?><li><?= e($ref) ?></li><?php endforeach; ?>
+                </ul>
+            </section>
             <?php endif; ?>
 
             <?php

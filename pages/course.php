@@ -83,6 +83,9 @@ $courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'
             <span class="chip chip--ghost"><?= e($courseData['level']??'') ?></span>
             <span class="muted-sm"><?= fa_num($totalLessons) ?> درس · <?= minutes_label($totalMinutes) ?></span>
         </div>
+        <?php if(!empty($courseData['prereq'])): ?>
+        <p class="course-prereq"><?= ha_icon('steps', 14) ?> <?= e($courseData['prereq']) ?></p>
+        <?php endif; ?>
 
         <div class="course-layout">
             <aside class="course-aside">
@@ -161,8 +164,40 @@ $courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'
                                 <?= lesson_row($lesson, (int)$sIdx, (int)$lIdx, $stage) ?>
                             <?php endforeach; ?>
                         </ol>
+                        <?php
+                        /* آزمونِ مرحله (اختیاری): معیارِ عبور از این مرحله — در data/course.php */
+                        $stageAssessment = (array)($stage['assessment'] ?? []);
+                        $assessmentItems  = array_values(array_filter(array_map('trim', (array)($stageAssessment['items'] ?? [])), fn($i) => $i !== ''));
+                        ?>
+                        <?php if($assessmentItems !== []): ?>
+                        <aside class="stage-assessment" aria-label="آزمون این مرحله">
+                            <h3 class="stage-assessment__title"><?= ha_icon('target', 15) ?> <?= e($stageAssessment['title'] ?? 'آزمون این مرحله') ?></h3>
+                            <ol class="rich-list rich-list--num">
+                                <?php foreach($assessmentItems as $ai): ?><li><?= e($ai) ?></li><?php endforeach; ?>
+                            </ol>
+                        </aside>
+                        <?php endif; ?>
                     </section>
                 <?php endforeach; ?>
+
+                <?php
+                /* پروژه‌ی نهاییِ دوره (اختیاری) — جمع‌بندیِ همه‌ی مراحل در یک خروجیِ واقعی */
+                $courseProject = (array)($courseData['project'] ?? []);
+                $projectCriteria = array_values(array_filter(array_map('trim', (array)($courseProject['criteria'] ?? [])), fn($c) => $c !== ''));
+                ?>
+                <?php if($courseProject !== [] && !empty($courseProject['title'])): ?>
+                <section class="course-project" aria-label="پروژه نهایی دوره">
+                    <h2 class="course-project__title"><?= ha_icon('compass', 17) ?> <?= e($courseProject['title']) ?></h2>
+                    <?php if(!empty($courseProject['description'])): ?><p class="course-project__desc"><?= e($courseProject['description']) ?></p><?php endif; ?>
+                    <?php if($projectCriteria !== []): ?>
+                    <h3 class="course-project__sub">معیارهای پذیرش</h3>
+                    <ul class="rich-list">
+                        <?php foreach($projectCriteria as $pc): ?><li><?= e($pc) ?></li><?php endforeach; ?>
+                    </ul>
+                    <?php endif; ?>
+                    <?php if(!empty($courseProject['deliverable'])): ?><p class="course-project__deliverable"><strong>خروجی مورد انتظار:</strong> <?= e($courseProject['deliverable']) ?></p><?php endif; ?>
+                </section>
+                <?php endif; ?>
 
                 <div class="cta-band cta-band--inline">
                     <div class="cta-band__text">

@@ -2591,6 +2591,15 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 .drill__list li { display: flex; gap: var(--sp-3); font-size: var(--fs-sm); line-height: 1.8; }
 .drill__note { margin: var(--sp-3) 0 0; font-size: var(--fs-xs); color: var(--text-mute); line-height: 1.7; }
 
+/* معیار سنجشِ تمرین: پاسِ «جواب داده؟» از حسِ کلی به نشانه‌ی قابلِ مشاهده */
+.drill__success {
+    display: flex; align-items: flex-start; gap: var(--sp-2);
+    margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--brand-soft); border-radius: var(--r-sm);
+    background: var(--surface-2); font-size: var(--fs-sm); line-height: 1.8;
+}
+.drill__success-icon { color: var(--brand-strong); flex-shrink: 0; margin-top: 0.2em; }
+
 /* ===== ۱۳) مقاله و متنِ محتوا ========================================== */
 
 .article__head {
@@ -3911,6 +3920,47 @@ body.admin-nav-open .admin-sidebar {
 
 /* تمرین‌های متصل به درس */
 .lesson-exercises { margin-top: var(--sp-7); }
+.lesson-exercises + .lesson-refs, .prose + .lesson-refs { margin-top: var(--sp-6); }
+
+/* پیش‌نیاز درس — سرنخِ ترتیبِ آموزشی در صفحه‌ی درس */
+.lesson__prereq {
+    display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+    margin: var(--sp-3) 0 0; font-size: var(--fs-sm); color: var(--text-soft);
+}
+.lesson__prereq a { font-weight: 600; }
+
+/* منابع و مراجع درس */
+.lesson-refs { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px dashed var(--border); }
+.lesson-refs__title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-lg); margin-bottom: var(--sp-2); color: var(--text-soft); }
+.lesson-refs .rich-list li { font-size: var(--fs-xs); color: var(--text-mute); line-height: 1.9; }
+
+/* آزمون مرحله در صفحه‌ی دوره */
+.stage-assessment {
+    margin-top: var(--sp-4); padding: var(--sp-4);
+    border: 1px solid var(--brand-soft); border-inline-start: 3px solid var(--brand-strong);
+    border-radius: var(--r-sm); background: var(--surface-2);
+}
+.stage-assessment__title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-base); margin: 0 0 var(--sp-2); color: var(--brand-strong); }
+.stage-assessment .rich-list--num li { font-size: var(--fs-sm); line-height: 1.9; }
+
+/* پروژه‌ی نهایی دوره */
+.course-project {
+    margin-top: var(--sp-7); padding: var(--sp-5) var(--sp-5) var(--sp-4);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface-2), var(--bg));
+}
+.course-project__title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xl); margin: 0 0 var(--sp-2); }
+.course-project__desc { color: var(--text-soft); line-height: 1.9; }
+.course-project__sub { font-size: var(--fs-base); margin: var(--sp-4) 0 var(--sp-2); color: var(--text-soft); }
+.course-project .rich-list li { display: flex; gap: var(--sp-2); font-size: var(--fs-sm); line-height: 1.9; }
+.course-project .tick { color: var(--success); flex-shrink: 0; }
+.course-project__deliverable { margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--text-mute); line-height: 1.8; }
+
+/* یادداشت پیش‌نیاز دوره */
+.course-prereq {
+    display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+    margin: var(--sp-3) 0 0; font-size: var(--fs-sm); color: var(--text-soft);
+}
 .lesson-exercises__title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xl); margin-bottom: var(--sp-2); }
 .exercise-card__lesson { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 var(--sp-2); color: var(--text-soft); font-size: var(--fs-sm); }
 .exercise-card__lesson a { color: var(--brand); font-weight: 700; }
