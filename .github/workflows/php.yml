@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   build:
@@ -71,8 +72,28 @@ jobs:
 
       - name: Migrate + seed MySQL
         run: |
-          php tools/db-migrate.php --seed
-          php tools/db-migrate.php --status
+          set -o pipefail
+          php tools/db-migrate.php --seed 2>&1 | tee /tmp/migrate-seed.log
+          php tools/db-migrate.php --status 2>&1 | tee /tmp/migrate-status.log
+
+      - name: Report migrate output to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let log = '';
+            for (const f of ['/tmp/migrate-seed.log', '/tmp/migrate-status.log']) {
+              try { log += '### ' + f + '\n```\n' + fs.readFileSync(f, 'utf8') + '\n```\n'; } catch (e) { log += '### ' + f + '\n(no output)\n'; }
+            }
+            if (context.eventName === 'pull_request') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: 'گزارش migrate در CI:\n' + log.slice(-60000),
+              });
+            }
 
       - name: Production check (with DB)
         run: php tools/production-check.php
