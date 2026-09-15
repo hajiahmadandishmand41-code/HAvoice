@@ -81,7 +81,9 @@ define('HA_SEND_MAIL', false);
 /* ------------------------------------------------------------------ */
 
 /** نمایش خطاها در خروجی. در Production حتماً false بماند. */
-define('HA_DEBUG', false);
+if (!defined('HA_DEBUG')) {
+    define('HA_DEBUG', false);
+}
 
 /** انتقال اجباری به HTTPS (پس از فعال‌سازی SSL روی هاست). */
 define('HA_FORCE_HTTPS', false);

@@ -23,7 +23,7 @@ SET @has_read_at := (
 );
 SET @sql := IF(@has_read_at = 0,
     'ALTER TABLE ha_contact_messages ADD COLUMN read_at DATETIME NULL AFTER ip',
-    'SELECT 1'
+    'SET @ha_noop := 1'
 );
 PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
@@ -34,7 +34,7 @@ SET @has_lesson_id := (
 );
 SET @sql := IF(@has_lesson_id = 0,
     'ALTER TABLE ha_exercises ADD COLUMN lesson_id INT UNSIGNED NULL AFTER note_text',
-    'SELECT 1'
+    'SET @ha_noop := 1'
 );
 PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
@@ -45,7 +45,7 @@ SET @has_idx := (
 );
 SET @sql := IF(@has_idx = 0,
     'ALTER TABLE ha_exercises ADD KEY idx_exercises_lesson_id (lesson_id)',
-    'SELECT 1'
+    'SET @ha_noop := 1'
 );
 PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
@@ -63,7 +63,7 @@ SET @has_fk := (
 );
 SET @sql := IF(@has_fk = 0,
     'ALTER TABLE ha_exercises ADD CONSTRAINT fk_exercises_lesson FOREIGN KEY (lesson_id) REFERENCES ha_lessons(id) ON DELETE CASCADE',
-    'SELECT 1'
+    'SET @ha_noop := 1'
 );
 PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
@@ -77,7 +77,7 @@ SET @has_uq := (
 );
 SET @sql := IF(@has_uq = 0,
     'ALTER TABLE ha_stages ADD UNIQUE KEY uq_stages_key (course_id, stage_key)',
-    'SELECT 1'
+    'SET @ha_noop := 1'
 );
 PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
