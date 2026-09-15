@@ -46,12 +46,11 @@ jobs:
           done
 
           # The PR intentionally protects course/lesson/exercise pages for guests.
-          # Keep the existing self-check coverage, but make its expected status
-          # match the real contract (302 -> login) for those protected routes.
-          cp tools/selfcheck.php /tmp/havoice-selfcheck-http.php
+          # Keep the full self-check coverage, but align the expected status with
+          # the authentication contract: guests receive 302 -> login.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('/tmp/havoice-selfcheck-http.php')
+          p = Path('tools/selfcheck.php')
           s = p.read_text(encoding='utf-8')
           old = "$want = $name === 'not-found' ? 404 : 200;"
           new = "$want = $name === 'not-found' ? 404 : (in_array($name, ['course', 'lesson', 'exercises'], true) ? 302 : 200);"
@@ -60,4 +59,4 @@ jobs:
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
 
-          php /tmp/havoice-selfcheck-http.php --http=http://127.0.0.1:8080
+          php tools/selfcheck.php --http=http://127.0.0.1:8080
