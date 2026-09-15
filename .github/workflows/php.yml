@@ -68,6 +68,7 @@ jobs:
           define('HA_SEED_ADMIN_EMAIL', 'admin@test.local');
           define('HA_SEED_ADMIN_PASSWORD', 'TestAdmin_9x');
           define('HA_SEED_ADMIN_NAME', 'Admin');
+          define('HA_DEBUG', true);
           PHP
 
       - name: Migrate + seed MySQL
