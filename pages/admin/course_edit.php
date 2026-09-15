@@ -96,7 +96,7 @@ $curCat = (string) ($course['category'] ?? '');
             <input class="input" id="c-prereq" type="text" name="prereq" maxlength="200"
                    value="<?= e($course['prereq'] ?? '') ?>">
             <p class="field__help">یادداشتِ کوتاهِ پیش‌نیاز؛ زیرِ عنوانِ دوره نمایش داده می‌شود.</p></div>
-        <?= admin_status_field($course ?? []) ?>
+        <?= admin_status_field($course ?? [], $slug === '') ?>
         <div class="field">
             <label class="check"><input type="checkbox" name="featured" value="1"<?= !empty($course['featured']) ? ' checked' : '' ?>>
                 <span>دوره‌ی ویژه (در صفحه‌ی اصلی نمایش داده شود)</span></label>

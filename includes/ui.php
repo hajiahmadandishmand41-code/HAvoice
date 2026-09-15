@@ -349,17 +349,38 @@ function course_card(array $course): string
 
 function video_card(array $item): string
 {
-    $hasUrl = !empty($item['url']);
-    $href   = $hasUrl ? (string) $item['url'] : url('videos');
+    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $hasUrl = $url !== '';
+    $href   = $hasUrl ? $url : url('videos');
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
+    $thumb  = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $lessonSlug = slugify((string) ($item['lesson'] ?? ''));
+    $courseSlug = slugify((string) ($item['course'] ?? ''));
+    $relatedLabel = '';
+    if ($lessonSlug !== '') {
+        $li = course_find_lesson($lessonSlug);
+        if ($li !== null) {
+            $relatedLabel = (string) ($li['lesson']['title'] ?? '');
+        }
+    } elseif ($courseSlug !== '') {
+        $c = find_course($courseSlug);
+        if ($c !== null) {
+            $relatedLabel = (string) ($c['title'] ?? '');
+        }
+    }
 
     ob_start(); ?>
     <article class="card media-card media-card--video">
-        <div class="media-card__thumb"<?= $cat !== null ? ' style="' . e(card_style($cat)) . '"' : '' ?>>
-            <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
+        <div class="media-card__thumb<?= $thumb !== '' ? ' media-card__thumb--img' : '' ?>"<?= $cat !== null ? ' style="' . e(card_style($cat)) . '"' : '' ?>>
+            <?php if ($thumb !== ''): ?>
+                <img src="<?= e($thumb) ?>" alt="" loading="lazy" decoding="async" width="640" height="360">
+            <?php endif; ?>
+            <?php if ($dur !== '' && (int) ($item['seconds'] ?? 0) > 0): ?>
+                <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
+            <?php endif; ?>
             <?php if ($hasUrl): ?>
-                <a class="media-card__play" href="<?= e($href) ?>" aria-label="پخشِ ویدیو: <?= e($item['title'] ?? '') ?>"><?= ha_icon('play', 22) ?></a>
+                <a class="media-card__play" href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?> aria-label="پخش ویدیو: <?= e($item['title'] ?? '') ?>"><?= ha_icon('play', 22) ?></a>
             <?php else: ?>
                 <span class="media-card__play" aria-hidden="true"><?= ha_icon('play', 22) ?></span>
             <?php endif; ?>
@@ -367,21 +388,25 @@ function video_card(array $item): string
         <div class="media-card__body">
             <div class="media-card__top">
                 <span class="badge badge--soft"><?= e(cat_label($cat, (string) ($item['category'] ?? ''))) ?></span>
-                <?php if (!empty($item['date_fa'])): ?>
-                    <span class="meta-dot" aria-hidden="true"></span>
-                    <span><?= e($item['date_fa']) ?></span>
+                <?php if (!empty($item['featured'])): ?>
+                    <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
                 <?php endif; ?>
             </div>
-            <h3 class="media-card__title"><?php if ($hasUrl): ?><a href="<?= e($href) ?>"><?= e($item['title'] ?? '') ?></a><?php else: ?><?= e($item['title'] ?? '') ?><?php endif; ?></h3>
-            <p class="media-card__excerpt"><?= e($item['excerpt'] ?? '') ?></p>
+            <h3 class="media-card__title"><?php if ($hasUrl): ?><a href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?>><?= e($item['title'] ?? '') ?></a><?php else: ?><?= e($item['title'] ?? '') ?><?php endif; ?></h3>
+            <?php if (!empty($item['excerpt'])): ?>
+                <p class="media-card__excerpt"><?= e($item['excerpt']) ?></p>
+            <?php endif; ?>
+            <?php if ($relatedLabel !== ''): ?>
+                <p class="media-card__related muted-sm"><?= ha_icon('steps', 12) ?> <?= e($relatedLabel) ?></p>
+            <?php endif; ?>
         </div>
         <footer class="media-card__foot">
             <?php if ($hasUrl): ?>
-                <a class="btn btn--sm btn--primary" href="<?= e($href) ?>"><?= ha_icon('play', 12) ?> پخش ویدیو</a>
+                <a class="btn btn--sm btn--primary" href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?>><?= ha_icon('play', 12) ?> پخش</a>
             <?php else: ?>
-                <span class="badge badge--outline"><?= ha_icon('clock', 12) ?> به‌زودی</span>
+                <span class="badge badge--outline"><?= ha_icon('info', 12) ?> در دسترس نیست</span>
             <?php endif; ?>
-            <span class="muted-sm"><?= e($dur) ?></span>
+            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="muted-sm"><?= e($dur) ?></span><?php endif; ?>
         </footer>
     </article>
     <?php return (string) ob_get_clean();
@@ -393,34 +418,37 @@ function video_card(array $item): string
 
 function audio_card(array $item): string
 {
-    $hasUrl = !empty($item['url']);
+    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
 
     ob_start(); ?>
     <article class="card media-card media-card--audio">
         <div class="media-card__thumb media-card__thumb--audio"<?= $cat !== null ? ' style="' . e(card_style($cat)) . '"' : '' ?>>
-            <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
+            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?>
+                <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
+            <?php endif; ?>
             <span class="media-card__play" aria-hidden="true"><?= ha_icon('headphones', 22) ?></span>
         </div>
         <div class="media-card__body">
             <div class="media-card__top">
                 <span class="badge badge--soft"><?= e(cat_label($cat, (string) ($item['category'] ?? ''))) ?></span>
-                <?php if (!empty($item['date_fa'])): ?>
-                    <span class="meta-dot" aria-hidden="true"></span>
-                    <span><?= e($item['date_fa']) ?></span>
+                <?php if (!empty($item['featured'])): ?>
+                    <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
                 <?php endif; ?>
             </div>
             <h3 class="media-card__title"><?= e($item['title'] ?? '') ?></h3>
+            <?php if (!empty($item['excerpt'])): ?>
+                <p class="media-card__excerpt"><?= e($item['excerpt']) ?></p>
+            <?php endif; ?>
             <?php if ($hasUrl): ?>
-                <audio controls preload="none" src="<?= e($item['url']) ?>" class="audio-player" aria-label="پخش‌کننده‌ی صوت: <?= e($item['title'] ?? '') ?>"></audio>
-            <?php else: ?>
-                <div class="audio-player audio-player--placeholder" role="note"><?= ha_icon('info', 13) ?> فایل صوتی به‌زودی افزوده می‌شود</div>
+                <audio controls preload="none" src="<?= e($url) ?>" class="audio-player" aria-label="پخش صوت: <?= e($item['title'] ?? '') ?>"></audio>
             <?php endif; ?>
         </div>
         <footer class="media-card__foot">
-            <span class="muted-sm"><?= ha_icon('headphones', 12) ?> پادکست</span>
-            <span class="muted-sm"><?= e($dur) ?></span>
+            <span class="muted-sm"><?= ha_icon('headphones', 12) ?> صوت</span>
+            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="muted-sm"><?= e($dur) ?></span><?php endif; ?>
         </footer>
     </article>
     <?php return (string) ob_get_clean();

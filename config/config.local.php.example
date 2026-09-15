@@ -1,0 +1,39 @@
+<?php
+/**
+ * HAvoice — نمونهٔ پیکربندی محلی / Production
+ *
+ * کپی کنید به: config/config.local.php
+ * این فایل در .gitignore است و هرگز به GitHub push نشود.
+ *
+ * روی InfinityFree:
+ *   1) MySQL Databases → ساخت دیتابیس
+ *   2) مقادیر زیر را از پنل کپی کنید
+ *   3) یک‌بار: php tools/db-migrate.php --seed
+ *      یا از Admin پس از ورود (اگر seed خودکار با HA_DB_AUTO_SEED)
+ */
+
+if (!defined('HA_ROOT')) {
+    exit('دسترسی مستقیم ممنوع است.');
+}
+
+/* ---- Database (الزامی برای Production کامل) ---- */
+define('HA_DB_HOST', 'sqlXXX.infinityfree.com');
+define('HA_DB_PORT', 3306);
+define('HA_DB_NAME', 'epiz_XXXX_havoice');
+define('HA_DB_USER', 'epiz_XXXX');
+define('HA_DB_PASS', 'YOUR_DB_PASSWORD');
+
+/* ---- Site ---- */
+// define('HA_SITE_URL', 'https://your-domain.infinityfreeapp.com');
+// define('HA_BASE_PATH', '');
+// define('HA_PRETTY_URLS', false);
+// define('HA_FORCE_HTTPS', true);
+// define('HA_DEBUG', false);
+
+/* ---- Seed خودکار در نخستین اتصال موفق (فقط اگر جداول خالی باشند) ---- */
+// define('HA_DB_AUTO_SEED', true);
+
+/* ---- ادمین اولیه هنگام seed (اگر هیچ کاربری نباشد) ---- */
+// define('HA_SEED_ADMIN_EMAIL', 'admin@example.com');
+// define('HA_SEED_ADMIN_PASSWORD', 'ChangeMe_Strong_8+');
+// define('HA_SEED_ADMIN_NAME', 'مدیر');

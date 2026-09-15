@@ -1,12 +1,6 @@
 <?php
 /**
- * HAvoice Admin — حذفِ دوره
- *
- * نسخه‌ی پیشین stub بود. اکنون دوره‌های ساخته‌شده در پنل واقعاً حذف
- * می‌شوند. دوره‌هایی که از data/course.php می‌آیند قابلِ حذف از پنل
- * «نیستند» — چون حذف‌شان باید با ویرایشِ فایل انجام شود و حذفِ بی‌صدا
- * می‌توانست کلِ محتوای آموزشیِ سایت را از بین ببرد. در این حالت پیامِ
- * روشن برمی‌گردانیم.
+ * HAvoice Admin — حذف دوره (DB + JSON)
  */
 if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 auth_require_admin();
@@ -18,27 +12,22 @@ if (!csrf_verify()) { flash('error', 'نشست شما تمام شده. دوبا�
 $slug = slugify((string) ($_POST['slug'] ?? ''));
 if ($slug === '') { flash('error', 'نامکِ دوره مشخص نیست.'); redirect(url($listRoute)); }
 
-$courses = admin_courses();
-$kept    = [];
-$removed = null;
-foreach ($courses as $c) {
-    if (slugify((string) ($c['slug'] ?? '')) === $slug) { $removed = $c; continue; }
-    $kept[] = $c;
+$course = null;
+foreach (courses_all() as $c) {
+    if (slugify((string) ($c['slug'] ?? '')) === $slug) {
+        $course = $c;
+        break;
+    }
 }
-
-if ($removed === null) {
-    /* در پنل نبود ⇒ دوره از فایل می‌آید */
-    $fileCourse = find_course($slug);
-    flash('error', $fileCourse !== null
-        ? 'دوره «' . ($fileCourse['title'] ?? $slug) . '» از فایلِ data/course.php می‌آید و از پنل حذف نمی‌شود.'
-        : 'دوره‌ای با این نامک در پنل پیدا نشد.');
+if ($course === null) {
+    flash('error', 'دوره‌ای با این نامک پیدا نشد.');
     redirect(url($listRoute));
 }
 
-if (!admin_store('courses', $kept)) {
-    flash('error', 'حذف ناموفق بود؛ پوشه‌ی storage قابلِ نوشتن نیست.');
+if (!repo_delete_course($slug)) {
+    flash('error', 'حذف ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect(url($listRoute));
 }
 
-flash('success', 'دوره «' . ($removed['title'] ?? $slug) . '» حذف شد.');
+flash('success', 'دوره «' . ($course['title'] ?? $slug) . '» حذف شد.');
 redirect(url($listRoute));

@@ -984,10 +984,21 @@ function ha_current_request_url(): string
     return url($route === '404' ? 'home' : $route, $params);
 }
 
-function categories(): array { return ha_visible(ha_merge_overrides(data('categories'), admin_load('categories'))); }
+function categories(): array { return ha_visible(repo_categories()); }
+/** همه حوزه‌ها بدون فیلتر انتشار (پنل). */
+function categories_all(): array { return repo_categories(); }
 function find_category(string $slug): ?array {
     $slug = slugify($slug);
     foreach (categories() as $cat) if (slugify($cat['slug']??'')=== $slug) return $cat;
+    return null;
+}
+/** حوزه حتی اگر پیش‌نویس — برای اعتبارسنجی Admin. */
+function find_category_any(string $slug): ?array {
+    $slug = slugify($slug);
+    $list = function_exists('categories_all') ? categories_all() : categories();
+    foreach ($list as $cat) {
+        if (slugify((string)($cat['slug'] ?? '')) === $slug) return $cat;
+    }
     return null;
 }
 function category_label(string $slug, string $fallback=''): string {

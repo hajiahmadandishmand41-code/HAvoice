@@ -27,7 +27,7 @@ if ($blocks === null) {
 }
 
 $field = slugify((string) ($_POST['field'] ?? ''));
-if ($field !== '' && find_category($field) === null) {
+if ($field !== '' && find_category_any($field) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
     redirect($editUrl);
 }
@@ -51,20 +51,8 @@ $item = [
     'featured' => !empty($_POST['featured']),
 ];
 
-$items = admin_load('research');
-$found = false;
-foreach ($items as $i => $r) {
-    $rSlug = slugify((string) ($r['slug'] ?? ''));
-    if (($orig !== '' && $rSlug === $orig) || $rSlug === $slug) {
-        $items[$i] = $item;
-        $found = true;
-        break;
-    }
-}
-if (!$found) $items[] = $item;
-
-if (!admin_store('research', $items)) {
-    flash('error', 'ذخیره‌سازی پژوهش ناموفق بود؛ storage قابل نوشتن نیست.');
+if (!repo_save_research($item, $orig)) {
+    flash('error', 'ذخیره ناموفق بود.');
     redirect($editUrl);
 }
 flash('success', $item['status'] === 'published' ? 'پژوهش ذخیره و منتشر شد.' : 'پژوهش به‌عنوان پیش‌نویس ذخیره شد (مخفی).');

@@ -58,12 +58,8 @@ foreach (admin_courses() as $c) { $panelSlugs[slugify((string) ($c['slug'] ?? ''
 </tbody></table></div>
 
 <div class="admin-card mt-md">
-    <h2>درباره‌ی منبعِ دوره‌ها</h2>
-    <p class="muted-sm">دوره‌هایی که برچسبِ «فایل» دارند از <code dir="ltr">data/course.php</code> می‌آیند.
-    ویرایشِ آن‌ها در پنل یک نسخه‌ی پنلی می‌سازد که از آن پس جایگزینِ نسخه‌ی فایل می‌شود (فایلِ اصلی دست‌نخورده می‌ماند)؛
-    حذفِ کاملِ آن‌ها فقط با ویرایشِ فایل ممکن است ولی «مخفی کردن» از همین‌جا انجام می‌شود. دوره‌های «پنل» در
-    <code dir="ltr">storage/admin/courses.json</code> ذخیره می‌شوند.</p>
-    <p class="muted-sm">ساختارِ هر دوره: مراحل (<code dir="ltr">stages</code>) و در هر مرحله درس‌ها
-    (<code dir="ltr">lessons</code>) با <code dir="ltr">slug, title, minutes, goal, blocks</code>.</p>
+    <h2>مسیر آموزشی</h2>
+    <p class="muted-sm">ساختار: <strong>حوزه → دوره → مرحله → درس → تمرین</strong>.
+    ویرایش دوره، مراحل و درس‌ها را با هم ذخیره می‌کند. موارد «فایل» با اولین ذخیره در پنل override می‌شوند.</p>
 </div>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>

@@ -30,35 +30,29 @@ if (count($featuredCourses) < $LIMIT) {
     }
 }
 
-/* صفحه‌ی نخست فقط «منتخب‌ها» را نشان می‌دهد: اول مواردی که مدیر نشانِ
-   ویژه زده، بعد تازه‌ترین‌ها — حداکثر سه قلم از هر نوع. */
+/* فقط Featured / Important / Recent — بدون بخش‌های خالی یا جعلی */
 $latest   = ha_featured_first(all_articles_sorted(), $LIMIT);
-$videos   = ha_featured_first(videos(), $LIMIT);
+$videos   = ha_featured_first(videos(), $LIMIT);   // فقط playable
 $audios   = ha_featured_first(audios(), $LIMIT);
 $books    = ha_featured_first(books(), $LIMIT);
-$research = ha_featured_first(research_items(), 2);
 $exList   = ha_featured_first(exercises(), $LIMIT);
 $why      = (array) ($site['why'] ?? []);
 $method   = (array) ($site['method'] ?? []);
 $cta      = (array) ($site['cta_band'] ?? []);
 $commentsTeaser = (array) ($site['comments_teaser'] ?? []);
 
-$homeComments    = [];
-$homeCommentsAll = 0;
-if (comments_db() !== null) {
-    $homeCommentsAll = comments_count_approved();
-    if ($homeCommentsAll > 0) {
-        $homeComments = comments_approved(3);
-    }
+$homeComments = [];
+if (comments_db() !== null && comments_count_approved() > 0) {
+    $homeComments = comments_approved(3);
 }
 
-$practice        = exercises()[0] ?? null;
+$practice        = $exList[0] ?? (exercises()[0] ?? null);
 $practiceSeconds = (int) ($practice['seconds'] ?? 180);
 
 $countCourses  = count(courses());
 $countLessons  = count(course_lesson_index());
 $countArticles = count(all_articles_sorted());
-$countMedia    = count(videos()) + count(audios());
+$countExercises = count(exercises());
 
 /* تصاویرِ واقعیِ سایت — هر دو فایلِ داخلِ assets/img (بنر + عکسِ مدرس) */
 $bannerArtwork = asset('assets/img/fanbayan-banner.webp');
@@ -119,8 +113,8 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
             <ul class="hero__stats hero__stats--premium">
                 <li><strong><?= fa_num($countCourses) ?></strong><span>دوره‌ی مرحله‌ای</span></li>
                 <li><strong><?= fa_num($countLessons) ?></strong><span>درسِ تمرین‌محور</span></li>
+                <li><strong><?= fa_num($countExercises) ?></strong><span>تمرین عملی</span></li>
                 <li><strong><?= fa_num($countArticles) ?></strong><span>مقاله‌ی کاربردی</span></li>
-                <li><strong><?= fa_num($countMedia) ?></strong><span>ویدیو و صوت</span></li>
             </ul>
         </div>
 
@@ -234,36 +228,16 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 </section>
 <?php endif; ?>
 
-<!-- ۸) کتاب‌ها و پژوهش ==================================================== -->
-<?php if ($books !== [] || $research !== []): ?>
+<!-- ۸) کتاب‌های منتخب ===================================================== -->
+<?php if ($books !== []): ?>
 <section class="section">
     <div class="container">
-        <?= $head('منابع', 'کتاب‌ها و پژوهش‌ها', 'منابع عمیق‌تر برای مطالعه و تحقیق.', url('books')) ?>
-        <?php if ($books !== []): ?>
-            <div class="grid grid--3">
-                <?php foreach ($books as $book): ?>
-                    <div class="reveal"><?= book_card($book) ?></div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($research !== []): ?>
-            <div class="two-col mt-md">
-                <div>
-                    <h3 class="h3"><?= ha_icon('research', 16) ?> پژوهش و یادداشتِ منبع‌دار</h3>
-                    <p class="muted-sm mb-sm">مرورِ منابع با ذکرِ دقیقِ رفرنس؛ قابلِ راستی‌آزمایی و بدونِ ادعای بی‌منبع.</p>
-                    <a class="btn btn--ghost btn--sm" href="<?= e(url('research')) ?>">همه‌ی پژوهش‌ها <?= ha_icon('chevron-left', 14) ?></a>
-                </div>
-                <div class="grid gap-sm">
-                    <?php foreach ($research as $r): ?>
-                        <a class="result" href="<?= e(url('research', ['slug' => (string) ($r['slug'] ?? '')])) ?>">
-                            <p class="result__title"><?= e($r['title'] ?? '') ?></p>
-                            <p class="result__kind"><span class="badge badge--soft"><?= e($r['category'] ?? '') ?></span><span class="muted-sm"><?= e($r['date_fa'] ?? '') ?></span></p>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        <?php endif; ?>
+        <?= $head('منابع', 'کتاب‌های منتخب', 'خلاصه‌ها و برداشت‌های کاربردی.', url('books')) ?>
+        <div class="grid grid--3">
+            <?php foreach ($books as $book): ?>
+                <div class="reveal"><?= book_card($book) ?></div>
+            <?php endforeach; ?>
+        </div>
     </div>
 </section>
 <?php endif; ?>

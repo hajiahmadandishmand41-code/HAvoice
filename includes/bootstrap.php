@@ -16,6 +16,8 @@ if (!defined('HA_ROOT')) {
 
 require HA_ROOT . '/config/config.php';
 require HA_ROOT . '/includes/helpers.php';
+require HA_ROOT . '/includes/db.php';
+require HA_ROOT . '/includes/repository.php';
 require HA_ROOT . '/includes/icons.php';
 require HA_ROOT . '/includes/content.php';
 require HA_ROOT . '/includes/auth.php';
@@ -23,6 +25,11 @@ require HA_ROOT . '/includes/uploads.php';
 require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/meta.php';
 require HA_ROOT . '/includes/comments.php';
+
+/* Seed خودکار فقط وقتی صریحاً فعال و جداول خالی باشند. */
+if (function_exists('repo_maybe_auto_seed')) {
+    repo_maybe_auto_seed();
+}
 
 error_reporting(E_ALL);
 ini_set('display_errors', HA_DEBUG ? '1' : '0');

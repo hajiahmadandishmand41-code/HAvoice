@@ -68,10 +68,17 @@ function admin_status_toggle(string $type, string $key, array $item): string
     <?php return (string) ob_get_clean();
 }
 
-/** فیلدِ انتخابِ وضعیت برای فرم‌های ویرایش. */
-function admin_status_field(array $item): string
+/**
+ * فیلدِ انتخابِ وضعیت برای فرم‌های ویرایش.
+ * موردِ تازه (بدون slug/id ذخیره‌شده): پیش‌فرض draft — Publish تصمیم مدیر است.
+ */
+function admin_status_field(array $item, bool $isNew = false): string
 {
-    $status = ha_is_published($item) ? 'published' : 'draft';
+    if ($isNew && !isset($item['status'])) {
+        $status = 'draft';
+    } else {
+        $status = ha_is_published($item) ? 'published' : 'draft';
+    }
     ob_start(); ?>
     <div class="field">
         <label for="f-status">وضعیتِ انتشار</label>
@@ -79,6 +86,9 @@ function admin_status_field(array $item): string
             <option value="published"<?= $status === 'published' ? ' selected' : '' ?>>منتشرشده — برای کاربران نمایش داده شود</option>
             <option value="draft"<?= $status === 'draft' ? ' selected' : '' ?>>پیش‌نویس — مخفی از دیدِ کاربران (بدونِ حذف)</option>
         </select>
+        <?php if ($isNew): ?>
+        <p class="field__help">پیش‌فرض پیش‌نویس است؛ برای نمایش عمومی «منتشرشده» را انتخاب کنید.</p>
+        <?php endif; ?>
     </div>
     <?php return (string) ob_get_clean();
 }
@@ -100,7 +110,7 @@ function admin_field_select(array $item, string $inputName = 'field'): string
         <label for="f-field">حوزه‌ی آموزشی</label>
         <select class="input" id="f-field" name="<?= e($inputName) ?>">
             <option value="">— بدونِ اتصال —</option>
-            <?php foreach (categories() as $c): $cs = (string) ($c['slug'] ?? ''); ?>
+            <?php foreach (categories_all() as $c): $cs = (string) ($c['slug'] ?? ''); ?>
             <option value="<?= e($cs) ?>"<?= $cs === $current ? ' selected' : '' ?>><?= e($c['title'] ?? $cs) ?></option>
             <?php endforeach; ?>
         </select>
@@ -134,6 +144,20 @@ function admin_post_slug(string $title = ''): string
         $slug = slugify($title);
     }
     return $slug;
+}
+
+/**
+ * وضعیت انتشار از POST.
+ * پیش‌فرض برای موردِ «تازه» = draft (Publish تصمیمِ صریحِ مدیر است).
+ * برای ویرایش، اگر status ارسال نشود published می‌ماند (سازگاری فرم‌های قدیم).
+ */
+function admin_post_status_default_draft(bool $isNew = false): string
+{
+    $raw = (string) ($_POST['status'] ?? '');
+    if ($raw === 'draft' || $raw === 'published') {
+        return $raw;
+    }
+    return $isNew ? 'draft' : 'published';
 }
 
 /**

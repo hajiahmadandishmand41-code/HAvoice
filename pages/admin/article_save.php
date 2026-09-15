@@ -31,7 +31,7 @@ if ($blocks === null) {
 
 /* حوزه: اگر انتخاب شده باید معتبر باشد */
 $field = slugify((string) ($_POST['field'] ?? ''));
-if ($field !== '' && find_category($field) === null) {
+if ($field !== '' && find_category_any($field) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
     redirect($editUrl);
 }
@@ -84,20 +84,8 @@ $article = [
     'featured'    => !empty($_POST['featured']),
 ];
 
-$articles = admin_load('articles');
-$found = false;
-foreach ($articles as $i => $a) {
-    $aSlug = slugify((string) ($a['slug'] ?? ''));
-    if (($orig !== '' && $aSlug === $orig) || $aSlug === $slug) {
-        $articles[$i] = $article;
-        $found = true;
-        break;
-    }
-}
-if (!$found) $articles[] = $article;
-
-if (!admin_store('articles', $articles)) {
-    flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ storage قابل نوشتن نیست.');
+if (!repo_save_article($article, $orig)) {
+    flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
 

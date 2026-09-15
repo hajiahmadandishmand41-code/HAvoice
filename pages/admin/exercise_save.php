@@ -50,21 +50,9 @@ $item = [
     'featured' => !empty($_POST['featured']),
 ];
 
-$items = admin_load('exercises');
-$orig  = slugify((string) ($_POST['original_id'] ?? ''));
-$found = false;
-foreach ($items as $i => $ex) {
-    $exId = slugify((string) ($ex['id'] ?? ''));
-    if (($orig !== '' && $exId === $orig) || $exId === $id) {
-        $items[$i] = $item;
-        $found = true;
-        break;
-    }
-}
-if (!$found) $items[] = $item;
-
-if (!admin_store('exercises', $items)) {
-    flash('error', 'ذخیره‌سازی تمرین ناموفق بود؛ storage قابل نوشتن نیست.');
+$orig = slugify((string) ($_POST['original_id'] ?? ''));
+if (!repo_save_exercise($item, $orig)) {
+    flash('error', 'ذخیره‌سازی تمرین ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect(url('admin_exercises'));
 }
 flash('success', $item['status'] === 'published' ? 'تمرین ذخیره و منتشر شد.' : 'تمرین به‌عنوان پیش‌نویس ذخیره شد (مخفی).');

@@ -6,18 +6,19 @@ if (!defined('HA_ROOT')) exit('دسترسی مستقیم ممنوع است.');
 require HA_ROOT . '/pages/admin/_layout_start.php';
 
 $totalUsers = count(auth_load_users());
-$totalCourses = count(courses());
+$totalCourses = count(courses_all());
 $totalLessons = count(course_lesson_index());
-$totalArticles = count(data('articles'));
-$totalBooks = count(books());
-$totalResearch = count(research_items());
-$totalVideos = count(videos());
-$totalAudios = count(audios());
-$totalExercises = count(exercises());
-$totalTips = count(tips());
+$totalArticles = count(articles_all());
+$totalBooks = count(books_all());
+$totalResearch = count(research_all());
+$totalVideos = count(array_filter(media_all(), static fn($m) => ($m['type'] ?? '') === 'video'));
+$totalAudios = count(array_filter(media_all(), static fn($m) => ($m['type'] ?? '') === 'audio'));
+$totalExercises = count(exercises_all());
+$totalTips = count(tips_all());
 $totalCategories = count(categories());
-$adminMessages = admin_load('messages');
-$totalMessages = count($adminMessages);
+/* همه‌ی پیام‌ها با ref پایدار — نه فقط JSON پنل و نه اندیس reverse */
+$allMessages = admin_messages_all();
+$totalMessages = count($allMessages);
 $commentCounts = comments_admin_counts();
 ?>
 
@@ -55,25 +56,28 @@ $commentCounts = comments_admin_counts();
 
 <div class="admin-card">
     <h2>آخرین پیام‌های تماس</h2>
-    <?php if ($adminMessages === []): ?>
+    <?php if ($allMessages === []): ?>
         <p class="muted-sm">هنوز پیامی دریافت نشده است.</p>
     <?php else: ?>
         <div class="admin-table-wrap">
             <table class="admin-table">
                 <thead><tr><th>تاریخ</th><th>نام</th><th>موضوع</th><th>عملیات</th></tr></thead>
                 <tbody>
-                <?php foreach (array_slice(array_reverse($adminMessages), 0, 5) as $i => $msg): ?>
+                <?php foreach (array_slice($allMessages, 0, 5) as $msg):
+                    $ref = (string) ($msg['ref'] ?? '');
+                    if ($ref === '') { continue; }
+                ?>
                     <tr>
                         <td class="muted-sm"><?= e($msg['time'] ?? '') ?></td>
                         <td><?= e($msg['name'] ?? '') ?></td>
                         <td><?= e($msg['subject'] ?? '') ?></td>
-                        <td><a class="btn btn--ghost btn--sm" href="<?= e(url('admin_message_view', ['slug' => $i])) ?>">مشاهده</a></td>
+                        <td><a class="btn btn--ghost btn--sm" href="<?= e(url('admin_message_view', ['slug' => $ref])) ?>">مشاهده</a></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-        <div style="margin-top:1rem"><a class="link-arrow" href="<?= e(url('admin_messages')) ?>">همه‌ی پیام‌ها</a></div>
+        <div class="admin-card__more"><a class="link-arrow" href="<?= e(url('admin_messages')) ?>">همه‌ی پیام‌ها</a></div>
     <?php endif; ?>
 </div>
 

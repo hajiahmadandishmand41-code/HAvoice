@@ -1,0 +1,294 @@
+-- =====================================================================
+--  HAvoice — schema اصلی (MySQL 5.6+ / MariaDB — InfinityFree)
+--
+--  نصب:
+--   1) خودکار: includes/db.php در نخستین اتصال موفق (CREATE IF NOT EXISTS)
+--   2) دستی: phpMyAdmin → Import این فایل
+--   3) seed: php tools/db-migrate.php --seed
+--
+--  اصول: InnoDB, utf8mb4, PK, FK, index, status, created_at, updated_at
+--  Fake media وارد نمی‌شود.
+-- =====================================================================
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS ha_users (
+    id            VARCHAR(32)  NOT NULL,
+    name          VARCHAR(60)  NOT NULL,
+    email         VARCHAR(190) NOT NULL,
+    pass_hash     VARCHAR(255) NOT NULL,
+    role          ENUM('user','admin') NOT NULL DEFAULT 'user',
+    last_login    DATETIME NULL,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users_email (email),
+    KEY idx_users_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_categories (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug          VARCHAR(80)  NOT NULL,
+    title         VARCHAR(160) NOT NULL,
+    short_title   VARCHAR(80)  NOT NULL DEFAULT '',
+    description   TEXT NULL,
+    icon          VARCHAR(40)  NOT NULL DEFAULT '',
+    color         VARCHAR(20)  NOT NULL DEFAULT '',
+    accent        VARCHAR(20)  NOT NULL DEFAULT '',
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_categories_slug (slug),
+    KEY idx_categories_status_order (status, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_courses (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    category_slug VARCHAR(80)  NOT NULL DEFAULT '',
+    level         VARCHAR(80)  NOT NULL DEFAULT '',
+    excerpt       TEXT NULL,
+    intro         TEXT NULL,
+    how_to_json   MEDIUMTEXT NULL,
+    project_json  MEDIUMTEXT NULL,
+    prereq        VARCHAR(200) NOT NULL DEFAULT '',
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'draft',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_courses_slug (slug),
+    KEY idx_courses_cat_status (category_slug, status),
+    KEY idx_courses_featured (featured, status),
+    KEY idx_courses_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_stages (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id     INT UNSIGNED NOT NULL,
+    stage_key     VARCHAR(80)  NOT NULL DEFAULT '',
+    label         VARCHAR(120) NOT NULL DEFAULT '',
+    title         VARCHAR(200) NOT NULL,
+    summary       TEXT NULL,
+    outcome       TEXT NULL,
+    duration      VARCHAR(80)  NOT NULL DEFAULT '',
+    assessment_json MEDIUMTEXT NULL,
+    sort_order    INT NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_stages_course (course_id, sort_order),
+    CONSTRAINT fk_stages_course FOREIGN KEY (course_id) REFERENCES ha_courses(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_lessons (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    course_id     INT UNSIGNED NOT NULL,
+    stage_id      INT UNSIGNED NOT NULL,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    minutes       INT UNSIGNED NOT NULL DEFAULT 0,
+    goal          TEXT NULL,
+    blocks_json   MEDIUMTEXT NULL,
+    drill_json    MEDIUMTEXT NULL,
+    prerequisite  VARCHAR(120) NOT NULL DEFAULT '',
+    refs_json     MEDIUMTEXT NULL,
+    sort_order    INT NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_lessons_slug (slug),
+    KEY idx_lessons_course (course_id, sort_order),
+    KEY idx_lessons_stage (stage_id, sort_order),
+    KEY idx_lessons_status (status),
+    CONSTRAINT fk_lessons_course FOREIGN KEY (course_id) REFERENCES ha_courses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_lessons_stage  FOREIGN KEY (stage_id)  REFERENCES ha_stages(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_exercises (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ex_key        VARCHAR(80)  NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    level         VARCHAR(80)  NOT NULL DEFAULT '',
+    focus         VARCHAR(120) NOT NULL DEFAULT '',
+    goal          TEXT NULL,
+    tool          VARCHAR(40)  NOT NULL DEFAULT 'timer',
+    seconds       INT UNSIGNED NOT NULL DEFAULT 0,
+    steps_json    MEDIUMTEXT NULL,
+    topics_json   MEDIUMTEXT NULL,
+    success_text  TEXT NULL,
+    note_text     TEXT NULL,
+    lesson_slug   VARCHAR(120) NOT NULL DEFAULT '',
+    course_slug   VARCHAR(120) NOT NULL DEFAULT '',
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_exercises_key (ex_key),
+    KEY idx_exercises_lesson (lesson_slug),
+    KEY idx_exercises_course (course_slug),
+    KEY idx_exercises_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- videos + podcasts در یک جدول media (type) — بدون over-engineering
+CREATE TABLE IF NOT EXISTS ha_media (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    type          ENUM('video','audio') NOT NULL,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    excerpt       TEXT NULL,
+    url           VARCHAR(500) NOT NULL DEFAULT '',
+    thumbnail     VARCHAR(500) NOT NULL DEFAULT '',
+    category      VARCHAR(120) NOT NULL DEFAULT '',
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    course_slug   VARCHAR(120) NOT NULL DEFAULT '',
+    lesson_slug   VARCHAR(120) NOT NULL DEFAULT '',
+    seconds       INT UNSIGNED NOT NULL DEFAULT 0,
+    date_fa       VARCHAR(40)  NOT NULL DEFAULT '',
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'draft',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_media_type_slug (type, slug),
+    KEY idx_media_status_type (status, type),
+    KEY idx_media_course (course_slug),
+    KEY idx_media_featured (featured, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_books (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    author        VARCHAR(160) NOT NULL DEFAULT '',
+    category      VARCHAR(80)  NOT NULL DEFAULT '',
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    excerpt       TEXT NULL,
+    summary       TEXT NULL,
+    minutes       INT UNSIGNED NOT NULL DEFAULT 0,
+    date_fa       VARCHAR(40)  NOT NULL DEFAULT '',
+    tags_json     TEXT NULL,
+    lessons_json  TEXT NULL,
+    cover         VARCHAR(500) NOT NULL DEFAULT '',
+    file_url      VARCHAR(500) NOT NULL DEFAULT '',
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_books_slug (slug),
+    KEY idx_books_status (status),
+    KEY idx_books_category (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_articles (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    excerpt       TEXT NULL,
+    category      VARCHAR(120) NOT NULL DEFAULT '',
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    tags_json     TEXT NULL,
+    date_iso      VARCHAR(20)  NOT NULL DEFAULT '',
+    date_fa       VARCHAR(40)  NOT NULL DEFAULT '',
+    minutes       INT UNSIGNED NOT NULL DEFAULT 0,
+    blocks_json   MEDIUMTEXT NULL,
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_articles_slug (slug),
+    KEY idx_articles_status_date (status, date_iso),
+    KEY idx_articles_field (field_slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_tips (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tip_key       VARCHAR(80)  NOT NULL,
+    category      VARCHAR(80)  NOT NULL DEFAULT '',
+    body_text     TEXT NOT NULL,
+    try_text      TEXT NULL,
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_tips_key (tip_key),
+    KEY idx_tips_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_research (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug          VARCHAR(120) NOT NULL,
+    title         VARCHAR(200) NOT NULL,
+    summary       TEXT NULL,
+    category      VARCHAR(80)  NOT NULL DEFAULT '',
+    field_slug    VARCHAR(80)  NOT NULL DEFAULT '',
+    date_fa       VARCHAR(40)  NOT NULL DEFAULT '',
+    blocks_json   MEDIUMTEXT NULL,
+    featured      TINYINT(1) NOT NULL DEFAULT 0,
+    status        ENUM('published','draft') NOT NULL DEFAULT 'published',
+    sort_order    INT NOT NULL DEFAULT 0,
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_research_slug (slug),
+    KEY idx_research_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_comments (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(60) NOT NULL,
+    email VARCHAR(190) NOT NULL DEFAULT '',
+    body TEXT NOT NULL,
+    status ENUM('pending','approved') NOT NULL DEFAULT 'pending',
+    ip VARCHAR(45) NOT NULL DEFAULT '',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_status_created (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_settings (
+    setting_key   VARCHAR(80) NOT NULL,
+    setting_value MEDIUMTEXT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_contact_messages (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name          VARCHAR(120) NOT NULL DEFAULT '',
+    email         VARCHAR(190) NOT NULL DEFAULT '',
+    subject       VARCHAR(200) NOT NULL DEFAULT '',
+    message       TEXT NOT NULL,
+    ip            VARCHAR(45)  NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_messages_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_schema_meta (
+    meta_key   VARCHAR(40) NOT NULL,
+    meta_value VARCHAR(120) NOT NULL,
+    PRIMARY KEY (meta_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '2');

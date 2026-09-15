@@ -388,7 +388,7 @@
         input.form && input.form.addEventListener('submit', function (e) { e.preventDefault(); });
     })();
 
-    /* ---------------- پیشرفت دوره (localStorage) ---------------- */
+    /* ---------------- پیشرفت دوره (localStorage) — scoped به دوره جاری ---------------- */
     (function progressModule() {
         var KEY = 'ha-progress';
         var done = store.get(KEY, []);
@@ -397,9 +397,21 @@
         var save = function () { store.set(KEY, done); };
         var has = function (slug) { return done.indexOf(slug) !== -1; };
 
+        /* محدوده‌ی درس‌های همین صفحه (دوره/درس) — اگر نباشد، از کل lessonKeys */
+        var scopeEl = $('[data-course-lessons]');
+        var scopeKeys = scopeEl
+            ? String(scopeEl.getAttribute('data-course-lessons') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+            : (config.lessonKeys || []);
+
+        var doneInScope = function () {
+            if (!scopeKeys.length) { return done.slice(); }
+            return done.filter(function (s) { return scopeKeys.indexOf(s) !== -1; });
+        };
+
         var paintBars = function () {
-            var total = (config.lessonKeys || []).length;
-            var pct = total ? Math.round((done.filter(function (s) { return config.lessonKeys.indexOf(s) !== -1; }).length) / total * 100) : 0;
+            var scoped = doneInScope();
+            var total = scopeKeys.length || (config.lessonKeys || []).length;
+            var pct = total ? Math.round(scoped.length / total * 100) : 0;
 
             $$('[data-total-progress] .progress__bar').forEach(function (bar) {
                 bar.style.setProperty('--progress', pct + '%');
@@ -407,7 +419,7 @@
             $$('[data-total-progress] .progress__label').forEach(function (label) {
                 label.textContent = fa(pct) + '٪';
             });
-            $$('[data-count-done]').forEach(function (el) { el.textContent = fa(done.length); });
+            $$('[data-count-done]').forEach(function (el) { el.textContent = fa(scoped.length); });
 
             $$('[data-stage-progress], [data-stage-minutes]').forEach(function (wrap) {
                 var slugs = String(wrap.getAttribute('data-stage-progress') || wrap.getAttribute('data-stage-minutes') || '').split(',').filter(Boolean);
@@ -419,14 +431,18 @@
                 var label = $('.progress__label', wrap);
                 if (label) { label.textContent = fa(n) + '/' + fa(slugs.length); }
             });
+
+            $$('[data-lesson-row]').forEach(function (row) {
+                var s = row.getAttribute('data-lesson-row');
+                if (has(s)) { row.classList.add('is-done'); }
+                else { row.classList.remove('is-done'); }
+            });
         };
 
-        /* ردیف‌های درس در صفحه‌ی دوره */
         $$('[data-lesson-row]').forEach(function (row) {
             if (has(row.getAttribute('data-lesson-row'))) { row.classList.add('is-done'); }
         });
 
-        /* دکمه‌ی «انجام شد» در صفحه‌ی درس */
         $$('[data-lesson-complete]').forEach(function (button) {
             var slug = button.getAttribute('data-lesson-complete');
             var label = $('[data-lesson-complete-label]', button) || button;
@@ -454,14 +470,23 @@
 
         $$('[data-reset-progress]').forEach(function (button) {
             button.addEventListener('click', function () {
-                if (!window.confirm('پیشرفت ذخیره‌شده در این مرورگر پاک شود؟')) { return; }
-                done = [];
+                var msg = scopeKeys.length
+                    ? 'پیشرفت همین دوره در این مرورگر پاک شود؟'
+                    : 'پیشرفت ذخیره‌شده در این مرورگر پاک شود؟';
+                if (!window.confirm(msg)) { return; }
+                if (scopeKeys.length) {
+                    done = done.filter(function (s) { return scopeKeys.indexOf(s) === -1; });
+                } else {
+                    done = [];
+                }
                 save();
-                $$('[data-lesson-row]').forEach(function (row) { row.classList.remove('is-done'); });
                 $$('[data-lesson-complete]').forEach(function (b) {
                     var l = $('[data-lesson-complete-label]', b) || b;
-                    b.setAttribute('aria-pressed', 'false');
-                    l.textContent = 'علامت‌گذاری به‌عنوان انجام‌شده';
+                    var s = b.getAttribute('data-lesson-complete');
+                    if (!scopeKeys.length || scopeKeys.indexOf(s) !== -1) {
+                        b.setAttribute('aria-pressed', 'false');
+                        l.textContent = 'علامت‌گذاری به‌عنوان انجام‌شده';
+                    }
                 });
                 paintBars();
                 toast('پیشرفت پاک شد');

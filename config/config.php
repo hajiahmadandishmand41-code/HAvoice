@@ -12,6 +12,18 @@ if (!defined('HA_ROOT')) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  پیکربندی محلی (Production) — secrets هرگز در Git                  */
+/*                                                                    */
+/*  فایل config/config.local.php را از روی مثال بسازید و فقط روی      */
+/*  سرور نگه دارید. مقادیر HA_DB_* و HA_SITE_URL آنجا تعریف می‌شوند.  */
+/* ------------------------------------------------------------------ */
+
+$haLocal = HA_ROOT . '/config/config.local.php';
+if (is_file($haLocal)) {
+    require $haLocal;
+}
+
+/* ------------------------------------------------------------------ */
 /*  مسیر و حالت آدرس‌دهی                                               */
 /* ------------------------------------------------------------------ */
 
@@ -92,6 +104,17 @@ if (!defined('HA_DB_PORT')) { define('HA_DB_PORT', 3306); }
 if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }  // معمولاً همان نامِ کاربری
 if (!defined('HA_DB_USER')) { define('HA_DB_USER', ''); }
 if (!defined('HA_DB_PASS')) { define('HA_DB_PASS', ''); }
+
+/**
+ * Seed خودکار از data/*.php هنگام نخستین اتصال موفق (جداول خالی).
+ * در Production پس از migrate دستی می‌توانید false بگذارید.
+ */
+if (!defined('HA_DB_AUTO_SEED')) { define('HA_DB_AUTO_SEED', false); }
+
+/** ایمیل/رمز ادمین اولیه فقط برای seed (در config.local تعریف کنید). */
+if (!defined('HA_SEED_ADMIN_EMAIL')) { define('HA_SEED_ADMIN_EMAIL', ''); }
+if (!defined('HA_SEED_ADMIN_PASSWORD')) { define('HA_SEED_ADMIN_PASSWORD', ''); }
+if (!defined('HA_SEED_ADMIN_NAME')) { define('HA_SEED_ADMIN_NAME', 'مدیر'); }
 
 /* ------------------------------------------------------------------ */
 /*  محدودیت نرخ (Rate Limit) فرم تماس                                 */
@@ -174,4 +197,4 @@ if (!defined('HA_AUTH_SESSION_TTL')) { define('HA_AUTH_SESSION_TTL', 43200); }
 /** سقفِ حجمِ هر فایلِ آپلودی (بایت). پیش‌فرض: ۸ مگابایت. */
 if (!defined('HA_UPLOAD_MAX_BYTES')) { define('HA_UPLOAD_MAX_BYTES', 8388608); }
 
-define('HA_VERSION', '3.1.0');
+define('HA_VERSION', '3.2.0');

@@ -69,14 +69,14 @@ if (count($relatedArticles) < 3) {
         if (!$dup) { $relatedArticles[] = $a; }
     }
 }
-$videosRelated = array_slice(array_filter(videos(), fn($v)=>($v['category']??'')===($courseData['category']??'')),0,2);
-$audiosRelated = array_slice(array_filter(audios(), fn($a)=>($a['category']??'')===($courseData['category']??'')),0,2);
-
-/* تمرین‌های متصل به این دوره (مستقیم یا از طریقِ درس‌هایش) */
-$courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'] ?? '')), 0, 4);
+$courseSlug = slugify((string) ($courseData['slug'] ?? ''));
+$courseLessonSlugs = course_lesson_slugs($courseData);
+$courseMedia = media_for_context($courseSlug);
+$courseExercises = array_slice(exercises_for_course($courseSlug), 0, 6);
+$firstSlug = $stages[0]['lessons'][0]['slug'] ?? '';
 ?>
 
-<section class="section section--tight">
+<section class="section section--tight" data-course-slug="<?= e($courseSlug) ?>" data-course-lessons="<?= e(implode(',', $courseLessonSlugs)) ?>">
     <div class="container">
         <div class="chip-row">
             <?php if($cat): ?><span class="badge"><?= e($cat['title']) ?></span><?php endif; ?>
@@ -90,31 +90,39 @@ $courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'
         <div class="course-layout">
             <aside class="course-aside">
                 <div class="card course-card" data-course-card>
-                    <h2 class="course-card__title">پیشرفت شما</h2>
-                    <p class="course-card__muted">روی همین مرورگر ذخیره می‌شود؛ بدون ثبت‌نام.</p>
-                    <div data-total-progress><?= progress_bar(0,'۰٪') ?></div>
+                    <h2 class="course-card__title">پیشرفت این دوره</h2>
+                    <p class="course-card__muted">پیشرفت روی همین مرورگر ذخیره می‌شود.</p>
+                    <div data-total-progress><?= progress_bar(0,'۰٪', 'پیشرفت این دوره') ?></div>
                     <ul class="course-card__legend">
                         <li><strong data-count-done>۰</strong> درس انجام‌شده</li>
                         <li><strong><?= fa_num($totalLessons) ?></strong> درس این دوره</li>
                         <li><strong><?= e(minutes_label($totalMinutes)) ?></strong> زمان مطالعه</li>
                     </ul>
-                    <button class="btn btn--ghost btn--sm btn--block" type="button" data-reset-progress>پاک کردن پیشرفت</button>
+                    <?php if ($firstSlug !== ''): ?>
+                    <a class="btn btn--primary btn--sm btn--block" href="<?= e(url('lesson', ['slug' => (string) $firstSlug])) ?>">شروع / ادامه</a>
+                    <?php endif; ?>
+                    <button class="btn btn--ghost btn--sm btn--block" type="button" data-reset-progress>پاک کردن پیشرفت این دوره</button>
                 </div>
 
+                <?php if (!empty($courseData['how_to'])): ?>
                 <div class="card how-card">
                     <h2>چطور پیش برویم؟</h2>
                     <ul class="rich-list">
                         <?php foreach((array)($courseData['how_to']??[]) as $line): ?><li><?= e($line) ?></li><?php endforeach; ?>
                     </ul>
-                    <?php if(!empty($courseData['excerpt'])): ?><p class="muted-sm mt-sm"><?= e($courseData['excerpt']) ?></p><?php endif; ?>
                 </div>
+                <?php endif; ?>
 
-                <?php if($videosRelated || $audiosRelated): ?>
+                <?php if($courseMedia): ?>
                 <div class="card">
-                    <h2>ویدیو و صوتِ همین حوزه</h2>
+                    <h2>رسانه‌ی این دوره</h2>
                     <ul class="rich-list">
-                        <?php foreach($videosRelated as $v): ?><li><a href="<?= e(url('videos')) ?>"><?= e($v['title']) ?></a> <span class="muted-sm">— ویدیو</span></li><?php endforeach; ?>
-                        <?php foreach($audiosRelated as $a): ?><li><a href="<?= e(url('audios')) ?>"><?= e($a['title']) ?></a> <span class="muted-sm">— صوت</span></li><?php endforeach; ?>
+                        <?php foreach($courseMedia as $m): ?>
+                        <li>
+                            <strong><?= ($m['type'] ?? '') === 'video' ? 'ویدیو' : 'صوت' ?>:</strong>
+                            <?= e($m['title'] ?? '') ?>
+                        </li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
                 <?php endif; ?>
@@ -132,8 +140,6 @@ $courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'
                         <li><a href="<?= e($cexHref) ?>"><?= e($cex['title'] ?? '') ?></a>
                             <?php if ($cexLesson !== null): ?>
                                 <span class="muted-sm">— <?= e($cexLesson['lesson']['title'] ?? '') ?></span>
-                            <?php else: ?>
-                                <span class="muted-sm">— عمومی</span>
                             <?php endif; ?>
                         </li>
                         <?php endforeach; ?>
@@ -199,21 +205,22 @@ $courseExercises = array_slice(exercises_for_course((string) ($courseData['slug'
                 </section>
                 <?php endif; ?>
 
-                <div class="cta-band cta-band--inline">
+                <div class="cta-band cta-band--inline course-end-band">
                     <div class="cta-band__text">
-                        <h2>اولین قدم، سه دقیقه تمرین است</h2>
-                        <p>لازم نیست همه‌چیز را یک‌روز بخوانید. امروز فقط درس اول و تمرینش.</p>
+                        <h2>مسیر این دوره، درس‌به‌درس</h2>
+                        <p>هر درس یک هدف و یک تمرین دارد. بعد از آخرین درس، «پایان دوره» نمایش داده می‌شود.</p>
                     </div>
                     <div class="cta-band__actions">
-                        <?php $firstSlug = $stages[0]['lessons'][0]['slug'] ?? 'breathing-foundations'; ?>
+                        <?php if ($firstSlug !== ''): ?>
                         <a class="btn btn--primary" href="<?= e(url('lesson',['slug'=>(string)$firstSlug])) ?>">شروع درس اول</a>
+                        <?php endif; ?>
                         <a class="btn btn--ghost" href="<?= e(url('exercises')) ?>">تمرین‌ها</a>
                     </div>
                 </div>
 
                 <?php if($relatedArticles): ?>
                 <section class="sub-section">
-                    <div class="sub-section__head"><h2 class="sub-section__title">مقاله‌های مرتبط با این دوره</h2></div>
+                    <div class="sub-section__head"><h2 class="sub-section__title">مقاله‌های مرتبط</h2></div>
                     <div class="grid grid--3">
                         <?php foreach(array_slice($relatedArticles,0,3) as $art): ?><div><?= article_card($art) ?></div><?php endforeach; ?>
                     </div>
