@@ -2,13 +2,8 @@
 /**
  * HAvoice — robots.txt پویا
  *
- * چرا پویا؟ خطِ Sitemap باید نشانیِ «مطلق» داشته باشد و دامنه‌ی سایت
- * بین محیطِ توسعه و Production فرق می‌کند. با HA_SITE_URL در
- * config/config.php می‌توان دامنه را قطعی کرد؛ در غیر این صورت از
- * میزبانِ درخواست (با اعتبارسنجی) استفاده می‌شود.
- *
  * در .htaccess نگاشته شده: robots.txt → robots.php
- * (اگر mod_rewrite فعال نباشد، فایلِ ثابتِ robots.txt سرو می‌شود.)
+ * نشانی Sitemap به آدرس عمومیِ استاندارد sitemap.xml اشاره می‌کند.
  */
 
 define('HA_ROOT', __DIR__);
@@ -25,9 +20,13 @@ echo "Allow: /\n";
 echo "Disallow: /index.php?p=search\n";
 echo "Disallow: /search\n";
 echo "Disallow: /index.php?p=login\n";
+echo "Disallow: /login\n";
 echo "Disallow: /index.php?p=register\n";
+echo "Disallow: /register\n";
 echo "Disallow: /index.php?p=account\n";
+echo "Disallow: /account\n";
 echo "Disallow: /index.php?p=logout\n";
+echo "Disallow: /logout\n";
 echo "Disallow: /storage/\n";
 echo "Disallow: /config/\n";
 echo "Disallow: /includes/\n";
@@ -36,5 +35,5 @@ echo "Disallow: /pages/\n";
 echo "\n";
 
 if ($root !== '') {
-    echo 'Sitemap: ' . $root . '/sitemap.php' . "\n";
+    echo 'Sitemap: ' . $root . '/sitemap.xml' . "\n";
 }
