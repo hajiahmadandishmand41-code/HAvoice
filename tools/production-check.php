@@ -116,6 +116,10 @@ foreach ($need as $r) {
 pc('db.php loaded', function_exists('db') && function_exists('db_configured'));
 pc('repository loaded', function_exists('repo_courses') && function_exists('repo_seed'));
 pc('schema sql present', is_file($root . '/sql/002-schema.sql'));
+pc('database_import.sql present', is_file($root . '/database_import.sql'));
+pc('schema version 4', defined('HA_DB_SCHEMA_VERSION') && HA_DB_SCHEMA_VERSION === '4');
+pc('roles helper', str_contains((string) @file_get_contents($root . '/sql/002-schema.sql'), 'ha_roles'));
+pc('progress FK user', str_contains((string) @file_get_contents($root . '/sql/002-schema.sql'), 'fk_progress_user'));
 if (db_configured()) {
     $ready = db_ready();
     pc('db_ready', $ready);

@@ -78,15 +78,18 @@ function comments_table_sql(): string
 {
     return "CREATE TABLE IF NOT EXISTS ha_comments (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id VARCHAR(32) NULL DEFAULT NULL,
     name VARCHAR(60) NOT NULL,
     email VARCHAR(190) NOT NULL DEFAULT '',
     body TEXT NOT NULL,
+    kind ENUM('comment','experience') NOT NULL DEFAULT 'comment',
     status ENUM('pending','approved') NOT NULL DEFAULT 'pending',
     ip VARCHAR(45) NOT NULL DEFAULT '',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
-    KEY idx_status_created (status, created_at)
+    KEY idx_status_created (status, created_at),
+    KEY idx_comments_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 }
 
@@ -139,13 +142,25 @@ function comment_add(string $name, string $email, string $body, string $ip): arr
         return comments_file_add($name, $email, $body, $ip);
     }
     $created = date('Y-m-d H:i:s');
+    $userId = '';
+    if (function_exists('auth_current_user')) {
+        $cu = auth_current_user();
+        $userId = is_array($cu) ? (string) ($cu['id'] ?? '') : '';
+    }
+    $userId = $userId !== '' ? $userId : null;
     if ($db instanceof PDO) {
         try {
-            $st = $db->prepare("INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");
-            $ok = $st->execute([$name, $email, $body, $ip, $created]);
+            $st = $db->prepare("INSERT INTO ha_comments (user_id, name, email, body, kind, status, ip, created_at) VALUES (?,?,?,?,'comment','pending',?,?)");
+            $ok = $st->execute([$userId, $name, $email, $body, $ip, $created]);
             return $ok ? ['ok' => true, 'id' => (int) $db->lastInsertId()] : ['ok' => false, 'error' => 'db'];
         } catch (Throwable $e) {
-            return ['ok' => false, 'error' => 'db'];
+            try {
+                $st = $db->prepare("INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");
+                $ok = $st->execute([$name, $email, $body, $ip, $created]);
+                return $ok ? ['ok' => true, 'id' => (int) $db->lastInsertId()] : ['ok' => false, 'error' => 'db'];
+            } catch (Throwable $e2) {
+                return ['ok' => false, 'error' => 'db'];
+            }
         }
     }
     $st = @mysqli_prepare($db, "INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");

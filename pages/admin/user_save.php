@@ -41,6 +41,18 @@ if (!in_array($role, ['user', 'admin'], true)) {
     flash('error','نقش کاربر معتبر نیست.');
     redirect(url('admin_user_edit', ['slug' => $id]));
 }
+if ($role !== 'admin' && (string) ($user['role'] ?? '') === 'admin') {
+    $admins = 0;
+    foreach (auth_load_users() as $u) {
+        if ((string) ($u['role'] ?? '') === 'admin') {
+            $admins++;
+        }
+    }
+    if ($admins <= 1) {
+        flash('error', 'حداقل یک مدیر باید باقی بماند.');
+        redirect(url('admin_user_edit', ['slug' => $id]));
+    }
+}
 
 $pw = (string)($_POST['new_password'] ?? '');
 if ($pw !== '' && (strlen($pw) < HA_AUTH_MIN_PASSWORD || strlen($pw) > 72)) {

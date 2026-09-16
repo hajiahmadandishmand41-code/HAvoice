@@ -1,82 +1,60 @@
 # HAvoice — Production (InfinityFree + MySQL)
 
-نسخه: **3.2.0**
-
-## معماری داده
-
-```
-Admin Form
-  → Validation (CSRF, role=admin, field rules)
-  → Handler (pages/admin/*_save.php)
-  → Repository (includes/repository.php)
-  → PDO (includes/db.php)
-  → MySQL
-  → Response (flash + redirect PRG)
-  → Frontend (content.php → ha_visible)
-```
-
-اگر `HA_DB_*` خالی یا DB در دسترس نباشد، سایت با `data/*.php` + `storage/admin/*.json` کار می‌کند (سازگاری و پیش‌نمایش).
-
-## جداول
-
-| جدول | نقش |
-|------|-----|
-| `ha_users` | کاربران + role admin/user |
-| `ha_categories` | حوزه‌ها |
-| `ha_courses` / `ha_stages` / `ha_lessons` | مسیر یادگیری |
-| `ha_exercises` | تمرین‌ها |
-| `ha_media` | video + audio (type) |
-| `ha_books` | کتاب‌ها |
-| `ha_articles` | مقالات |
-| `ha_tips` / `ha_research` | نکته و پژوهش |
-| `ha_comments` | نظرات عمومی |
-| `ha_settings` / `ha_contact_messages` | تنظیمات و پیام تماس |
-| `ha_schema_meta` | نسخه schema |
-
-Schema: `sql/002-schema.sql` (PK, FK, index, status, created_at, updated_at).
+نسخه: **3.5.0** — schema **v4**
 
 ## استقرار InfinityFree
 
-1. آپلود کل پروژه (بدون `config/config.local.php` از Git).
-2. MySQL Databases → ساخت دیتابیس.
-3. کپی `config/config.local.php.example` → `config/config.local.php` روی سرور و پر کردن:
+1. کل پروژه را در `htdocs` آپلود کنید (بدون `config/config.local.php` از Git).
+2. MySQL Databases → ساخت دیتابیس. **هاست معمولاً `sqlXXX.infinityfree.com` است، نه `localhost`.**
+3. phpMyAdmin همان دیتابیس → Import فایل **`database_import.sql`** (utf8mb4).
+4. کپی `config/config.local.php.example` → `config/config.local.php` روی سرور و پر کردن:
    - `HA_DB_HOST`, `HA_DB_NAME`, `HA_DB_USER`, `HA_DB_PASS`
-   - `HA_SITE_URL` = `https://your-domain…`
-   - `HA_FORCE_HTTPS` = true پس از SSL
-   - `HA_SEED_ADMIN_EMAIL` / `HA_SEED_ADMIN_PASSWORD` (一次性)
-4. Schema خودکار در اولین اتصال PDO ساخته می‌شود **یا** Import `sql/002-schema.sql` در phpMyAdmin.
-5. Seed (محتوای واقعی، بدون fake media):
-   ```bash
-   php tools/db-migrate.php --seed
-   ```
-   اگر shell ندارید: یک‌بار `HA_DB_AUTO_SEED` را true بگذارید، یک صفحه را باز کنید، بعد false کنید.
-6. پوشه‌های نوشتنی: `storage/`, `uploads/` (chmod مناسب هاست).
-7. `.htaccess` ریشه + پوشه‌های داخلی از قبل آماده است.
+   - `HA_SITE_URL` = `https://your-domain.infinityfreeapp.com`
+   - پس از SSL: `HA_FORCE_HTTPS` = true
+5. پوشه‌های نوشتنی: `storage/` و `uploads/` (chmod 755 یا مطابق پنل).
+6. اولین بازدیدکننده که ثبت‌نام کند مدیر می‌شود؛ بعد از آن هیچ کاربری خودکار مدیر نیست.
+7. محتوای دوره از `data/*.php` تا وقتی جداول دوره خالی باشند خوانده می‌شود. برای کپی به MySQL یک‌بار `HA_DB_AUTO_SEED=true` بگذارید، یک صفحه را باز کنید، بعد false کنید.
+
+## جداول (PK / FK)
+
+| جدول | نقش | روابط |
+|------|-----|--------|
+| `ha_roles` | نقش user/admin | PK `role_key` |
+| `ha_users` | کاربر + `pass_hash` | FK `role` → `ha_roles` |
+| `ha_categories` | حوزه‌ها | PK + unique slug |
+| `ha_courses` | دوره | FK `category_slug` → categories |
+| `ha_stages` | مرحله | FK `course_id` CASCADE |
+| `ha_lessons` | درس | FK course + stage CASCADE |
+| `ha_exercises` | تمرین | FK اختیاری course_id / lesson_id |
+| `ha_media` | ویدیو + پادکست | FK اختیاری course_id / lesson_id |
+| `ha_books` | PDF/کتاب | `file_url` مسیر `uploads/…` |
+| `ha_comments` | نظر/تجربه | FK اختیاری `user_id` |
+| `ha_contact_messages` | پیام تماس | PK |
+| `ha_progress` | پیشرفت یادگیری | FK `user_id` CASCADE |
+| `ha_settings` / `ha_schema_meta` | تنظیمات و نسخه schema | |
+
+رمز عبور فقط با `password_hash` ذخیره می‌شود. در SQL هیچ حسابی نیست.
 
 ## امنیت
 
-- رمز: `password_hash` / `password_verify`
-- Admin فقط `role=admin` (+ سازگاری اولین کاربر JSON)
+- Admin فقط `role=admin` ذخیره‌شده
 - CSRF + same-origin روی POST
-- Session: httponly, samesite Lax, strict mode, regenerate on login, TTL
-- Upload: MIME finfo، whitelist پسوند، نام تصادفی، path check، مسدود double-ext خطرناک، `.htaccess` engine off
-- SQL: فقط prepared statements (PDO)
-- XSS: `e()` در قالب‌ها
-- Open redirect: `ha_safe_next`
-- Secrets: فقط `config.local.php` (gitignore)
+- Session: httponly, samesite Lax, regenerate on login, TTL
+- SQL: PDO prepared statements
+- XSS: `e()` در قالب
+- Upload: MIME + پسوند + magic + `realpath` داخل `uploads/` + `.htaccess` engine off
+- خطاهای PHP/SQL در Production نمایش داده نمی‌شوند (`HA_DEBUG=false`)
+- Secrets فقط در `config.local.php` (gitignore)
+- `sql/` و `config/` و `tools/` از وب بسته‌اند
 
-## Vercel
+## رسانه روی هاست اشتراکی
 
-فقط Preview/compatibility (`vercel.json` + `api/*.php`).  
-Production واقعی = InfinityFree (یا هر هاست PHP+MySQL). معماری برای Vercel خراب نشده.
+فایل‌های PDF/ویدیو/پادکست در `uploads/` با نام تصادفی ذخیره می‌شوند و با مسیر نسبی `uploads/….mp4` پخش می‌شوند. سقف واقعی PHP (اغلب ۲–۸ مگابایت) را `ha_upload_max_bytes()` رعایت می‌کند. برای ویدیوی بزرگ، پیوند آپارات/یوتیوب در فیلد نشانی.
 
-## دستورات QA
+## QA
 
 ```bash
-php -l … / php tools/selfcheck.php
+php tools/selfcheck.php
 php tools/production-check.php
-php tools/db-migrate.php --seed
-php tools/production-check.php --http=http://127.0.0.1:8080
+php tools/db-migrate.php --status
 ```
-
-CI (`.github/workflows/php.yml`): lint + selfcheck + production-check + MySQL migrate/seed + HTTP smoke.

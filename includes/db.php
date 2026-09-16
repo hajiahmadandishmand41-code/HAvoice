@@ -17,7 +17,7 @@ if (!defined('HA_ROOT')) {
 }
 
 /** نسخهٔ schema که ensure_schema می‌سازد. */
-define('HA_DB_SCHEMA_VERSION', '3');
+define('HA_DB_SCHEMA_VERSION', '4');
 
 /* ------------------------------------------------------------------ */
 /*  پیکربندی و اتصال                                                  */
@@ -70,6 +70,7 @@ function db(): ?PDO
         return $pdo;
     } catch (Throwable $e) {
         $pdo = null;
+        error_log('HAvoice DB: connection failed');
         if (defined('HA_DEBUG') && HA_DEBUG) {
             error_log('HAvoice DB: ' . $e->getMessage());
         }
@@ -131,6 +132,8 @@ function db_ensure_schema(PDO $pdo): bool
             $pdo->exec($stmt);
         }
 
+        db_schema_upgrade($pdo);
+
         $pdo->prepare("INSERT INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', ?)
                        ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)")
             ->execute([HA_DB_SCHEMA_VERSION]);
@@ -138,11 +141,73 @@ function db_ensure_schema(PDO $pdo): bool
         $done = true;
         return true;
     } catch (Throwable $e) {
+        error_log('HAvoice schema: upgrade failed');
         if (defined('HA_DEBUG') && HA_DEBUG) {
             error_log('HAvoice schema: ' . $e->getMessage());
         }
         return false;
     }
+}
+
+/**
+ * مهاجرت نرم از schema قدیمی به v4 (ستون‌ها و FKهای تازه).
+ * هر دستور جداگانه است تا نصب نیمه‌کاره InfinityFree نشکند.
+ */
+function db_schema_upgrade(PDO $pdo): void
+{
+    $try = static function (string $sql) use ($pdo): void {
+        try {
+            $pdo->exec($sql);
+        } catch (Throwable $e) {
+            /* ستون یا قید از قبل هست */
+        }
+    };
+
+    $try("CREATE TABLE IF NOT EXISTS ha_roles (
+        role_key VARCHAR(20) NOT NULL,
+        label VARCHAR(80) NOT NULL,
+        created_at DATETIME NOT NULL,
+        PRIMARY KEY (role_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $try("INSERT IGNORE INTO ha_roles (role_key, label, created_at) VALUES ('user','کاربر',NOW()), ('admin','مدیر',NOW())");
+    $try("ALTER TABLE ha_users MODIFY role VARCHAR(20) NOT NULL DEFAULT 'user'");
+    $try("ALTER TABLE ha_users ADD CONSTRAINT fk_users_role FOREIGN KEY (role) REFERENCES ha_roles(role_key)");
+    $try("ALTER TABLE ha_courses MODIFY category_slug VARCHAR(80) NULL DEFAULT NULL");
+    $try("UPDATE ha_courses SET category_slug = NULL WHERE category_slug = ''");
+    $try("ALTER TABLE ha_courses ADD CONSTRAINT fk_courses_category FOREIGN KEY (category_slug) REFERENCES ha_categories(slug) ON DELETE SET NULL ON UPDATE CASCADE");
+    $try("ALTER TABLE ha_exercises ADD COLUMN course_id INT UNSIGNED NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_exercises ADD COLUMN lesson_id INT UNSIGNED NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_exercises ADD CONSTRAINT fk_exercises_course FOREIGN KEY (course_id) REFERENCES ha_courses(id) ON DELETE SET NULL");
+    $try("ALTER TABLE ha_exercises ADD CONSTRAINT fk_exercises_lesson FOREIGN KEY (lesson_id) REFERENCES ha_lessons(id) ON DELETE SET NULL");
+    $try("ALTER TABLE ha_media ADD COLUMN course_id INT UNSIGNED NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_media ADD COLUMN lesson_id INT UNSIGNED NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_media ADD CONSTRAINT fk_media_course FOREIGN KEY (course_id) REFERENCES ha_courses(id) ON DELETE SET NULL");
+    $try("ALTER TABLE ha_media ADD CONSTRAINT fk_media_lesson FOREIGN KEY (lesson_id) REFERENCES ha_lessons(id) ON DELETE SET NULL");
+    $try("ALTER TABLE ha_comments ADD COLUMN user_id VARCHAR(32) NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_comments ADD COLUMN kind ENUM('comment','experience') NOT NULL DEFAULT 'comment'");
+    $try("ALTER TABLE ha_comments ADD CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE SET NULL");
+    $try("ALTER TABLE ha_progress ADD CONSTRAINT fk_progress_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE");
+}
+
+function db_id_by_slug(string $table, string $slug): ?int
+{
+    $allowed = ['ha_courses' => 'slug', 'ha_lessons' => 'slug', 'ha_categories' => 'slug'];
+    if (!isset($allowed[$table])) {
+        return null;
+    }
+    $slug = slugify($slug);
+    if ($slug === '') {
+        return null;
+    }
+    $col = $allowed[$table];
+    $r = db_one("SELECT id FROM {$table} WHERE {$col} = ? LIMIT 1", [$slug]);
+    return $r ? (int) $r['id'] : null;
+}
+
+function db_nullable_slug(string $raw): ?string
+{
+    $s = slugify($raw);
+    return $s === '' ? null : $s;
 }
 
 /* ------------------------------------------------------------------ */
@@ -170,7 +235,7 @@ function db_table_exists(string $table): bool
     $allowed = [
         'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons', 'ha_articles',
         'ha_books', 'ha_media', 'ha_exercises', 'ha_tips', 'ha_research',
-        'ha_users', 'ha_progress', 'ha_comments', 'ha_settings', 'ha_contact_messages',
+        'ha_users', 'ha_roles', 'ha_progress', 'ha_comments', 'ha_settings', 'ha_contact_messages',
     ];
     if (!in_array($table, $allowed, true) || !db_ready()) {
         return $cache[$table] = false;
@@ -425,10 +490,14 @@ function db_course_save_full(array $course): bool
             $existing = db_one('SELECT id, created_at FROM ha_courses WHERE slug = ?', [$slug]);
         }
 
+        $catSlug = db_nullable_slug((string) ($course['category'] ?? ''));
+        if ($catSlug !== null && db_id_by_slug('ha_categories', $catSlug) === null) {
+            $catSlug = null;
+        }
         $fields = [
             $slug,
             (string) ($course['title'] ?? ''),
-            (string) ($course['category'] ?? ''),
+            $catSlug,
             (string) ($course['level'] ?? ''),
             (string) ($course['excerpt'] ?? ''),
             (string) ($course['intro'] ?? ''),
@@ -752,16 +821,41 @@ function db_media_upsert(array $item, string $origSlug = ''): bool
         $now,
     ];
     if ($existing) {
-        return db_exec(
+        $ok = db_exec(
             'UPDATE ha_media SET type=?, slug=?, title=?, excerpt=?, url=?, thumbnail=?, category=?, field_slug=?, course_slug=?, lesson_slug=?, seconds=?, date_fa=?, featured=?, status=?, sort_order=?, updated_at=? WHERE id=?',
             array_merge($vals, [(int) $existing['id']])
         );
+        if ($ok) {
+            db_exec(
+                'UPDATE ha_media SET course_id = ?, lesson_id = ? WHERE id = ?',
+                [
+                    db_id_by_slug('ha_courses', (string) ($item['course'] ?? '')),
+                    db_id_by_slug('ha_lessons', (string) ($item['lesson'] ?? '')),
+                    (int) $existing['id'],
+                ]
+            );
+        }
+        return $ok;
     }
-    return db_exec(
+    $ok = db_exec(
         'INSERT INTO ha_media (type, slug, title, excerpt, url, thumbnail, category, field_slug, course_slug, lesson_slug, seconds, date_fa, featured, status, sort_order, created_at, updated_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         array_merge($vals, [$now])
     );
+    if ($ok) {
+        $row = db_one('SELECT id FROM ha_media WHERE type = ? AND slug = ?', [$type, $slug]);
+        if ($row) {
+            db_exec(
+                'UPDATE ha_media SET course_id = ?, lesson_id = ? WHERE id = ?',
+                [
+                    db_id_by_slug('ha_courses', (string) ($item['course'] ?? '')),
+                    db_id_by_slug('ha_lessons', (string) ($item['lesson'] ?? '')),
+                    (int) $row['id'],
+                ]
+            );
+        }
+    }
+    return $ok;
 }
 
 function db_media_delete(string $type, string $slug): bool
@@ -833,16 +927,28 @@ function db_exercise_upsert(array $item, string $origKey = ''): bool
         $now,
     ];
     if ($existing) {
-        return db_exec(
+        $ok = db_exec(
             'UPDATE ha_exercises SET ex_key=?, title=?, level=?, focus=?, goal=?, tool=?, seconds=?, steps_json=?, topics_json=?, success_text=?, note_text=?, lesson_slug=?, course_slug=?, field_slug=?, featured=?, status=?, sort_order=?, updated_at=? WHERE id=?',
             array_merge($vals, [(int) $existing['id']])
         );
+    } else {
+        $ok = db_exec(
+            'INSERT INTO ha_exercises (ex_key, title, level, focus, goal, tool, seconds, steps_json, topics_json, success_text, note_text, lesson_slug, course_slug, field_slug, featured, status, sort_order, created_at, updated_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            array_merge($vals, [$now])
+        );
     }
-    return db_exec(
-        'INSERT INTO ha_exercises (ex_key, title, level, focus, goal, tool, seconds, steps_json, topics_json, success_text, note_text, lesson_slug, course_slug, field_slug, featured, status, sort_order, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        array_merge($vals, [$now])
-    );
+    if ($ok) {
+        db_exec(
+            'UPDATE ha_exercises SET course_id = ?, lesson_id = ? WHERE ex_key = ?',
+            [
+                db_id_by_slug('ha_courses', (string) ($item['course'] ?? '')),
+                db_id_by_slug('ha_lessons', (string) ($item['lesson'] ?? '')),
+                $key,
+            ]
+        );
+    }
+    return $ok;
 }
 
 function db_exercise_delete(string $key): bool

@@ -1,13 +1,15 @@
 -- =====================================================================
---  HAvoice — schema v4 (MySQL 5.6+ / MariaDB — InfinityFree)
+--  HAvoice — database_import.sql  (phpMyAdmin / InfinityFree)
+--  نسخه schema: 4
 --
---  نصب:
---   1) phpMyAdmin → Import فایل database_import.sql (ریشه‌ی پروژه)
---   2) خودکار: includes/db.php در نخستین اتصال موفق (CREATE IF NOT EXISTS)
+--  استفاده:
+--   1) پنل InfinityFree → MySQL Databases → ساخت دیتابیس
+--   2) phpMyAdmin همان دیتابیس را باز کنید
+--   3) Import → این فایل را انتخاب کنید (utf8mb4)
 --
---  اصول: InnoDB, utf8mb4, PK, FK, index, status, created_at, updated_at
---  رمز عبور هرگز plaintext نیست (فقط pass_hash).
---  هیچ کاربرِ پیش‌فرضی اینجا ساخته نمی‌شود — اولین ثبت‌نام مدیر می‌شود.
+--  جدول‌ها + نقش‌ها + ۱۲ حوزه آموزشی. هیچ کاربر و هیچ رمز plaintext نیست:
+--  اولین ثبت‌نام در سایت مدیر می‌شود (password_hash).
+--  دوره/درس/تمرین پس از PDO با HA_DB_AUTO_SEED یا پنل مدیریت seed می‌شود.
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -352,3 +354,6 @@ VALUES
 ('research','تحقیقات و مقالات','پژوهش','یادداشت‌های پژوهشی، مرور منابع و مقالات تحلیلی با ذکر منبع.','research','#2E3A63','#7F8DC7','published',9,NOW(),NOW()),
 ('podcast','پادکست و آموزش صوتی','پادکست','فایل‌های صوتی کوتاه و متمرکز برای یادگیری در مسیر و مرور روزانه.','podcast','#6D2E9B','#BA7EE2','published',10,NOW(),NOW()),
 ('video','ویدیوهای آموزشی','ویدیو','ویدیوهای کوتاه، تمرین‌محور و قابل اجرا؛ هر ویدیو یک مهارت.','video','#175470','#43B9DB','published',11,NOW(),NOW());
+
+INSERT IGNORE INTO ha_settings (setting_key, setting_value, updated_at) VALUES
+    ('schema_note', 'HAvoice production schema v4', NOW());

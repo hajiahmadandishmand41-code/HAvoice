@@ -208,4 +208,4 @@ if (!defined('HA_UPLOAD_MAX_BYTES')) { define('HA_UPLOAD_MAX_BYTES', 8388608); }
  */
 if (!defined('HA_UPLOAD_MAX_MEDIA_BYTES')) { define('HA_UPLOAD_MAX_MEDIA_BYTES', 0); }
 
-define('HA_VERSION', '3.4.0');
+define('HA_VERSION', '3.5.0');

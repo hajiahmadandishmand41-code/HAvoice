@@ -43,7 +43,7 @@ echo "  connected: yes\n";
 echo "  schema:   " . HA_DB_SCHEMA_VERSION . "\n";
 
 $tables = [
-    'ha_users', 'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons',
+    'ha_roles', 'ha_users', 'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons',
     'ha_exercises', 'ha_media', 'ha_books', 'ha_articles', 'ha_tips',
     'ha_research', 'ha_comments', 'ha_settings', 'ha_contact_messages',
     'ha_progress',

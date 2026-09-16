@@ -3,6 +3,15 @@
 این فایل خلاصه‌ی تغییراتِ هر نسخه است. شماره‌ی نسخه‌ی جاری در `config/config.php`
 (`HA_VERSION`) و در `<meta name="generator">` هر صفحه دیده می‌شود.
 
+## ۳٫۵٫۰ — آماده‌ی Production روی InfinityFree
+
+* فایل نهایی `database_import.sql` برای Import مستقیم در phpMyAdmin (utf8mb4، ترتیب CREATE بدون خطای FK).
+* جدول `ha_roles` و FKهای User→Role، Course→Category، Stage/Lesson→Course، Exercise/Media→Course/Lesson، Progress→User، Comment→User.
+* داده‌های اولیه: نقش‌ها و ۱۲ حوزهٔ آموزشی. هیچ کاربر/رمز پیش‌فرضی در SQL نیست.
+* خطاهای PDO/SQL در Production فقط در error_log می‌روند، نه در خروجی.
+* جلوگیری از تنزل آخرین مدیر، جستجوی پیام تماس با شناسهٔ مستقیم (نه بارگذاری ۲۰۰۰ ردیف).
+* نظرات با `user_id` اختیاری؛ آپلود PHP در `uploads/` برای php7/php8 هم خاموش است.
+
 ## ۳٫۴٫۰ — قفلِ bootstrap مدیر و فرم‌های ساده‌ی محتوا
 
 * **اولین کاربر = مدیر فقط در نصب اولیه:** اگر هیچ کاربری در DB/فایل نباشد، همان ثبت‌نام نقش `admin` می‌گیرد و پرچم در JSON و جدول تنظیمات قفل می‌شود.

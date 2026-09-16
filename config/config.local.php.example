@@ -6,10 +6,11 @@
  * این فایل در .gitignore است و هرگز به GitHub push نشود.
  *
  * روی InfinityFree:
- *   1) MySQL Databases → ساخت دیتابیس
- *   2) مقادیر زیر را از پنل کپی کنید
- *   3) یک‌بار: php tools/db-migrate.php --seed
- *      یا از Admin پس از ورود (اگر seed خودکار با HA_DB_AUTO_SEED)
+ *   1) MySQL Databases → ساخت دیتابیس (هاست معمولاً sqlXXX.infinityfree.com است، نه localhost)
+ *   2) phpMyAdmin → Import فایل database_import.sql (ریشه‌ی پروژه، utf8mb4)
+ *   3) این فایل را با مشخصات پنل پر کنید
+ *   4) پوشه‌های storage/ و uploads/ باید نوشتنی باشند
+ *   5) اختیاری: یک‌بار HA_DB_AUTO_SEED=true برای ورود دوره‌ها از data/*.php، بعد خاموش کنید
  */
 
 if (!defined('HA_ROOT')) {
