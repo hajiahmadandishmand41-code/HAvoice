@@ -286,19 +286,28 @@ function url(string $route = 'home', array $params = []): string
  * از filemtime استفاده می‌کند تا پس از هر تغییر، کش مرورگر/CDN بدون
  * ویرایش دستیِ شماره‌ی نسخه باطل شود (با .htaccess immutable سازگار است).
  * اگر فایل موجود نبود، به HA_VERSION برمی‌گردد.
+ *
+ * @param bool $versioned اگر false باشد، ?v=… افزوده نمی‌شود.
+ *   فقط برای منابعی که نشانی‌شان باید «بایت‌به‌بایت» با نشانیِ داخلِ
+ *   یک فایلِ دیگر یکی باشد (مثلِ preload فونت که باید دقیقاً با src
+ *   در @font-face برابر باشد) از false استفاده کنید.
  */
-function asset(string $file): string
+function asset(string $file, bool $versioned = true): string
 {
     static $cache = [];
     $path = ltrim($file, '/');
-    if (isset($cache[$path])) {
-        return $cache[$path];
+    $key  = ($versioned ? 'v:' : 'u:') . $path;
+    if (isset($cache[$key])) {
+        return $cache[$key];
+    }
+    $prefix = HA_PRETTY_URLS ? base_path() . '/' : '';
+    if (!$versioned) {
+        return $cache[$key] = $prefix . $path;
     }
     $full  = HA_ROOT . '/' . $path;
     $stamp = is_file($full) ? (int) @filemtime($full) : 0;
     $ver   = $stamp > 0 ? $stamp : HA_VERSION;
-    $prefix = HA_PRETTY_URLS ? base_path() . '/' : '';
-    return $cache[$path] = $prefix . $path . '?v=' . $ver;
+    return $cache[$key] = $prefix . $path . '?v=' . $ver;
 }
 
 /* ------------------------------------------------------------------ */
