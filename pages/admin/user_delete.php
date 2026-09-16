@@ -22,22 +22,25 @@ if ($target === null) {
     redirect(url('admin_users'));
 }
 
-/* جلوگیری از حذف آخرین admin */
-if (($target['role'] ?? '') === 'admin') {
-    $admins = 0;
-    foreach (auth_load_users() as $u) {
-        if (($u['role'] ?? '') === 'admin') $admins++;
-    }
-    /* legacy first-user admin */
+/* مدیرِ اصلی (bootstrap یک‌باره) حذف‌شدنی نیست — حتی اگر نقشش بعداً تغییر کند */
+$primaryId = (string) (auth_bootstrap_state()['admin_id'] ?? '');
+if ($primaryId === '') {
     $json = auth_load_users_json_only();
-    if ($admins === 0 && $json !== [] && ($json[0]['id'] ?? '') === $id) {
-        flash('error','نمی‌توان مدیر اصلی را حذف کرد.');
-        redirect(url('admin_users'));
-    }
-    if ($admins <= 1 && ($target['role'] ?? '') === 'admin') {
-        flash('error','حداقل یک مدیر باید باقی بماند.');
-        redirect(url('admin_users'));
-    }
+    $primaryId = (string) ($json[0]['id'] ?? '');
+}
+if ($primaryId !== '' && $primaryId === $id) {
+    flash('error','مدیرِ اصلیِ سایت حذف‌شدنی نیست. اگر لازم است، نقشِ او را از صفحه‌ی ویرایش تغییر دهید.');
+    redirect(url('admin_users'));
+}
+
+/* جلوگیری از حذف آخرین admin — هیچ‌وقت سایت بی‌مدیر نماند */
+$admins = 0;
+foreach (auth_load_users() as $u) {
+    if ((string) ($u['role'] ?? '') === 'admin') { $admins++; }
+}
+if ((string) ($target['role'] ?? '') === 'admin' && $admins <= 1) {
+    flash('error','حداقل یک مدیر باید باقی بماند.');
+    redirect(url('admin_users'));
 }
 
 if (function_exists('db_ready') && db_ready()) {

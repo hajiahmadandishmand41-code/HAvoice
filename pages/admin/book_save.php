@@ -11,13 +11,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+
+/* نامک: تایپِ مدیر، وگرنه ساختِ خودکار از عنوان (فارسی ⇒ نویسه‌گردانی)
+   و در صورتِ تکراری بودن، شماره‌دار تا کتابِ دیگری بازنویسی نشود. */
+$slug  = admin_post_slug($title, 'book', static function (string $candidate) use ($orig): bool {
+    if ($candidate === $orig) {
+        return false;              // همان موردی که در حالِ ویرایش است
+    }
+    foreach (books_all() as $m) {
+        if (slugify((string) ($m['slug'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+    return false;
+});
 $editParams = $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []);
 $editUrl = url('admin_book_edit', $editParams);
 
 if ($title === '' || $slug === '') {
-    flash('error', 'عنوان و نامک الزامی.');
+    flash('error', 'عنوان الزامی است؛ نامک به‌صورتِ خودکار از عنوان ساخته می‌شود.');
     redirect($editUrl);
 }
 
@@ -48,14 +61,14 @@ if ($category === '' && $field !== '') {
 $uploadNotes = [];
 $kinds  = ha_upload_kinds();
 $image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
-$upImg  = ha_upload_store('image_file', $kinds['image']);
+$upImg  = ha_upload_store('image_file', $kinds['image'], 'image');
 if (!$upImg['ok']) {
     $uploadNotes[] = 'جلد آپلود نشد: ' . $upImg['error'];
 } elseif ($upImg['path'] !== '') {
     $image = $upImg['path'];
 }
 $file  = ha_safe_file_url((string) ($_POST['file'] ?? ''));
-$upDoc = ha_upload_store('file_upload', $kinds['document']);
+$upDoc = ha_upload_store('file_upload', $kinds['document'], 'document');
 if (!$upDoc['ok']) {
     $uploadNotes[] = 'فایل کتاب آپلود نشد: ' . $upDoc['error'];
 } elseif ($upDoc['path'] !== '') {

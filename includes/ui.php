@@ -212,14 +212,34 @@ function tip_card(array $tip): string
 /*  ردیفِ درس — شماره + عنوان + هدف + زمان + «انجام شد»               */
 /* ------------------------------------------------------------------ */
 
-function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $stage): string
+/**
+ * ردیفِ درس در فهرستِ دوره.
+ *
+ * وضعیتِ درس (انجام‌نشده / در حالِ مطالعه / تکمیل‌شده) از پیشرفتِ
+ * ذخیره‌شده‌ی کاربر می‌آید و سمتِ سرور رندر می‌شود؛ پس بدونِ JS هم درست
+ * است و «درسِ فعلی» و «درسِ بعدی» با پرچمِ روشن مشخص‌اند.
+ *
+ * @param string $highlight '' | 'current' | 'next'
+ */
+function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $stage, string $highlight = ''): string
 {
-    $href   = url('lesson', ['slug' => (string) ($lesson['slug'] ?? '')]);
+    $slug   = slugify((string) ($lesson['slug'] ?? ''));
+    $href   = url('lesson', ['slug' => $slug]);
     $number = fa_num(($stageIndex + 1) . '.' . ($lessonIndex + 1));
+    $state  = $slug !== '' ? progress_lesson_state($slug) : '';
+    $meta   = progress_state_meta($state);
+    $classes = ['lesson-item', $meta['class']];
+    if ($highlight === 'current') {
+        $classes[] = 'is-current';
+    } elseif ($highlight === 'next') {
+        $classes[] = 'is-next';
+    }
     ob_start(); ?>
-    <li class="lesson-item" data-lesson-row="<?= e($lesson['slug'] ?? '') ?>">
-        <a class="lesson-item__link" href="<?= e($href) ?>">
-            <span class="lesson-item__num" aria-hidden="true"><?= e($number) ?></span>
+    <li class="<?= e(implode(' ', $classes)) ?>" data-lesson-row="<?= e($slug) ?>" data-lesson-state="<?= e((string) $meta['key']) ?>">
+        <a class="lesson-item__link" href="<?= e($href) ?>"<?= $highlight === 'current' ? ' aria-current="true"' : '' ?>>
+            <span class="lesson-item__num" aria-hidden="true">
+                <?php if ($state === 'done'): ?><?= ha_icon('check', 15) ?><?php else: ?><?= e($number) ?><?php endif; ?>
+            </span>
             <span class="lesson-item__body">
                 <span class="lesson-item__title"><?= e($lesson['title'] ?? '') ?></span>
                 <?php if (!empty($lesson['goal'])): ?>
@@ -227,7 +247,9 @@ function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $sta
                 <?php endif; ?>
             </span>
             <span class="lesson-item__side">
-                <span class="chip chip--ghost" data-lesson-flag hidden><?= ha_icon('check', 12) ?> انجام شد</span>
+                <?php if ($highlight === 'current'): ?><span class="pill pill--flag"><?= ha_icon('flag', 12) ?><span>درسِ فعلی — از همین‌جا ادامه بدهید</span></span><?php endif; ?>
+                <?php if ($highlight === 'next'): ?><span class="pill pill--next"><?= ha_icon('arrow-left', 12) ?><span>درسِ بعدی</span></span><?php endif; ?>
+                <span class="pill pill--<?= e((string) $meta['key']) ?>"><?= ha_icon((string) $meta['icon'], 12) ?><span><?= e((string) $meta['label']) ?></span></span>
                 <span class="chip chip--ghost"><?= ha_icon('clock', 12) ?> <?= minutes_label((int) ($lesson['minutes'] ?? 10)) ?></span>
                 <span class="sr-only">درس <?= e($number) ?></span>
             </span>
@@ -246,12 +268,19 @@ function exercise_card(array $ex, string $detailUrl = ''): string
     $lessonInfo  = $lessonSlug !== '' ? course_find_lesson($lessonSlug) : null;
     $lessonTitle = $lessonInfo !== null ? (string) ($lessonInfo['lesson']['title'] ?? '') : '';
     ob_start(); ?>
-    <article class="card exercise-card" id="ex-<?= e($ex['id'] ?? '') ?>" data-exercise="<?= e($ex['id'] ?? '') ?>">
+    <?php $exStateClass = function_exists('progress_state_meta') ? progress_state_meta(function_exists('progress_exercise_state') ? progress_exercise_state((string) ($ex['id'] ?? '')) : '')['class'] : ''; ?>
+    <article class="card exercise-card <?= e((string) $exStateClass) ?>" id="ex-<?= e($ex['id'] ?? '') ?>" data-exercise="<?= e($ex['id'] ?? '') ?>">
         <header class="exercise-card__head">
             <span class="badge badge--level"><?= ha_icon('target', 12) ?> <?= e($ex['level'] ?? 'عمومی') ?></span>
             <?php if (!empty($ex['focus'])): ?>
                 <span class="badge badge--soft"><?= e($ex['focus']) ?></span>
             <?php endif; ?>
+            <?php if (function_exists('progress_exercise_state')):
+                $exState = progress_exercise_state((string) ($ex['id'] ?? ''));
+                if ($exState !== ''): ?>
+                <span class="exercise-card__state"><?= status_pill($exState) ?></span>
+                <?php endif;
+            endif; ?>
         </header>
         <h3 class="exercise-card__title"><?= e($ex['title'] ?? '') ?></h3>
         <?php if ($lessonTitle !== ''): ?>
@@ -276,6 +305,7 @@ function exercise_card(array $ex, string $detailUrl = ''): string
                 <?php endif; ?>
                 · <span data-exercise-runs="<?= e($ex['id'] ?? '') ?>">۰</span> اجرا
             </span>
+            <?= function_exists('exercise_complete_form') ? exercise_complete_form((string) ($ex['id'] ?? ''), function_exists('progress_exercise_state') ? progress_exercise_state((string) ($ex['id'] ?? '')) : '') : '' ?>
             <?php if ($detailUrl !== ''): ?>
                 <a class="btn btn--sm btn--primary" href="<?= e($detailUrl) ?>">شروع تمرین</a>
             <?php else: ?>
@@ -380,7 +410,11 @@ function video_card(array $item): string
                 <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
             <?php endif; ?>
             <?php if ($hasUrl): ?>
-                <a class="media-card__play" href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?> aria-label="پخش ویدیو: <?= e($item['title'] ?? '') ?>"><?= ha_icon('play', 22) ?></a>
+                <?php /* پیوندِ واقعی + data-media-open: با JS داخلِ سایت پخش می‌شود،
+                         بدونِ JS همان فایل/منبع در تبِ جدید باز می‌شود (بدونِ بن‌بست). */ ?>
+                <a class="media-card__play media-card__play--link" href="<?= e($href) ?>" target="_blank" rel="noopener noreferrer"
+                   data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"
+                   aria-label="پخش ویدیو: <?= e($item['title'] ?? '') ?>"><?= ha_icon('play', 22) ?></a>
             <?php else: ?>
                 <span class="media-card__play" aria-hidden="true"><?= ha_icon('play', 22) ?></span>
             <?php endif; ?>
@@ -392,7 +426,7 @@ function video_card(array $item): string
                     <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
                 <?php endif; ?>
             </div>
-            <h3 class="media-card__title"><?php if ($hasUrl): ?><a href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?>><?= e($item['title'] ?? '') ?></a><?php else: ?><?= e($item['title'] ?? '') ?><?php endif; ?></h3>
+            <h3 class="media-card__title"><?php if ($hasUrl): ?><a href="<?= e($href) ?>" data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= e($item['title'] ?? '') ?></a><?php else: ?><?= e($item['title'] ?? '') ?><?php endif; ?></h3>
             <?php if (!empty($item['excerpt'])): ?>
                 <p class="media-card__excerpt"><?= e($item['excerpt']) ?></p>
             <?php endif; ?>
@@ -402,7 +436,12 @@ function video_card(array $item): string
         </div>
         <footer class="media-card__foot">
             <?php if ($hasUrl): ?>
-                <a class="btn btn--sm btn--primary" href="<?= e($href) ?>"<?= preg_match('#^https?://#i', $href) ? ' rel="noopener noreferrer" target="_blank"' : '' ?>><?= ha_icon('play', 12) ?> پخش</a>
+                <a class="btn btn--sm btn--primary" href="<?= e($href) ?>" target="_blank" rel="noopener noreferrer"
+                   data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= ha_icon('play', 12) ?> پخش در سایت</a>
+                <?php if (preg_match('#^https?://#i', $href)): ?>
+                <a class="btn btn--sm btn--ghost" href="<?= e($href) ?>" rel="noopener noreferrer" target="_blank"
+                   title="باز کردن در تبِ جدید"><?= ha_icon('external', 12) ?> منبع</a>
+                <?php endif; ?>
             <?php else: ?>
                 <span class="badge badge--outline"><?= ha_icon('info', 12) ?> در دسترس نیست</span>
             <?php endif; ?>
@@ -447,8 +486,11 @@ function audio_card(array $item): string
             <?php endif; ?>
         </div>
         <footer class="media-card__foot">
-            <span class="muted-sm"><?= ha_icon('headphones', 12) ?> صوت</span>
+            <span class="muted-sm"><?= ha_icon('headphones', 12) ?> پادکست/صوت</span>
             <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="muted-sm"><?= e($dur) ?></span><?php endif; ?>
+            <?php if ($hasUrl): ?>
+                <a class="btn btn--xs btn--ghost" href="<?= e($url) ?>" download rel="noopener"><?= ha_icon('download', 12) ?> دریافت</a>
+            <?php endif; ?>
         </footer>
     </article>
     <?php return (string) ob_get_clean();

@@ -38,6 +38,12 @@ $books    = ha_featured_first(books(), $LIMIT);
 $exList   = ha_featured_first(exercises(), $LIMIT);
 $why      = (array) ($site['why'] ?? []);
 $method   = (array) ($site['method'] ?? []);
+
+/* پیشرفتِ حسابِ کاربری (سمتِ سرور) — برای کاربرِ مهمان محاسبه نمی‌شود.
+   همین عدد در صفحه‌ی «پیشرفتِ من» و پنلِ مسیرِ یادگیری هم استفاده می‌شود. */
+$haProgress = auth_is_logged_in()
+    ? progress_overview()
+    : ['lessons' => 0, 'done' => 0, 'percent' => 0, 'active_next' => null];
 $cta      = (array) ($site['cta_band'] ?? []);
 $commentsTeaser = (array) ($site['comments_teaser'] ?? []);
 
@@ -147,8 +153,21 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
 
             <div class="course-summary">
                 <div class="course-summary__progress">
-                    <span class="muted-sm">پیشرفتِ شما در این مرورگر</span>
-                    <div data-total-progress><?= progress_bar(0, '۰٪', 'پیشرفتِ کلِ درس‌ها') ?></div>
+                    <?php if (auth_is_logged_in() && (int) $haProgress['lessons'] > 0): ?>
+                        <span class="muted-sm">پیشرفتِ شما در حسابِ کاربری</span>
+                        <?= progress_bar((int) $haProgress['percent'], fa_num((int) $haProgress['done']) . ' از ' . fa_num((int) $haProgress['lessons']) . ' درس', 'پیشرفتِ کلِ درس‌ها') ?>
+                        <?php if (!empty($haProgress['active_next']['url'])): ?>
+                            <a class="link-arrow" href="<?= e((string) $haProgress['active_next']['url']) ?>">ادامه از درسِ «<?= e((string) ($haProgress['active_next']['title'] ?? '')) ?>»</a>
+                        <?php else: ?>
+                            <a class="link-arrow" href="<?= e(url('progress')) ?>">پیشرفتِ یادگیریِ من</a>
+                        <?php endif; ?>
+                    <?php elseif (auth_is_logged_in()): ?>
+                        <span class="muted-sm">هنوز درسی شروع نکرده‌اید.</span>
+                        <a class="link-arrow" href="<?= e(url('courses')) ?>">یک دوره را شروع کنید</a>
+                    <?php else: ?>
+                        <span class="muted-sm">پیشرفتِ شما با ورود به حساب، در همه‌ی دستگاه‌ها ذخیره می‌شود.</span>
+                        <a class="link-arrow" href="<?= e(url('login')) ?>">ورود / ثبت‌نام</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </aside>

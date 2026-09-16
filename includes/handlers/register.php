@@ -69,5 +69,12 @@ if (!$result['ok'] || $result['user'] === null) {
 auth_login($result['user']);
 old_clear();
 unset($_SESSION['ha_errors']);
-flash('success', 'حساب شما با موفقیت ساخته شد. خوش آمدید!');
+
+/* اگر این حساب، «اولین کاربرِ سیستم» بوده، یک‌بار مدیرِ اولیه می‌شود.
+   این اتفاق فقط یک بار در عمرِ نصب می‌افتد و پرچمش در storage ثبت می‌شود. */
+if (!empty($result['bootstrapped']) && (string) ($result['user']['role'] ?? '') === 'admin') {
+    flash('success', 'حساب شما ساخته شد. چون اولین کاربرِ این سایت بودید، دسترسی مدیر به شما داده شد — از «پنل مدیریت» محتوا و کاربران را مدیریت کنید.');
+} else {
+    flash('success', 'حساب شما با موفقیت ساخته شد. خوش آمدید!');
+}
 redirect($next !== '' ? $next : url('account'));

@@ -58,6 +58,7 @@ $themeDark = '#0B1B3F';
     <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/learning.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/mobile-layout.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/instructor-banner.css')) ?>">
     <script src="<?= e(asset('assets/js/theme.js')) ?>"></script>
@@ -135,6 +136,7 @@ $themeDark = '#0B1B3F';
                 <div class="main-nav__auth">
 <?php if ($currentUser !== null): ?>
                     <a class="btn btn--ghost btn--block" href="<?= e(url('account')) ?>"><?= ha_icon('user', 15) ?> حساب کاربری</a>
+                    <a class="btn btn--ghost btn--block" href="<?= e(url('progress')) ?>"><?= ha_icon('growth', 15) ?> پیشرفتِ یادگیری</a>
     <?php if (auth_is_admin()): ?>
                     <a class="btn btn--ghost btn--block" href="<?= e(url('admin')) ?>"><?= ha_icon('shield', 15) ?> پنل مدیریت</a>
     <?php endif; ?>
@@ -157,7 +159,14 @@ $themeDark = '#0B1B3F';
                 <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true"><?= ha_icon('sun', 19) ?></span>
                 <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true"><?= ha_icon('moon', 19) ?></span>
             </button>
+            <?php /* نظرات/تجربیات — دقیقاً کنارِ کنترلِ حالتِ روشن/تاریک تا
+                     «بازخورد» همیشه یک کلیک فاصله داشته باشد (هم دسکتاپ، هم کشوی موبایل). */ ?>
+            <a class="icon-btn header-actions__comments<?= is_current('comments') ? ' is-active' : '' ?>"
+               href="<?= e(url('comments')) ?>"
+               aria-label="نظرات و تجربیات کاربران" title="نظرات و تجربیات"><?= ha_icon('comment', 19) ?></a>
 <?php if ($currentUser !== null): ?>
+            <a class="icon-btn header-actions__progress" href="<?= e(url('progress')) ?>"
+               aria-label="پیشرفت یادگیری من" title="پیشرفت یادگیری من"><?= ha_icon('growth', 19) ?></a>
             <a class="account-chip" href="<?= e(url('account')) ?>" title="حساب کاربری: <?= e($currentUser['name'] ?? '') ?>" aria-label="حساب کاربری">
                 <span class="account-chip__avatar" aria-hidden="true"><?= e(auth_initial((string) ($currentUser['name'] ?? ''))) ?></span>
                 <span class="account-chip__name"><?= e(mb_strimwidth((string) ($currentUser['name'] ?? ''), 0, 14, '…', 'UTF-8')) ?></span>

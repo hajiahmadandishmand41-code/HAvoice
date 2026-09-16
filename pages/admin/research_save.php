@@ -11,12 +11,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
+
+/* نامک: تایپِ مدیر، وگرنه ساختِ خودکار از عنوان (فارسی ⇒ نویسه‌گردانی)
+   و در صورتِ تکراری بودن، شماره‌دار تا پژوهشِ دیگری بازنویسی نشود. */
+$slug  = admin_post_slug($title, 'research', static function (string $candidate) use ($orig): bool {
+    if ($candidate === $orig) {
+        return false;              // همان موردی که در حالِ ویرایش است
+    }
+    foreach (research_all() as $m) {
+        if (slugify((string) ($m['slug'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+    return false;
+});
 $editUrl = url('admin_research_edit', $orig !== '' ? ['slug' => $orig] : ($slug !== '' ? ['slug' => $slug] : []));
 
 if ($title === '' || $slug === '') {
-    flash('error', 'عنوان و نامک الزامی.');
+    flash('error', 'عنوان الزامی است؛ نامک به‌صورتِ خودکار از عنوان ساخته می‌شود.');
     redirect($editUrl);
 }
 

@@ -40,16 +40,39 @@ if ($category === '' || find_category_any($category) === null) {
     redirect($editUrl);
 }
 
-/* ---- مراحل: JSON باید آرایه‌ی معتبر باشد ---- */
-$stagesJson = (string) ($_POST['stages_json'] ?? '');
-$stages     = [];
-if (trim($stagesJson) !== '') {
-    $decoded = json_decode($stagesJson, true);
-    if (!is_array($decoded)) {
-        flash('error', 'JSON مراحل معتبر نیست: ' . json_last_error_msg());
+/* ---- مراحل و درس‌ها ----
+   مسیرِ اصلی: فرمِ ساختاریافته (فیلدهای مراحل/درس‌ها + «ترتیب»).
+   مسیرِ پیشرفته: فقط وقتی مدیر صریحاً «ذخیره از روی JSON» را بزند، همان
+   JSON ملاک است تا فرمِ ساده و JSON با هم تداخل نکنند. */
+/* نسخه‌ی فعلیِ همین دوره (از فایلِ data یا ذخیره‌ی قبلیِ پنل) — برایِ اینکه
+   هنگامِ ویرایش، داده‌ای که فرمِ ساده نشان نمی‌دهد پاک نشود. */
+$existingCourseForBuilder = [];
+foreach (courses_all() as $c) {
+    $cSlug = slugify((string) ($c['slug'] ?? ''));
+    if (($orig !== '' && $cSlug === $orig) || ($cSlug === $slug)) {
+        $existingCourseForBuilder = $c;
+        break;
+    }
+}
+$stages = [];
+
+if (isset($_POST['save_from_json'])) {
+    $stagesJson = (string) ($_POST['stages_json'] ?? '');
+    if (trim($stagesJson) !== '') {
+        $decoded = json_decode($stagesJson, true);
+        if (!is_array($decoded)) {
+            flash('error', 'JSON مراحل معتبر نیست: ' . json_last_error_msg());
+            redirect($editUrl);
+        }
+        $stages = $decoded;
+    }
+} else {
+    $stages = admin_course_stages_from_post($existingCourseForBuilder);
+    $builderErrors = admin_builder_errors();
+    if ($builderErrors !== []) {
+        flash('error', 'ذخیره انجام نشد: ' . implode(' | ', array_slice($builderErrors, 0, 3)));
         redirect($editUrl);
     }
-    $stages = $decoded;
 }
 
 /* ---- نرمال‌سازیِ مراحل و درس‌ها ---- */
@@ -61,13 +84,34 @@ foreach ($stages as $si => $stage) {
     $lessons = [];
     foreach ((array) ($stage['lessons'] ?? []) as $lesson) {
         if (!is_array($lesson)) continue;
-        $lSlug = slugify((string) ($lesson['slug'] ?? ''));
+        $typedSlug = slugify((string) ($lesson['slug'] ?? ''));
+        $lSlug     = ($typedSlug !== '' && $typedSlug !== '-') ? $typedSlug : '';
         if ($lSlug === '') {
-            /* درسِ بدونِ نامک صفحه‌ی اختصاصی ندارد؛ از عنوان می‌سازیم تا
-               در course_lesson_index() گم نشود. */
-            $lSlug = slugify((string) ($lesson['title'] ?? ('lesson-' . ($si + 1) . '-' . (count($lessons) + 1))));
+            /* درسِ بدونِ نامک صفحه‌ی اختصاصی ندارد؛ پس نامک می‌سازیم.
+               نکته: عنوان‌های فارسی با slugify به «-» تبدیل می‌شوند، پس
+               پیشوندِ نامکِ دوره همیشه می‌آید تا نامک هم یکتا باشد (در کلِ
+               سایت) و هم با ذخیره‌های بعدی ثابت بماند. */
+            $latin = trim(slugify(trim((string) preg_replace('/[^\x20-\x7E]/u', '', (string) ($lesson['title'] ?? '')))), '-');
+            $lSlug = slugify($slug . ($latin !== '' && $latin !== '-' ? '-' . $latin : '-l' . ($si + 1) . '-' . (count($lessons) + 1)));
+
+            /* اگر همان نامک در درسِ دیگری (بیرون از این دوره) هست، شماره می‌گیرد
+               تا lesson slug در course_lesson_index() گم نشود. */
+            $taken = static function (string $candidate) use ($slug): bool {
+                foreach (course_lesson_index() as $ls => $info) {
+                    $key = slugify((string) $ls);
+                    if ($key === $candidate && slugify((string) ($info['course']['slug'] ?? '')) !== $slug) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            $n = 2;
+            while ($taken($lSlug) && $n < 50) {
+                $lSlug = slugify($slug . '-' . $latin . '-' . $n);
+                $n++;
+            }
         }
-        if ($lSlug === '') continue;
+        if ($lSlug === '' || $lSlug === '-') continue;
         if (isset($lessonSlugs[$lSlug])) $duplicates[] = $lSlug;
         $lessonSlugs[$lSlug] = true;
 
@@ -108,13 +152,9 @@ foreach (preg_split('/\r\n|\r|\n/', (string) ($_POST['how_to_text'] ?? '')) as $
 /* پروژه‌ی نهاییِ دوره (اختیاری): اگر دوره‌ی موجودِ همین نامک (چه در فایلِ
    data/course.php و چه در ذخیره‌ی قبلیِ پنل) پروژه‌ای دارد، در ذخیره‌ی
    پنل حفظ می‌شود تا ویرایشِ پنل ساختارِ آموزشی را نبُرد. */
-$existingProject = [];
-foreach (courses_all() as $c) {
-    if (slugify((string) ($c['slug'] ?? '')) === ($orig !== '' ? $orig : $slug)) {
-        $existingProject = is_array($c['project'] ?? null) ? $c['project'] : [];
-        break;
-    }
-}
+$existingProject = is_array($existingCourseForBuilder['project'] ?? null)
+    ? $existingCourseForBuilder['project']
+    : [];
 
 $now = date('c');
 $existingMeta = [];

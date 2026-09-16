@@ -283,6 +283,22 @@ CREATE TABLE IF NOT EXISTS ha_contact_messages (
     KEY idx_messages_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- پیشرفتِ یادگیریِ هر کاربر (درس/تمرین): '' | started | done
+-- بدونِ این جدول، «درسِ فعلی» و «درسِ بعدی» فقط در localStorage مرورگر
+-- زندگی می‌کرد و با عوض‌شدنِ دستگاه گم می‌شد.
+CREATE TABLE IF NOT EXISTS ha_progress (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32)  NOT NULL,
+    item_type     ENUM('lesson','exercise') NOT NULL DEFAULT 'lesson',
+    item_key      VARCHAR(120) NOT NULL,
+    state         ENUM('started','done') NOT NULL DEFAULT 'started',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_progress_item (user_id, item_type, item_key),
+    KEY idx_progress_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ha_schema_meta (
     meta_key   VARCHAR(40) NOT NULL,
     meta_value VARCHAR(120) NOT NULL,
@@ -291,4 +307,4 @@ CREATE TABLE IF NOT EXISTS ha_schema_meta (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '2');
+INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '3');

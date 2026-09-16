@@ -356,6 +356,7 @@ function ha_page_meta(string $route): array
         'register'  => 'ساخت حساب کاربری',
         'account'   => 'حساب کاربری',
         'logout'    => 'خروج از حساب',
+        'progress'  => 'پیشرفت یادگیری من',
     ];
     $descriptions = [
         'courses'   => 'دوره‌های مرحله‌ای و تمرین‌محور در حوزه‌های فن بیان، ارتباط، روانشناسی، رشد فردی، زمان و مذاکره.',
@@ -375,6 +376,7 @@ function ha_page_meta(string $route): array
         'login'     => 'ورود به حساب کاربری HAvoice برای پیگیریِ مسیر یادگیری.',
         'register'  => 'ساخت حساب رایگان در HAvoice و دنبال کردنِ پیشرفتِ درس‌ها و تمرین‌ها.',
         'account'   => 'داشبورد کاربری HAvoice: مشخصات، پیشرفت و دسترسی سریع به یادگیری.',
+        'progress'  => 'وضعیتِ درس‌ها و تمرین‌های شما در هر دوره: درسِ فعلی، درسِ بعدی و تمرینِ بعدی.',
         'logout'    => 'خروج امن از حساب کاربری HAvoice.',
     ];
     $shortTitles = [
@@ -396,9 +398,10 @@ function ha_page_meta(string $route): array
         'register'  => 'ثبت‌نام',
         'account'   => 'حساب کاربری',
         'logout'    => 'خروج',
+        'progress'  => 'پیشرفت من',
     ];
     // صفحه‌هایی که <h1> خودشان را می‌سازند ⇒ بنر (و <h1> دوم) خاموش
-    $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout', 'comments'];
+    $bannerless = ['contact', 'about', 'login', 'register', 'account', 'logout', 'comments', 'progress'];
 
     // Admin routes — noindex, no banner
     if (strpos($route, 'admin') === 0) {
@@ -433,6 +436,6 @@ function ha_page_meta(string $route): array
         'h1'          => $shortTitles[$route] ?? ha_site_name(),
         'banner'      => !in_array($route, $bannerless, true),
         'canonical'   => url($route),
-        'robots'      => in_array($route, ['search', 'login', 'register', 'account', 'logout'], true) ? 'noindex,follow' : 'index,follow',
+        'robots'      => in_array($route, ['search', 'login', 'register', 'account', 'logout', 'progress'], true) ? 'noindex,follow' : 'index,follow',
     ]);
 }

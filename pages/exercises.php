@@ -10,18 +10,32 @@ if (!defined('HA_ROOT')) {
 $exercises = exercises();
 $level     = param('level');
 $lessonFlt = slugify(param('lesson'));
+$courseFlt = slugify(param('course'));
 $levels    = array_keys(exercises_by_level());
 $filtered  = $exercises;
 
 /* فیلترِ درس: وقتی از صفحه‌ی یک درس به اینجا می‌آییم، فقط تمرین‌های
-   همان درس نشان داده می‌شوند (زنجیره‌ی درس → تمرین). */
+   همان درس نشان داده می‌شوند (زنجیره‌ی درس → تمرین).
+   فیلترِ دوره: از پنلِ «مسیرِ یادگیری» و صفحه‌ی دوره می‌آییم؛ ترتیب هم
+   همان ترتیبِ درس‌هاست تا «تمرینِ بعدی» قابلِ پیش‌بینی بماند. */
 $lessonInfo = $lessonFlt !== '' ? course_find_lesson($lessonFlt) : null;
+$courseInfo = $courseFlt !== '' ? find_course($courseFlt) : null;
 if ($lessonFlt !== '' && $lessonInfo !== null) {
     $filtered = exercises_for_lesson($lessonFlt);
+} elseif ($courseFlt !== '' && $courseInfo !== null) {
+    $filtered = exercises_for_course_ordered($courseFlt);
 } elseif ($level !== '' && in_array($level, $levels, true)) {
     $filtered = array_values(array_filter($exercises, static function (array $ex) use ($level) {
         return (string) ($ex['level'] ?? '') === $level;
     }));
+}
+
+/* خلاصه‌ی وضعیتِ همین فهرست (انجام‌شده / کل) — سمتِ سرور، بدونِ JS */
+$listDone = 0;
+foreach ($filtered as $ex) {
+    if (progress_exercise_state((string) ($ex['id'] ?? '')) === 'done') {
+        $listDone++;
+    }
 }
 
 /* موضوع‌های تصادفی همه‌ی تمرین‌ها، برای تولیدگر عمومی بالای صفحه */
@@ -52,9 +66,29 @@ $allTopics = array_values(array_unique($allTopics));
 
 <?php if ($lessonFlt !== '' && $lessonInfo !== null): ?>
         <div class="card side-card mb-md">
-            <h2><?= ha_icon('steps', 15) ?> تمرین‌های درسِ «<?= e($lessonInfo['lesson']['title'] ?? '') ?>»</h2>
+            <div class="side-card__top">
+                <h2><?= ha_icon('steps', 15) ?> تمرین‌های درسِ «<?= e($lessonInfo['lesson']['title'] ?? '') ?>»</h2>
+                <?= status_pill($listDone === count($filtered) && $listDone > 0 ? 'done' : ($listDone > 0 ? 'started' : 'todo'), fa_num($listDone) . ' از ' . fa_num(count($filtered)) . ' انجام‌شده') ?>
+            </div>
             <p class="muted-sm">این تمرین‌ها مخصوص همین درس‌اند؛ برای دیدنِ همه، فیلتر را بردارید.</p>
-            <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">همه‌ی تمرین‌ها</a>
+            <div class="btn-row">
+                <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">همه‌ی تمرین‌ها</a>
+                <?php if (!empty($lessonInfo['course']['slug'])): ?>
+                <a class="btn btn--ghost btn--sm" href="<?= e(url('course', ['slug' => (string) $lessonInfo['course']['slug']])) ?>"><?= ha_icon('arrow-right', 14) ?> بازگشت به دوره</a>
+                <?php endif; ?>
+            </div>
+        </div>
+<?php elseif ($courseFlt !== '' && $courseInfo !== null): ?>
+        <div class="card side-card mb-md">
+            <div class="side-card__top">
+                <h2><?= ha_icon('timer', 15) ?> تمرین‌های دوره‌ی «<?= e($courseInfo['title'] ?? '') ?>»</h2>
+                <?= status_pill($listDone === count($filtered) && $listDone > 0 ? 'done' : ($listDone > 0 ? 'started' : 'todo'), fa_num($listDone) . ' از ' . fa_num(count($filtered)) . ' انجام‌شده') ?>
+            </div>
+            <p class="muted-sm">ترتیبِ تمرین‌ها همان ترتیبِ درس‌هاست؛ هر تمرین را که کامل کردید، «انجام شد» را بزنید تا قدمِ بعدی روشن بماند.</p>
+            <div class="btn-row">
+                <a class="btn btn--primary btn--sm" href="<?= e(url('course', ['slug' => $courseFlt])) ?>"><?= ha_icon('arrow-right', 14) ?> بازگشت به دوره</a>
+                <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">همه‌ی تمرین‌ها</a>
+            </div>
         </div>
 <?php elseif (count($levels) > 1): ?>
         <nav class="chip-row" aria-label="فیلتر سطح">
@@ -72,7 +106,11 @@ $allTopics = array_values(array_unique($allTopics));
         </div>
 
 <?php if ($filtered === []): ?>
-        <?= empty_state('تمرینی در این سطح نیست', 'سطح دیگری را انتخاب کنید یا همه‌ی تمرین‌ها را ببینید.', url('exercises'), 'دیدن همه') ?>
+        <?php if ($courseFlt !== '' && $courseInfo !== null): ?>
+            <?= empty_state('این دوره هنوز تمرینی ندارد', 'درس‌های دوره را دنبال کنید؛ به‌زودی تمرینِ هر درس همین‌جا اضافه می‌شود.', url('course', ['slug' => $courseFlt]), 'بازگشت به دوره', 'timer') ?>
+        <?php else: ?>
+            <?= empty_state('تمرینی در این سطح نیست', 'سطح دیگری را انتخاب کنید یا همه‌ی تمرین‌ها را ببینید.', url('exercises'), 'دیدن همه') ?>
+        <?php endif; ?>
 <?php endif; ?>
 
         <div class="rules-card card">

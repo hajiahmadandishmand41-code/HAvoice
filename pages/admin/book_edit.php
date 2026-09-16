@@ -25,7 +25,8 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
     <h2>مشخصاتِ کتاب</h2>
     <div class="admin-form-grid">
         <div class="field"><label for="b-title">عنوان *</label><input class="input" id="b-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200"></div>
-        <div class="field"><label for="b-slug">نامک (slug) *</label><input class="input" id="b-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" required dir="ltr" maxlength="100"></div>
+        <div class="field"><label for="b-slug">نامک (خودکار اگر خالی)</label><input class="input" id="b-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
+            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p></div>
         <div class="field"><label for="b-author">نویسنده</label><input class="input" id="b-author" type="text" name="author" value="<?= e($item['author'] ?? '') ?>" maxlength="120"></div>
         <div class="field"><label for="b-translator">مترجم (اختیاری)</label><input class="input" id="b-translator" type="text" name="translator" value="<?= e($item['translator'] ?? '') ?>" maxlength="120"></div>
         <?= admin_field_select($item ?? []) ?>
@@ -50,10 +51,12 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
     <h2>فایل، جلد و پیوند</h2>
     <div class="admin-form-grid">
         <div class="field"><label for="b-fileurl">نشانیِ فایلِ کتاب (PDF)</label><input class="input" id="b-fileurl" type="text" name="file" value="<?= e($item['file'] ?? '') ?>" dir="ltr" maxlength="300" placeholder="https://… یا uploads/…"></div>
-        <div class="field"><label for="b-file">یا آپلودِ فایلِ کتاب (PDF)</label><input class="input" id="b-file" type="file" name="file_upload" accept=".pdf"></div>
+        <div class="field"><label for="b-file">یا آپلودِ فایلِ کتاب (PDF)</label><input class="input" id="b-file" type="file" name="file_upload" accept=".pdf,application/pdf">
+            <p class="field__help"><?= e(ha_upload_kind_hint('document')) ?> فایلِ آپلودشده در خودِ صفحه‌ی کتاب، داخلِ سایت خوانده می‌شود.</p></div>
         <div class="field"><label for="b-link">پیوندِ بیرونی (فروشگاه/ناشر — اختیاری)</label><input class="input" id="b-link" type="url" name="link" value="<?= e($item['link'] ?? '') ?>" dir="ltr" maxlength="300"></div>
         <div class="field"><label for="b-imageurl">نشانیِ تصویرِ جلد</label><input class="input" id="b-imageurl" type="text" name="image" value="<?= e($item['image'] ?? '') ?>" dir="ltr" maxlength="300" placeholder="https://… یا uploads/…"></div>
-        <div class="field"><label for="b-imagefile">یا آپلودِ جلد (jpg، png، webp)</label><input class="input" id="b-imagefile" type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp"></div>
+        <div class="field"><label for="b-imagefile">یا آپلودِ جلد (jpg، png، webp)</label><input class="input" id="b-imagefile" type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp">
+            <p class="field__help"><?= e(ha_upload_kind_hint('image')) ?></p></div>
         <?php if (!empty($item['image'])): ?>
         <div class="field"><span class="field__help">جلدِ فعلی:</span><img src="<?= e($item['image']) ?>" alt="" style="max-width:140px;border-radius:8px"></div>
         <?php endif; ?>

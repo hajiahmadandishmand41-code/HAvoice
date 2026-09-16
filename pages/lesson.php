@@ -2,6 +2,12 @@
 /**
  * HAvoice — صفحه‌ی درس
  * مسیر: Category → Course → Stage → Lesson → Exercise
+ *
+ * کاربر در این صفحه همیشه سه چیز را می‌بیند:
+ *   ۱. کجای دوره هستم (پنلِ مسیرِ یادگیری + «گام x از y»)
+ *   ۲. این درس چه محتوایی دارد (متن، ویدیو، پادکست، فایلِ PDF، تمرین)
+ *   ۳. قدمِ بعدی چیست (نوارِ «تکمیل شد — درسِ بعدی» + پیجر)
+ *
  * پیجر فقط داخلِ همان دوره جابه‌جا می‌شود؛ آخرین درس → «پایان دوره».
  */
 
@@ -39,6 +45,21 @@ $linkedMedia     = media_for_context($courseSlug, (string) ($data['slug'] ?? '')
 $drill           = (array) ($data['drill'] ?? []);
 $lessonRefs      = array_values(array_filter(array_map('trim', (array) ($data['refs'] ?? [])), static fn($r) => $r !== ''));
 
+/* مسیرِ یادگیریِ این درس: قبلی/بعدی + تمرینِ این درس + تمرینِ بعدی */
+$lp        = lesson_learning_path($slug);
+$lpState   = (string) ($lp['state'] ?? '');
+
+/* بازکردنِ صفحه‌ی درس = «در حالِ مطالعه» (فقط اگر هنوز وضعیتی ندارد) */
+if ($lpState === '') {
+    progress_mark_started($slug);
+    $lpState = progress_lesson_state($slug);
+}
+
+/* رسانه‌ی خودِ درس (فایل/ویدیو/صوتی که مدیر روی همان درس گذاشته) */
+$lessonFile  = ha_safe_file_url((string) ($data['file'] ?? ''));
+$lessonVideo = ha_safe_media_url((string) ($data['video'] ?? ''));
+$lessonAudio = ha_safe_media_url((string) ($data['audio'] ?? ''));
+
 /* نکات و اشتباهات رایج از بلوک‌های tip استخراج می‌شوند (اگر جداگانه نبودند) */
 $tipWarns = [];
 $tipChecks = [];
@@ -47,7 +68,7 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
         continue;
     }
     $tone = (string) ($b['tone'] ?? 'tip');
-    $line = trim((string) ($b['title'] ?? '') . ': ' . (string) ($b['text'] ?? ''), ': ');
+    $line = trim((string) ($b['title'] ?? '') . ': ' . ($b['text'] ?? ''), ': ');
     if ($line === '') {
         continue;
     }
@@ -59,7 +80,7 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
 }
 ?>
 
-<article class="lesson" data-course-slug="<?= e($courseSlug) ?>" data-course-lessons="<?= e(implode(',', $lessonSlugs)) ?>">
+<article class="lesson" data-course-slug="<?= e($courseSlug) ?>" data-course-lessons="<?= e(implode(',', $lessonSlugs)) ?>" data-lesson-slug="<?= e($slug) ?>">
     <header class="lesson__head">
         <div class="container container--narrow">
             <?= breadcrumbs([
@@ -82,6 +103,7 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
                 <span class="chip chip--soft">گام <?= fa_num($position) ?> از <?= fa_num($total) ?></span>
                 <?php if (!empty($course['level'])): ?><span class="chip chip--soft"><?= e($course['level']) ?></span><?php endif; ?>
                 <?php if ($cat): ?><span class="badge"><?= e($cat['short'] ?? $cat['title']) ?></span><?php endif; ?>
+                <?= status_pill($lpState) ?>
             </div>
             <?php if ($prereq !== null): ?>
             <p class="lesson__prereq">
@@ -94,9 +116,38 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
 
     <div class="lesson__body">
         <div class="container container--narrow">
+
+            <?php /* مسیرِ یادگیری — کاربر همیشه بداند کجاست و قدمِ بعد چیست */ ?>
+            <?php if (!empty($lp['path'])): ?>
+                <?= learning_flow((array) $course, (array) $lp['path'], ['mode' => 'lesson', 'currentSlug' => $slug]) ?>
+            <?php endif; ?>
+
             <div class="prose" aria-label="محتوای درس">
                 <?= render_blocks((array) ($data['blocks'] ?? [])) ?>
             </div>
+
+            <?php /* رسانه‌ی خودِ درس: ویدیو، پادکست و فایلِ PDF — داخلِ سایت */ ?>
+            <?php if ($lessonVideo !== '' || $lessonAudio !== '' || $lessonFile !== ''): ?>
+            <section class="lesson-media" aria-label="فایل‌ها و رسانه‌ی این درس">
+                <h2 class="lesson-media__title"><?= ha_icon('video', 16) ?> رسانه‌ی این درس</h2>
+                <?php if ($lessonVideo !== ''): ?>
+                <div class="lesson-media__item">
+                    <?= media_player(['type' => 'video', 'title' => (string) ($data['title'] ?? 'ویدیوی درس'), 'url' => $lessonVideo]) ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($lessonAudio !== ''): ?>
+                <div class="lesson-media__item">
+                    <p class="lesson-media__label"><?= ha_icon('headphones', 14) ?> نسخه‌ی صوتیِ درس (پادکست)</p>
+                    <?= media_player(['type' => 'audio', 'title' => (string) ($data['title'] ?? 'صوتِ درس'), 'url' => $lessonAudio]) ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($lessonFile !== ''): ?>
+                <div class="lesson-media__item">
+                    <?= pdf_viewer($lessonFile, 'فایلِ این درس', 'اگر نمایش‌دهنده‌ی PDF روی دستگاهِ شما باز نشد، از دکمه‌ی «تبِ جدید» یا «دریافت» استفاده کنید.') ?>
+                </div>
+                <?php endif; ?>
+            </section>
+            <?php endif; ?>
 
             <?php if ($tipWarns !== [] || $tipChecks !== []): ?>
             <aside class="lesson-callouts" aria-label="نکات کلیدی">
@@ -155,7 +206,13 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
             <div class="card side-card mt-md">
                 <h2>تمرین همین درس</h2>
                 <p class="muted-sm">تمرین بالا را انجام دهید؛ معیار سنجش همان «نتیجه مورد انتظار» است.</p>
-                <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">رفتن به صفحه‌ی تمرین‌ها</a>
+                <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises', ['course' => $courseSlug])) ?>">رفتن به تمرین‌های این دوره</a>
+            </div>
+            <?php elseif (!empty($lp['exercise'])): ?>
+            <div class="card side-card mt-md">
+                <h2><?= ha_icon('timer', 16) ?> تمرینِ این مرحله</h2>
+                <p class="muted-sm">تمرینِ پیشنهادی: <strong><?= e((string) $lp['exercise']['title']) ?></strong></p>
+                <a class="btn btn--ghost btn--sm" href="<?= e((string) $lp['exercise']['url']) ?>">شروع تمرین</a>
             </div>
             <?php endif; ?>
 
@@ -176,13 +233,24 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
 
             <div class="lesson__actions card">
                 <div>
-                    <h2>این درس را انجام دادید؟</h2>
-                    <p class="muted-sm">با تیک زدن، پیشرفت این دوره در همین مرورگر ذخیره می‌شود.</p>
+                    <h2>این درس را تمام کردید؟</h2>
+                    <p class="muted-sm">
+                        با «تکمیل شد»، وضعیتِ درس در حسابِ شما ثبت می‌شود و مستقیم به قدمِ بعدی می‌روید.
+                        <?php if (!empty($lp['next'])): ?>
+                            قدمِ بعدی: <strong><?= e((string) $lp['next']['title']) ?></strong>
+                        <?php endif; ?>
+                    </p>
                 </div>
-                <button class="btn btn--primary" type="button" data-lesson-complete="<?= e((string) ($data['slug'] ?? '')) ?>" aria-pressed="false">
-                    <span data-lesson-complete-label>علامت‌گذاری به‌عنوان انجام‌شده</span>
-                </button>
+                <div class="lesson__actions-btns">
+                    <?= lesson_complete_form($slug, $lpState, $lp['next'] !== null ? 'next-lesson' : 'course') ?>
+                    <?php if (!empty($lp['exercise'])): ?>
+                    <a class="btn btn--ghost btn--sm" href="<?= e((string) $lp['exercise']['url']) ?>"><?= ha_icon('timer', 14) ?> تمرینِ این درس</a>
+                    <?php endif; ?>
+                    <a class="btn btn--ghost btn--sm" href="<?= e(url('course', ['slug' => $courseSlug])) ?>"><?= ha_icon('arrow-right', 14) ?> بازگشت به دوره</a>
+                </div>
             </div>
+
+            <?= comments_teaser(2, 'تجربه‌ی دیگران از این درس') ?>
 
             <nav class="pager" aria-label="درس قبلی و بعدی">
                 <?php if ($neigh['prev'] !== null): ?>
@@ -208,7 +276,7 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
                         <span class="pager__title"><?= e($course['title'] ?? 'این دوره') ?></span>
                         <span class="course-end-cta__actions">
                             <a class="btn btn--primary btn--sm" href="<?= e(url('course', ['slug' => $courseSlug])) ?>">مشاهده‌ی دوره</a>
-                            <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises')) ?>">تمرین‌ها</a>
+                            <a class="btn btn--ghost btn--sm" href="<?= e(url('exercises', ['course' => $courseSlug])) ?>">تمرین‌ها</a>
                             <a class="btn btn--ghost btn--sm" href="<?= e(url('courses')) ?>">دوره‌های دیگر</a>
                         </span>
                     </div>
@@ -216,4 +284,6 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
             </nav>
         </div>
     </div>
+
+    <?= lesson_next_bar($lp, $slug, $courseSlug) ?>
 </article>

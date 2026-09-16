@@ -31,7 +31,7 @@ function ha_uploads_dir(): string
  * @return array{ok:bool, path:string, name:string, error:?string}
  *             ok=true و path خالی یعنی «فایلی ارسال نشده» (اختیاری).
  */
-function ha_upload_store(string $field, array $mimeMap): array
+function ha_upload_store(string $field, array $mimeMap, string $kind = ''): array
 {
     $none = ['ok' => true, 'path' => '', 'name' => '', 'error' => null];
     $fail = static function (string $error): array {
@@ -57,9 +57,12 @@ function ha_upload_store(string $field, array $mimeMap): array
     if ($tmp === '' || !is_uploaded_file($tmp)) {
         return $fail('فایلِ موقتِ آپلود معتبر نیست.');
     }
-    $max = (int) (defined('HA_UPLOAD_MAX_BYTES') ? HA_UPLOAD_MAX_BYTES : 8388608);
+    $max = ha_upload_max_bytes($kind);
     if ($size <= 0 || $size > $max) {
-        return $fail('حجمِ فایل باید بین ۱ بایت تا ' . fa_num((int) round($max / 1048576)) . ' مگابایت باشد.');
+        return $fail('حجمِ فایل باید بین ۱ بایت تا ' . fa_num((string) round($max / 1048576, 1)) . ' مگابایت باشد.'
+            . ($kind === 'video' || $kind === 'audio'
+                ? ' اگر فایل بزرگ‌تر است، آن را در آپارات/یوتیوب بگذارید و پیوندش را در فیلدِ «نشانی» وارد کنید.'
+                : ''));
     }
 
     /* MIMEِ واقعی با finfo — به content-type ارسالیِ کلاینت اعتماد نمی‌کنیم. */
@@ -116,7 +119,7 @@ function ha_upload_store(string $field, array $mimeMap): array
     @chmod($dest, 0644);
 
     /* دفاع لایه‌ای: اگر به‌اشتباه PHP در uploads اجرا شود، محتوای polyglot را سخت‌تر می‌کند */
-    if (is_file($dest) && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'pdf'], true)) {
+    if (is_file($dest) && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'mp4', 'webm', 'ogv', 'mp3', 'm4a', 'ogg', 'wav', 'weba'], true)) {
         $head = (string) @file_get_contents($dest, false, null, 0, 256);
         if ($head !== '' && preg_match('/<\\?php|\\beval\\s*\\(|\\bbase64_decode\\s*\\(/i', $head)) {
             @unlink($dest);
@@ -135,7 +138,90 @@ function ha_upload_kinds(): array
     return [
         'document' => ['application/pdf' => 'pdf'],
         'image'    => ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'],
+        /* ویدیو و پادکستِ میزبانی‌شده روی خودِ سایت: همان فایل‌هایی که
+           <video> و <audio> مرورگر پخش می‌کنند (بدونِ نیاز به سرویسِ بیرونی).
+           MIMEها از finfo می‌آیند، نه از نامِ فایل. */
+        'video'    => [
+            'video/mp4'  => 'mp4',
+            'video/webm' => 'webm',
+            'video/ogg'  => 'ogv',
+        ],
+        'audio'    => [
+            'audio/mpeg'  => 'mp3',
+            'audio/mp4'   => 'm4a',
+            'audio/x-m4a' => 'm4a',
+            'audio/ogg'   => 'ogg',
+            'audio/wav'   => 'wav',
+            'audio/x-wav' => 'wav',
+            'audio/webm'  => 'weba',
+        ],
     ];
+}
+
+/**
+ * سقفِ حجمِ مجاز برای یک نوع آپلود.
+ *
+ * رسانه (ویدیو/صوت) معمولاً بزرگ‌تر از سند و تصویر است؛ اگر میزبان اجازه
+ * می‌دهد، HA_UPLOAD_MAX_MEDIA_BYTES را در config.local.php بگذارید. در غیرِ
+ * این صورت همان سقفِ عمومیِ HA_UPLOAD_MAX_BYTES ملاک است — و چون
+ * upload_max_filesize/post_max_size روی میزبانی مثلِ InfinityFree کوچک است،
+ * پیامِ خطایِ شفافِ «حجم بیشتر از سقفِ سرور» به مدیر نشان داده می‌شود.
+ */
+function ha_upload_max_bytes(string $kind = ''): int
+{
+    $max = (int) (defined('HA_UPLOAD_MAX_BYTES') ? HA_UPLOAD_MAX_BYTES : 8388608);
+    if (in_array($kind, ['video', 'audio', 'media'], true)
+        && defined('HA_UPLOAD_MAX_MEDIA_BYTES') && (int) HA_UPLOAD_MAX_MEDIA_BYTES > 0) {
+        return (int) HA_UPLOAD_MAX_MEDIA_BYTES;
+    }
+    /* هرگز از سقفِ واقعیِ PHP بیشتر قول نده — وگرنه آپلود بی‌صدا شکست می‌خورد */
+    $iniMax = ha_php_upload_limit();
+    if ($iniMax > 0 && $max > $iniMax) {
+        return $iniMax;
+    }
+    return $max;
+}
+
+/** کوچک‌ترین سقفِ واقعیِ PHP برای آپلود (upload_max_filesize / post_max_size). */
+function ha_php_upload_limit(): int
+{
+    $parse = static function (string $value): int {
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+        $unit = strtolower(substr($value, -1));
+        $num  = (int) $value;
+        switch ($unit) {
+            case 'g': return $num * 1024 * 1024 * 1024;
+            case 'm': return $num * 1024 * 1024;
+            case 'k': return $num * 1024;
+            default:  return $num;
+        }
+    };
+    $up  = $parse((string) ini_get('upload_max_filesize'));
+    $post = $parse((string) ini_get('post_max_size'));
+    $limits = array_filter([$up, $post]);
+    return $limits === [] ? 0 : min($limits);
+}
+
+/** برچسبِ فارسی و راهنمای کوتاهِ هر نوعِ آپلود (برای فرمِ مدیریت). */
+function ha_upload_kind_hint(string $kind): string
+{
+    $max  = ha_upload_max_bytes($kind);
+    $size = fa_num((string) round($max / 1048576, $max >= 10485760 ? 0 : 1));
+    switch ($kind) {
+        case 'video':
+            return 'فرمت‌های مجاز: MP4، WebM، OGG · حداکثر ' . $size . ' مگابایت. برای ویدیوی بزرگ‌تر، پیوندِ آپارات/یوتیوب را در همان فیلدِ «نشانی» بگذارید.';
+        case 'audio':
+            return 'فرمت‌های مجاز: MP3، M4A، OGG، WAV · حداکثر ' . $size . ' مگابایت.';
+        case 'document':
+            return 'فقط PDF · حداکثر ' . $size . ' مگابایت.';
+        case 'image':
+            return 'JPG، PNG یا WebP · حداکثر ' . $size . ' مگابایت.';
+        default:
+            return 'حداکثر ' . $size . ' مگابایت.';
+    }
 }
 
 /** آیا نشانی برای استفاده در فیلدهای فایل/تصویر معتبر است؟ (http/https یا مسیرِ نسبیِ داخلی) */

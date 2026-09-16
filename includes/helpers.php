@@ -334,6 +334,9 @@ function routes(): array
         'register'  => ['file' => 'register.php',  'pretty' => 'register',  'title' => 'ثبت‌نام',    'session' => true],
         'logout'    => ['file' => 'logout.php',    'pretty' => 'logout',    'title' => 'خروج',       'session' => true],
         'account'   => ['file' => 'account.php',   'pretty' => 'account',   'title' => 'حساب کاربری', 'session' => true],
+        /* ثبتِ وضعیتِ درس/تمرین (تکمیل شد، در حالِ مطالعه، پاک‌کردن).
+           فقط POST معنا دارد؛ GET کاربر را به همان صفحه‌ای که بود برمی‌گرداند. */
+        'progress'  => ['file' => 'progress.php',  'pretty' => 'progress',  'title' => 'پیشرفت یادگیری', 'auth' => true, 'banner' => false],
 
         // Admin routes
         'admin'                 => ['file' => 'admin/dashboard.php',      'pretty' => 'admin',         'title' => 'پنل مدیریت',      'admin' => true],
@@ -365,6 +368,7 @@ function routes(): array
         'admin_exercise_edit'   => ['file' => 'admin/exercise_edit.php',  'pretty' => 'admin/exercise-edit','title' => 'ویرایش تمرین','admin' => true],
         'admin_exercise_save'   => ['file' => 'admin/exercise_save.php',  'pretty' => 'admin/exercise-save','title' => 'ذخیره تمرین', 'admin' => true],
         'admin_exercise_delete' => ['file' => 'admin/exercise_delete.php','pretty' => 'admin/exercise-del','title' => 'حذف تمرین',  'admin' => true],
+        'admin_exercise_move'   => ['file' => 'admin/exercise_move.php',  'pretty' => 'admin/exercise-move','title' => 'ترتیب تمرین', 'admin' => true],
         'admin_tips'            => ['file' => 'admin/tips.php',           'pretty' => 'admin/tips',    'title' => 'مدیریت نکته‌ها',    'admin' => true],
         'admin_tip_edit'        => ['file' => 'admin/tip_edit.php',       'pretty' => 'admin/tip-edit', 'title' => 'ویرایش نکته',   'admin' => true],
         'admin_tip_save'        => ['file' => 'admin/tip_save.php',       'pretty' => 'admin/tip-save', 'title' => 'ذخیره نکته',    'admin' => true],
@@ -415,6 +419,99 @@ function slugify($value): string
     $value = strtolower((string) $value);
     $value = preg_replace('/[^a-z0-9_\-]/', '', $value);
     return (string) $value;
+}
+
+/**
+ * نویسه‌گردانیِ فارسی/عربی به لاتین — فقط برای ساختِ «نامک» (slug).
+ *
+ * چرا لازم است؟ slugify() هر نویسه‌ی غیرِ ASCII را دور می‌ریزد؛ پس عنوانِ
+ * کاملاً فارسی (حالتِ عادیِ این سایت) نامکِ خالی می‌سازد و فرم‌های مدیریت
+ * با پیامِ گمراه‌کننده‌ی «عنوان الزامی است» بسته می‌شوند — یعنی مدیر
+ * نمی‌تواند صوت/ویدیو/کتاب/مقاله‌ی فارسی ثبت کند مگر آنکه دستی نامکِ
+ * لاتین بنویسد. با این تابع «فن بیان» به «fan-bayan» تبدیل می‌شود:
+ * نامکِ خوانا، سازگار با نشانی‌های دستیِ قبلی و بدونِ ورودِ اضافه.
+ *
+ * خروجی فقط «پیشنهاد» است؛ مدیر همیشه می‌تواند نامکِ دلخواه بنویسد.
+ */
+function ha_transliterate_fa(string $text): string
+{
+    static $map = null;
+    if ($map === null) {
+        $map = [
+            'آ' => 'a',  'أ' => 'a',  'إ' => 'a',  'ٱ' => 'a',  'ا' => 'a',
+            'ب' => 'b',  'پ' => 'p',  'ت' => 't',  'ث' => 's',
+            'ج' => 'j',  'چ' => 'ch', 'ح' => 'h',  'خ' => 'kh',
+            'د' => 'd',  'ذ' => 'z',  'ر' => 'r',  'ز' => 'z',  'ژ' => 'zh',
+            'س' => 's',  'ش' => 'sh', 'ص' => 's',  'ض' => 'z',
+            'ط' => 't',  'ظ' => 'z',  'ع' => 'a',  'غ' => 'gh',
+            'ف' => 'f',  'ق' => 'gh', 'ک' => 'k',  'ك' => 'k',  'گ' => 'g',
+            'ل' => 'l',  'م' => 'm',  'ن' => 'n',
+            'و' => 'v',  'ؤ' => 'o',  'ه' => 'h',  'ة' => 'h',
+            'ی' => 'y',  'ي' => 'y',  'ئ' => 'y',  'ء' => '',   'ـ' => '',
+            /* رقم‌های فارسی و عربی */
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            /* نشانه‌های رایجِ فارسی و فاصله‌های نامرئی */
+            '،' => '-', '؛' => '-', '؟' => '-', '«' => '-', '»' => '-',
+            "\u{200C}" => '-', "\u{200F}" => '', "\u{200E}" => '', "\u{00A0}" => '-',
+        ];
+    }
+
+    $text = (string) $text;
+    /* حذفِ اعراب (فتحه/کسره/ضمه/تشدید/سکون) که در نامک جایی ندارند */
+    $text = (string) preg_replace('/[\x{064B}-\x{0652}\x{0670}]/u', '', $text);
+    $text = strtr($text, $map);
+    /* هر نویسه‌ی غیرِ حرف/رقم (فاصله، نشانه، …) → یک خطِ تیره */
+    $text = (string) preg_replace('/[^A-Za-z0-9]+/', '-', $text);
+
+    return trim((string) preg_replace('/-+/', '-', slugify($text)), '-');
+}
+
+/**
+ * نامکِ پیشنهادی از روی عنوان: اول لاتینِ خودِ عنوان، بعد نویسه‌گردانیِ
+ * فارسی. اگر هیچ‌کدام نتیجه نداد رشته‌ی خالی برمی‌گرداند (تصمیمِ نهایی با
+ * فراخوان است؛ مثلاً ساختِ نامکِ یکتا با پیشوندِ نوعِ محتوا).
+ */
+function ha_slug_from_title(string $title): string
+{
+    $title = trim($title);
+    if ($title === '') {
+        return '';
+    }
+
+    /* عنوانِ فارسی/عربی (یا آمیخته) ⇒ نویسه‌گردانی؛ چون حروفِ فارسی با
+       slugify() ناپدید می‌شوند. */
+    if (preg_match('/[\x{0600}-\x{06FF}]/u', $title)) {
+        return ha_transliterate_fa($title);
+    }
+
+    /* عنوانِ لاتین: فاصله و نشانه‌ها ⇒ خطِ تیره. (پیش‌تر slugify() فاصله‌ها
+       را بی‌صدا حذف می‌کرد و «Hello World» به «helloworld» تبدیل می‌شد.) */
+    $folded = (string) preg_replace('/[^A-Za-z0-9]+/', '-', $title);
+    return trim((string) preg_replace('/-+/', '-', slugify($folded)), '-');
+}
+
+/**
+ * نامکِ یکتا: اگر $taken نامک را «اشغال‌شده» بداند، پسوندِ شماره‌دار
+ * (-2، -3، …) اضافه می‌شود. همان رفتاری که در ذخیره‌ی دوره/درس هم هست و
+ * از بازنویسیِ ناخواسته‌ی یک موردِ دیگر جلوگیری می‌کند.
+ */
+function ha_unique_slug(string $slug, ?callable $taken = null, int $maxTries = 60): string
+{
+    $slug = trim((string) preg_replace('/-+/', '-', slugify($slug)), '-');
+    if ($slug === '' || $taken === null) {
+        return $slug;
+    }
+    $candidate = $slug;
+    for ($i = 2; $i <= $maxTries; $i++) {
+        if (!$taken($candidate)) {
+            return $candidate;
+        }
+        $candidate = $slug . '-' . $i;
+    }
+    return $slug . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
 }
 
 function param(string $key, string $default = ''): string
@@ -622,7 +719,13 @@ function ha_safe_media_url(string $src): string
     if (preg_match('#^[a-z][a-z0-9+.\-]*:#i', $src)) {
         return ''; // هر scheme دیگری (javascript:, data:, blob:, …) رد می‌شود
     }
-    return $src; // مسیر نسبی
+    /* مسیرِ نسبیِ داخلی: «..» و نقطه‌ی آغازین رد می‌شود تا کسی نتواند با
+       srcِ دست‌کاری‌شده به فایل‌های بیرون از پوشه‌های عمومی اشاره کند. */
+    $rel = ltrim($src, '/');
+    if ($rel === '' || str_contains($rel, '..') || str_starts_with($rel, '.')) {
+        return '';
+    }
+    return $rel;
 }
 
 /**

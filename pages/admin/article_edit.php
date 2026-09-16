@@ -27,8 +27,8 @@ if ($slug !== '') {
     <h2>مشخصاتِ مقاله</h2>
     <div class="admin-form-grid">
         <div class="field"><label for="a-title">عنوان *</label><input class="input" id="a-title" type="text" name="title" value="<?= e($article['title'] ?? '') ?>" required maxlength="200"></div>
-        <div class="field"><label for="a-slug">نامک (slug) *</label><input class="input" id="a-slug" type="text" name="slug" value="<?= e($article['slug'] ?? '') ?>" required maxlength="100" dir="ltr">
-            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ نشانیِ صفحه‌ی مقاله.</p></div>
+        <div class="field"><label for="a-slug">نامک (خودکار اگر خالی)</label><input class="input" id="a-slug" type="text" name="slug" value="<?= e($article['slug'] ?? '') ?>" maxlength="100" dir="ltr" placeholder="از روی عنوان ساخته می‌شود">
+            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ نشانیِ صفحه‌ی مقاله. اگر خالی بگذارید خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p></div>
         <?= admin_field_select($article ?? []) ?>
         <div class="field"><label for="a-category">برچسبِ موضوع (نمایشی)</label><input class="input" id="a-category" type="text" name="category" value="<?= e($article['category'] ?? '') ?>" maxlength="80" placeholder="مثلاً: صدا و نفس">
             <p class="field__help">متنِ آزادِ روی کارت؛ اگر خالی بماند از عنوانِ حوزه پر می‌شود.</p></div>
