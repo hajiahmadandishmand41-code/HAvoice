@@ -197,4 +197,15 @@ if (!defined('HA_AUTH_SESSION_TTL')) { define('HA_AUTH_SESSION_TTL', 43200); }
 /** سقفِ حجمِ هر فایلِ آپلودی (بایت). پیش‌فرض: ۸ مگابایت. */
 if (!defined('HA_UPLOAD_MAX_BYTES')) { define('HA_UPLOAD_MAX_BYTES', 8388608); }
 
-define('HA_VERSION', '3.2.0');
+/**
+ * سقفِ جداگانه برای ویدیو/پادکست (بایت). ۰ ⇒ همان سقفِ عمومی.
+ *
+ * توجه: هیچ‌گاه از سقفِ واقعیِ PHP (upload_max_filesize / post_max_size)
+ * بیشتر اثر نمی‌کند — تابعِ ha_upload_max_bytes() کوچک‌ترینِ این‌ها را
+ * برمی‌گرداند تا به مدیر قولِ بی‌جا ندهیم. روی میزبانیِ اشتراکی مثلِ
+ * InfinityFree معمولاً آپلودِ ویدیوی بزرگ ممکن نیست؛ در آن حالت پیوندِ
+ * آپارات/یوتیوب (امبدِ مجاز) مسیرِ پیشنهادی است.
+ */
+if (!defined('HA_UPLOAD_MAX_MEDIA_BYTES')) { define('HA_UPLOAD_MAX_MEDIA_BYTES', 0); }
+
+define('HA_VERSION', '3.3.0');

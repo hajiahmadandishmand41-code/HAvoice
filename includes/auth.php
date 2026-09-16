@@ -45,7 +45,45 @@ function auth_load_users(): array
         return [];
     }
     $users = json_decode($raw, true);
-    return is_array($users) ? $users : [];
+    return is_array($users) ? auth_normalize_roles($users) : [];
+}
+
+/**
+ * نرمال‌سازیِ نقش‌ها در فهرستِ کاربران.
+ *
+ * نصب‌های قدیمی رکوردهای بدونِ کلیدِ role داشتند و «اولین کاربرِ فایل» مدیر
+ * شمرده می‌شد. آن حدس از auth_is_admin() برداشته شد (ریسکِ ارتقای ناخواسته‌ی
+ * دسترسی) و به‌جایش همان سازگاری اینجا، به‌صورتِ صریح و فقط در حافظه انجام
+ * می‌شود: اگر هیچ مدیری وجود نداشته باشد و رکوردها role نداشته باشند، اولین
+ * کاربر role='admin' می‌گیرد تا مدیرِ نصبِ قدیمی قفل نشود.
+ *
+ * @param list<array<string,mixed>> $users
+ * @return list<array<string,mixed>>
+ */
+function auth_normalize_roles(array $users): array
+{
+    $hasRoleKey = false;
+    $hasAdmin   = false;
+    foreach ($users as $u) {
+        if (array_key_exists('role', $u)) {
+            $hasRoleKey = true;
+            if ((string) ($u['role'] ?? '') === 'admin') {
+                $hasAdmin = true;
+            }
+        }
+    }
+
+    $promoteFirst = !$hasAdmin && (!$hasRoleKey || auth_bootstrap_state()['done'] === false);
+    $first = true;
+    foreach ($users as $i => $u) {
+        $role = (string) ($u['role'] ?? '');
+        if ($role !== 'admin' && $role !== 'user') {
+            $role = ($promoteFirst && $first) ? 'admin' : 'user';
+        }
+        $users[$i]['role'] = $role;
+        $first = false;
+    }
+    return $users;
 }
 
 /**
@@ -176,15 +214,83 @@ function auth_validate_registration(string $name, string $email, string $passwor
  * ساختِ کاربرِ جدید با هشِ امن.
  * @return array{ok:bool, user:?array, error:?string}
  */
+/* ------------------------------------------------------------------ */
+/*  Bootstrap یک‌باره‌ی مدیر                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * پرچمِ ماندگارِ bootstrap: «یک کاربر به‌عنوان مدیرِ اولیه ساخته شد».
+ *
+ * چرا پرچمِ ماندگار؟ تا «اولین کاربر = مدیر» فقط یک بار در عمرِ نصب اتفاق
+ * بیفتد. اگر مدیرِ اولیه بعداً حذف شود یا فهرستِ کاربران خالی به‌نظر برسد
+ * (مثلاً DB موقتاً در دسترس نیست)، کاربرِ بعدی خودبه‌خود مدیر نمی‌شود.
+ *
+ * @return array{done:bool,admin_id:string,admin_at:string}
+ */
+function auth_bootstrap_state(): array
+{
+    /* کش در $GLOBALS نه static، چون بعد از ثبتِ پرچم باید در همان درخواست
+       بی‌اعتبار شود (static از بیرون قابلِ پاک‌کردن نیست). */
+    if (isset($GLOBALS['HA_AUTH_BOOTSTRAP']) && is_array($GLOBALS['HA_AUTH_BOOTSTRAP'])) {
+        return $GLOBALS['HA_AUTH_BOOTSTRAP'];
+    }
+    $data = function_exists('admin_load') ? admin_load('auth_bootstrap') : [];
+    $GLOBALS['HA_AUTH_BOOTSTRAP'] = [
+        'done'     => !empty($data['done']),
+        'admin_id' => (string) ($data['admin_id'] ?? ''),
+        'admin_at' => (string) ($data['admin_at'] ?? ''),
+    ];
+    return $GLOBALS['HA_AUTH_BOOTSTRAP'];
+}
+
+/** ثبتِ پرچمِ bootstrap (یک‌بار). */
+function auth_bootstrap_record(string $adminId): bool
+{
+    if (!function_exists('admin_store')) {
+        return false;
+    }
+    $ok = admin_store('auth_bootstrap', [
+        'done'     => true,
+        'admin_id' => $adminId,
+        'admin_at' => date('c'),
+        'note'     => 'اولین کاربرِ سیستم به‌عنوان مدیرِ اولیه ثبت شد؛ از این پس هیچ کاربری خودکار مدیر نمی‌شود.',
+    ]);
+    if ($ok) {
+        /* کشِ همان درخواست تازه شود */
+        auth_bootstrap_state_reset();
+    }
+    return $ok;
+}
+
+/** بی‌اعتبارکردنِ کشِ وضعیتِ bootstrap (بعد از نوشتنِ پرچم). */
+function auth_bootstrap_state_reset(): void
+{
+    unset($GLOBALS['HA_AUTH_BOOTSTRAP']);
+}
+
+/** آیا هنوز مجاز به ساختِ مدیرِ اولیه هستیم؟ (فقط وقتی هیچ کاربری نیست) */
+function auth_bootstrap_available(): bool
+{
+    if (auth_bootstrap_state()['done']) {
+        return false;
+    }
+    return auth_load_users() === [];
+}
+
+/**
+ * ساختِ کاربرِ جدید.
+ *
+ * نقشِ پیش‌فرض 'user' است. تنها استثنا: bootstrap یک‌باره‌ی مدیرِ اولیه —
+ * وقتی «هیچ کاربری» در سیستم نیست و پرچمِ bootstrap هنوز ثبت نشده. بعد از
+ * آن، نقش فقط از پنلِ مدیریت (auth_set_role) تغییر می‌کند.
+ *
+ * @return array{ok:bool,user:array<string,mixed>|null,error:string|null,bootstrapped?:bool}
+ */
 function auth_create_user(string $name, string $email, string $password): array
 {
-    $email = auth_normalize_email($email);
-    $role = 'user';
-    /* اولین کاربر سیستم → admin */
-    $existing = auth_load_users();
-    if ($existing === []) {
-        $role = 'admin';
-    }
+    $email      = auth_normalize_email($email);
+    $bootstrap  = auth_bootstrap_available();
+    $role       = $bootstrap ? 'admin' : 'user';
 
     if (function_exists('db_ready') && db_ready()) {
         $res = db_user_create(trim($name), $email, $password, $role);
@@ -195,6 +301,9 @@ function auth_create_user(string $name, string $email, string $password): array
             unset($u['_db']);
             $users[] = $u;
             auth_save_users($users);
+            if ($bootstrap) {
+                $res['bootstrapped'] = auth_bootstrap_record((string) ($u['id'] ?? ''));
+            }
             return $res;
         }
         /* اگر DB fail شد، fallback JSON */
@@ -214,7 +323,10 @@ function auth_create_user(string $name, string $email, string $password): array
     if (!auth_save_users($users)) {
         return ['ok' => false, 'user' => null, 'error' => 'storage'];
     }
-    return ['ok' => true, 'user' => $user, 'error' => null];
+    if ($bootstrap) {
+        auth_bootstrap_record((string) $user['id']);
+    }
+    return ['ok' => true, 'user' => $user, 'error' => null, 'bootstrapped' => $bootstrap];
 }
 
 /** فقط فایل JSON (بدون DB) — برای dual-write. */
@@ -414,20 +526,10 @@ function auth_is_admin(): bool
     if ($user === null) {
         return false;
     }
-    if (!empty($user['role']) && $user['role'] === 'admin') {
-        return true;
-    }
-    /* سازگاری: اگر role ست نشده و اولین کاربر فایل است */
-    if (empty($user['role']) || $user['role'] === 'user') {
-        if (!empty($user['_db'])) {
-            return false; // در DB فقط role صریح
-        }
-        $users = auth_load_users_json_only();
-        if ($users !== [] && ($users[0]['id'] ?? '') === ($user['id'] ?? '')) {
-            return true;
-        }
-    }
-    return false;
+    /* فقط نقشِ صریحِ ذخیره‌شده (DB یا JSON). حدسِ «اولین کاربرِ فایل مدیر است»
+       برداشته شد؛ سازگاریِ نصب‌های قدیمی در auth_normalize_roles() انجام
+       می‌شود تا نقش، صریح و قابلِ مدیریت از پنل باشد. */
+    return (string) ($user['role'] ?? '') === 'admin';
 }
 
 /** محافظت از صفحه‌های مدیریت */
@@ -674,6 +776,12 @@ function contact_messages_read(): array
 function admin_messages_all(): array
 {
     $all = [];
+    /* دیتابیس منبعِ اصلی است؛ CSV و JSONِ پنل پشتیبان/میراثِ نصب‌های بدونِ DB. */
+    if (db_table_exists('ha_contact_messages')) {
+        foreach (db_messages_all(500) as $m) {
+            $all[] = $m;
+        }
+    }
     foreach (contact_messages_read() as $i => $m) {
         $m['ref'] = 'csv-' . $i;
         $all[] = $m;
@@ -692,10 +800,10 @@ function admin_messages_all(): array
     return $all;
 }
 
-/** اعتبارسنجیِ ref — فقط دو قالبِ csv-N و pan-N پذیرفته می‌شود. */
+/** اعتبارسنجیِ ref — فقط سه قالبِ csv-N، pan-N و db-N (شناسه‌ی ردیف) پذیرفته می‌شود. */
 function admin_message_parse_ref(string $ref): ?array
 {
-    if (!preg_match('/^(csv|pan)-(\d{1,6})$/', $ref, $m)) {
+    if (!preg_match('/^(csv|pan|db)-(\d{1,6})$/', $ref, $m)) {
         return null;
     }
     return ['source' => $m[1], 'index' => (int) $m[2]];
@@ -708,6 +816,16 @@ function admin_message_find(string $ref): ?array
     if ($parsed === null) {
         return null;
     }
+    if ($parsed['source'] === 'db') {
+        $item = db_table_exists('ha_contact_messages') ? db_message_find($parsed['index']) : null;
+        if (!is_array($item)) {
+            return null;
+        }
+        $item['ref']    = $ref;
+        $item['source'] = 'db';
+        return $item;
+    }
+
     $list = $parsed['source'] === 'csv' ? contact_messages_read() : admin_load('messages');
     $item = $list[$parsed['index']] ?? null;
     if (!is_array($item)) {
@@ -727,6 +845,10 @@ function admin_message_delete(string $ref): bool
     $parsed = admin_message_parse_ref($ref);
     if ($parsed === null) {
         return false;
+    }
+
+    if ($parsed['source'] === 'db') {
+        return db_table_exists('ha_contact_messages') && db_message_delete($parsed['index']);
     }
 
     if ($parsed['source'] === 'pan') {

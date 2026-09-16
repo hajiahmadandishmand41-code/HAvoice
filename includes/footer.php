@@ -85,6 +85,8 @@ $currentUser = auth_current_user();
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
+<?= !empty($GLOBALS['HA_MEDIA_MODAL']) ? media_modal_shell() : '' ?>
+
 <?= ha_icon_sprite() ?>
 
 <div class="toast" data-toast role="status" aria-live="polite" hidden></div>

@@ -42,15 +42,21 @@ $lessonIndex = course_lesson_index();
         <div class="field">
             <label for="v-slug">نامک (خودکار اگر خالی)</label>
             <input class="input" id="v-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
+            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p>
         </div>
         <div class="field" style="grid-column:1/-1">
             <label for="v-excerpt">توضیح</label>
             <textarea class="input" id="v-excerpt" name="excerpt" rows="3" maxlength="500"><?= e($item['excerpt'] ?? '') ?></textarea>
         </div>
         <div class="field" style="grid-column:1/-1">
-            <label for="v-url">نشانی ویدیو * (آپارات / یوتیوب / Vimeo / فایل mp4)</label>
-            <input class="input" id="v-url" type="url" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" required placeholder="https://…">
-            <p class="field__help">بدون نشانی واقعی، ویدیو در سایت عمومی نمایش داده نمی‌شود.</p>
+            <label for="v-file">۱) آپلود فایلِ ویدیو (MP4 / WebM / OGG)</label>
+            <input class="input" id="v-file" type="file" name="video_file" accept="video/mp4,video/webm,video/ogg">
+            <p class="field__help"><?= e(ha_upload_kind_hint('video')) ?></p>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+            <label for="v-url">۲) یا نشانیِ ویدیو (آپارات / یوتیوب / Vimeo / فایلِ mp4)</label>
+            <input class="input" id="v-url" type="text" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" placeholder="https://…">
+            <p class="field__help">یکی از این دو لازم است. اگر فایل آپلود کنید، همین نشانی نادیده گرفته می‌شود. ویدیو در خودِ سایت (بدونِ خروج از صفحه) پخش می‌شود.</p>
         </div>
         <div class="field">
             <label for="v-thumb-url">بندانگشتی (نشانی تصویر)</label>
@@ -59,6 +65,7 @@ $lessonIndex = course_lesson_index();
         <div class="field">
             <label for="v-thumb-file">یا آپلود بندانگشتی</label>
             <input class="input" id="v-thumb-file" type="file" name="thumbnail_file" accept="image/jpeg,image/png,image/webp">
+            <p class="field__help"><?= e(ha_upload_kind_hint('image')) ?></p>
         </div>
         <div class="field">
             <label for="v-course">دوره مرتبط</label>

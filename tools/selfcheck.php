@@ -173,6 +173,7 @@ group('۴. دارایی‌های محلی');
 $assets = [
     '/assets/css/style.css',
     '/assets/css/mobile-layout.css',
+    '/assets/css/learning.css',           // اجزای مسیرِ یادگیری (وضعیت درس، نوارِ قدمِ بعدی، PDF/ویدیو)
     '/assets/css/instructor-banner.css',
     '/assets/js/main.js',
     '/assets/js/theme.js',
@@ -190,6 +191,13 @@ foreach ($assets as $a) {
 $css = (string) @file_get_contents(HA_ROOT . '/assets/css/style.css');
 check('CSS: @font-face محلی برای وزیرمتن', (bool) preg_match('/@font-face[^}]*Vazirmatn/s', $css));
 check('CSS: ارجاع به fonts.googleapis.com ندارد', !str_contains($css, 'fonts.googleapis'));
+$learnCss = (string) @file_get_contents(HA_ROOT . '/assets/css/learning.css');
+check('learning.css: بدونِ منبعِ بیرونی (فقط توکن‌های محلی)',
+    $learnCss !== '' && !preg_match('#url\(\s*[\x27"]?(?:https?:)?//#i', $learnCss) && !str_contains($learnCss, '@import'));
+check('learning.css: برچسبِ سه‌وضعیتیِ درس (todo/started/done)',
+    str_contains($learnCss, '.pill--todo') && str_contains($learnCss, '.pill--started') && str_contains($learnCss, '.pill--done'));
+check('learning.css: نوارِ قدمِ بعدی روی موبایل چسبان است',
+    (bool) preg_match('/\.route-lesson\s+\.next-bar\s*\{[^}]*position:\s*fixed/s', $learnCss));
 
 /* پوشه‌ی تصویرها باید فقط همین فایل‌ها را داشته باشد: بنر، عکسِ مدرس و آیکونِ سایت */
 $allowedImgs = ['favicon.svg', 'fanbayan-banner.webp', 'instructor.jpg'];
@@ -503,6 +511,139 @@ if (function_exists('db_configured') && db_configured()) {
 } else {
     check('DB اختیاری (fallback فایل)', true, 'HA_DB_* خالی — content از data/*.php', false);
 }
+
+/* ------------------------------------------------------------------ */
+/*  ۶ج) لایه‌ی یادگیری، سازنده‌ی دوره، آپلود و پیام‌ها                   */
+/*                                                                    */
+/*  این بخش «قلبِ نسخه‌ی ۳٫۳» را پوشش می‌دهد: کاربر باید همیشه بداند       */
+/*  کجاست و قدمِ بعدی چیست؛ مدیر باید بتواند دوره/درس/تمرین بسازد و      */
+/*  فایل (PDF/صوت/ویدیو) آپلود کند؛ پیام‌های تماس باید در DB بنشینند.    */
+/* ------------------------------------------------------------------ */
+
+group('۶ج. یادگیری، سازنده‌ی دوره، آپلود و پیام‌ها');
+
+/* این دو فایل فقط تابع تعریف می‌کنند (بدونِ اثرِ جانبی)؛ یک بار بارگذاری
+   می‌شوند تا وجودِ تابع‌ها با function_exists بررسی شود. */
+foreach (['/includes/uploads.php', '/includes/progress.php'] as $incFile) {
+    if (is_file(HA_ROOT . $incFile)) {
+        require_once HA_ROOT . $incFile;
+    }
+}
+
+/* الف) فایل‌های لایه‌ی یادگیری */
+$learningFiles = [
+    '/includes/progress.php'          => 'منطقِ پیشرفت و مسیرِ یادگیری',
+    '/includes/learning_ui.php'       => 'رندرِ جریانِ یادگیری، قرصِ وضعیت، نوارِ قدمِ بعدی',
+    '/includes/handlers/progress.php' => 'پردازشِ POST پیشرفت (الگوی PRG)',
+    '/pages/progress.php'             => 'صفحه‌ی «پیشرفتِ یادگیری»',
+    '/assets/css/learning.css'        => 'استایلِ موبایل‌اولِ یادگیری + سازنده‌ی دوره',
+];
+foreach ($learningFiles as $rel => $label) {
+    check('فایلِ ' . ltrim($rel, '/'), is_file(HA_ROOT . $rel), $label);
+}
+
+/* ب) تابع‌های کلیدیِ پیشرفت */
+$progressFns = [
+    'progress_overview'            => 'جمع‌بندیِ «الان کجام؟» برای خانه و دوره',
+    'course_learning_path'         => 'ترتیبِ درس‌ها و تمرین‌ها در یک دوره',
+    'lesson_learning_path'         => 'درسِ قبلی/بعدی و تمرینِ مرتبطِ همان درس',
+    'exercises_for_course_ordered' => 'ترتیبِ تمرین‌ها (گروه، جایگاه، order، شاخص)',
+    'progress_mark_started'        => 'نشانه‌گذاریِ خودکارِ «در حالِ مطالعه»',
+    'progress_reset_course'        => 'پاک‌کردنِ پیشرفتِ یک دوره',
+    'progress_state_meta'          => 'برچسب/رنگِ سه وضعیتِ درس',
+];
+foreach ($progressFns as $fn => $label) {
+    check('تابعِ ' . $fn, function_exists($fn), $label);
+}
+
+/* ج) مسیرِ ثبت‌شده و محافظت‌شده */
+check('مسیرِ progress در routes()', route_exists('progress'));
+check('progress فقط برای کاربرِ واردشده', route_meta('progress', 'auth', false) === true, 'مهمان به ورود هدایت می‌شود');
+$headerSrc = (string) @file_get_contents(HA_ROOT . '/includes/header.php');
+check('هدر: دسترسیِ سریع به پیشرفت', str_contains($headerSrc, "'progress'") || str_contains($headerSrc, 'url(\'progress\')'));
+
+/* د) منطقِ «قدمِ بعدی» در handler */
+$progressHandler = (string) @file_get_contents(HA_ROOT . '/includes/handlers/progress.php');
+check('handler: رفتن به درسِ بعدی', str_contains($progressHandler, 'next-lesson'), 'قدمِ بعدی همیشه روشن است');
+check('handler: رفتن به تمرینِ بعدی', str_contains($progressHandler, 'next-exercise'));
+check('handler: فقط POST', str_contains($progressHandler, "'POST'"));
+check('handler: CSRF', str_contains($progressHandler, 'csrf_verify'));
+check('handler: بدونِ خروجیِ مستقیم (PRG)', str_contains($progressHandler, 'redirect('));
+
+/* ه) سازنده‌ی دوره/درس/تمرین در پنل */
+$courseEdit = (string) @file_get_contents(HA_ROOT . '/pages/admin/course_edit.php');
+$courseSave = (string) @file_get_contents(HA_ROOT . '/pages/admin/course_save.php');
+$adminHelp  = (string) @file_get_contents(HA_ROOT . '/pages/admin/_helpers.php');
+$exerciseEdit = (string) @file_get_contents(HA_ROOT . '/pages/admin/exercise_edit.php');
+$mainJs     = (string) @file_get_contents(HA_ROOT . '/assets/js/main.js');
+$learnCss   = (string) @file_get_contents(HA_ROOT . '/assets/css/learning.css');
+check('course_edit: فرمِ ساختاریافته‌ی مرحله/درس', str_contains($courseEdit, 'stages[') || str_contains($courseEdit, 'data-builder'), 'بدونِ نیاز به نوشتنِ JSON');
+check('course_edit: ردیفِ خالیِ «درسِ بعدی»', str_contains($courseEdit, 'template') || str_contains($courseEdit, 'data-builder-template'));
+check('course_save: خواندنِ فرمِ ساختاریافته', str_contains($courseSave, 'admin_course_stages_from_post'));
+check('course_save: نامکِ پشتیبان برای عنوانِ فارسی', str_contains($courseSave, "'-l'"), 'slugify() عنوانِ فارسی را خالی می‌کند');
+check('admin_helpers: تبدیلِ متن به بلوک', str_contains($adminHelp, 'admin_lesson_blocks_to_text') || str_contains($adminHelp, 'blocks_to_text'));
+check('admin_helpers: ترتیب‌دهیِ ردیف‌ها', str_contains($adminHelp, 'admin_sort_rows'));
+check('exercise_edit: فیلدِ ترتیب', str_contains($exerciseEdit, 'name="order"'), 'ترتیبِ تمرین‌ها در پنل');
+check('main.js: ماژولِ سازنده‌ی دوره', str_contains($mainJs, 'adminBuilderModule'));
+check('main.js: ماژولِ یادگیری', str_contains($mainJs, 'learningModule'));
+check('main.js: پخشِ رسانه در مودال', str_contains($mainJs, 'data-media-open'));
+check('learning.css: اجزای سازنده', str_contains($learnCss, '.builder'));
+
+/* و) آپلودِ امنِ فایل */
+$kinds = function_exists('ha_upload_kinds') ? ha_upload_kinds() : [];
+foreach (['document' => 'PDF', 'image' => 'تصویر', 'video' => 'ویدیو', 'audio' => 'صوت'] as $kind => $label) {
+    check('آپلود: نوعِ ' . $label, isset($kinds[$kind]) && is_array($kinds[$kind]) && $kinds[$kind] !== [],
+        isset($kinds[$kind]) ? implode('، ', array_values($kinds[$kind])) : 'تعریف نشده');
+}
+check('آپلود: سقفِ حجم از config', function_exists('ha_upload_max_bytes') && ha_upload_max_bytes() > 0,
+    function_exists('ha_upload_max_bytes') ? number_format(ha_upload_max_bytes()) . ' بایت' : '');
+check('آپلود: سقفِ جداگانه‌ی رسانه', defined('HA_UPLOAD_MAX_MEDIA_BYTES'), 'ویدیو/صوت می‌تواند سقفِ دیگری داشته باشد');
+check('آپلود: سقفِ واقعیِ PHP هم سنجیده می‌شود', function_exists('ha_php_upload_limit'));
+check('آپلود: راهنمای نوع در فرم', function_exists('ha_upload_kind_hint') && ha_upload_kind_hint('document') !== '');
+$uploadsSrc = (string) @file_get_contents(HA_ROOT . '/includes/uploads.php');
+check('آپلود: MIME واقعی با finfo', str_contains($uploadsSrc, 'finfo_file'), 'به content-type کلاینت اعتماد نمی‌شود');
+check('آپلود: نامِ تصادفیِ فایل', str_contains($uploadsSrc, 'random_bytes'));
+$upHtaccess = (string) @file_get_contents(HA_ROOT . '/uploads/.htaccess');
+check('uploads/.htaccess: موتور PHP خاموش', str_contains($upHtaccess, 'php_flag engine off'));
+check('uploads/.htaccess: اسکریپت‌ها ممنوع', str_contains($upHtaccess, 'Require all denied') || str_contains($upHtaccess, 'Deny from all'));
+foreach (['audio_edit', 'video_edit', 'book_edit'] as $form) {
+    $src = (string) @file_get_contents(HA_ROOT . '/pages/admin/' . $form . '.php');
+    check('فرمِ ' . $form . ': فیلدِ آپلود + multipart', str_contains($src, 'type="file"') && str_contains($src, 'multipart/form-data'));
+}
+$booksPage = (string) @file_get_contents(HA_ROOT . '/pages/books.php');
+check('کتاب‌ها: نمایشگرِ PDF درون‌سایتی', str_contains($booksPage, 'pdf_viewer') || str_contains($booksPage, '<iframe'));
+
+/* ز) نامکِ خودکار (فارسی و لاتین) */
+check('نامک: عنوانِ لاتین با فاصله ⇒ خطِ تیره', ha_slug_from_title('Hello World!') === 'hello-world', ha_slug_from_title('Hello World!'));
+check('نامک: عنوانِ فارسی ⇒ نویسه‌گردانی', ha_slug_from_title('فن بیان') !== '', ha_slug_from_title('فن بیان'));
+check('نامک: نویسه‌گردانیِ پایدار', ha_transliterate_fa('کتاب') === 'ktab', ha_transliterate_fa('کتاب'));
+check('نامک: رقمِ فارسی ⇒ لاتین', ha_transliterate_fa('درس ۱۲') === 'drs-12', ha_transliterate_fa('درس ۱۲'));
+check('نامک: یکتاسازی با شماره', ha_unique_slug('x', static function (string $s): bool { return $s === 'x'; }) === 'x-2');
+check('نامک: بدونِ بررسیِ تکرار دست‌نخورده', ha_unique_slug('abc') === 'abc');
+$adminSlugSrc = (string) @file_get_contents(HA_ROOT . '/pages/admin/_helpers.php');
+check('پنل: نامکِ خودکار در admin_post_slug', str_contains($adminSlugSrc, 'ha_slug_from_title') && str_contains($adminSlugSrc, 'ha_unique_slug'));
+foreach (['book_edit', 'article_edit', 'research_edit', 'audio_edit', 'video_edit'] as $form) {
+    $src = (string) @file_get_contents(HA_ROOT . '/pages/admin/' . $form . '.php');
+    $m = [];
+    preg_match('/<input[^>]*name="slug"[^>]*>/u', $src, $m);
+    check('فرمِ ' . $form . ': نامک اختیاری است', $m !== [] && !str_contains($m[0], 'required'), 'خودکار از عنوان ساخته می‌شود');
+}
+
+/* ح) پیام‌های تماس در دیتابیس */
+foreach (['db_table_exists', 'db_message_save', 'db_message_find', 'db_message_delete', 'db_message_count'] as $fn) {
+    check('تابعِ ' . $fn, function_exists($fn), 'ذخیره‌ی پیام‌ها در MySQL');
+}
+$contactSrc = (string) @file_get_contents(HA_ROOT . '/includes/handlers/contact.php');
+check('contact: نوشتن در DB (در صورتِ وجودِ جدول)', str_contains($contactSrc, 'db_message_save') && str_contains($contactSrc, 'db_table_exists'));
+check('contact: نسخه‌ی پشتیبانِ CSV', str_contains($contactSrc, 'HA_STORE_MESSAGES'));
+check('contact: honeypot بی‌سروصدا (پیامِ موفقیت)', str_contains($contactSrc, 'website') && str_contains($contactSrc, "flash('success'"));
+$authSrc = (string) @file_get_contents(HA_ROOT . '/includes/auth.php');
+check('پنل: پیام‌های DB در فهرستِ پیام‌ها', str_contains($authSrc, "'db-'") || str_contains($authSrc, 'db-'));
+$msgPage = (string) @file_get_contents(HA_ROOT . '/pages/admin/messages.php');
+check('پنل: نشانِ منبعِ پیام (DB/CSV/پنل)', str_contains($msgPage, 'db_message_count') || str_contains($msgPage, 'source'));
+
+/* ط) نسخه‌ی جاری */
+check('نسخه‌ی اعلامی ۳٫۳ به‌بعد', defined('HA_VERSION') && version_compare((string) HA_VERSION, '3.3.0', '>='), HA_VERSION);
 
 group('۷. آزمونِ دودِ مسیرها');
 

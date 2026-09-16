@@ -55,6 +55,7 @@ if ($slug!=='') {
                             <a class="btn btn--primary btn--sm" href="<?= e(url('books', ['slug' => $book['slug']])) ?>#book-read"><?= ha_icon('book', 14) ?> مطالعه در سایت</a>
                         <?php endif; ?>
                         <?php if ($bookFile !== ''): ?>
+                            <a class="btn btn--ghost btn--sm" href="<?= e(url('books', ['slug' => $book['slug']])) ?>#book-file"><?= ha_icon('book', 14) ?> مطالعه‌ی فایل در سایت</a>
                             <a class="btn btn--ghost btn--sm" href="<?= e($bookFile) ?>" rel="noopener" target="_blank"><?= ha_icon('download', 14) ?> دریافتِ فایلِ کتاب</a>
                         <?php endif; ?>
                         <?php if ($bookLink !== ''): ?>
@@ -89,6 +90,19 @@ if ($slug!=='') {
                     </div>
                 </div>
             </div>
+
+            <?php if ($bookFile !== ''): ?>
+                <?php /* فایلِ PDF کتاب، داخلِ سایت خوانده می‌شود (iframe از همین دامنه؛
+                         روی موبایل هم از عرض بیرون نمی‌زند و دکمه‌ی «تبِ جدید/دریافت»
+                         برای مرورگرهایی که نمایشِ داخلی ندارند همیشه هست). */ ?>
+                <section class="book-read" id="book-file" aria-label="فایل کتاب">
+                    <header class="book-read__head">
+                        <h2><?= ha_icon('book', 17) ?> فایلِ <?= e($book['title']) ?> در سایت</h2>
+                        <p class="muted-sm">همین‌جا ورق بزنید؛ نیازی به دانلود نیست.</p>
+                    </header>
+                    <?= pdf_viewer($bookFile, (string) $book['title'], 'اگر مرورگرِ شما PDF را داخلِ صفحه نشان نمی‌دهد، از دکمه‌ی «تبِ جدید» یا «دریافت» استفاده کنید.') ?>
+                </section>
+            <?php endif; ?>
 
             <?php if ($bookBlocks !== []): ?>
                 <section class="book-read" id="book-read" aria-label="متن کامل کتاب">

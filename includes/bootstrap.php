@@ -21,8 +21,10 @@ require HA_ROOT . '/includes/repository.php';
 require HA_ROOT . '/includes/icons.php';
 require HA_ROOT . '/includes/content.php';
 require HA_ROOT . '/includes/auth.php';
+require HA_ROOT . '/includes/progress.php';
 require HA_ROOT . '/includes/uploads.php';
 require HA_ROOT . '/includes/ui.php';
+require HA_ROOT . '/includes/learning_ui.php';
 require HA_ROOT . '/includes/meta.php';
 require HA_ROOT . '/includes/comments.php';
 
@@ -182,6 +184,19 @@ if (route_meta($route, 'auth', false) === true && !auth_is_logged_in()) {
     auth_require_guest();
 }
 
+/*
+ * گیتِ مرکزیِ پنلِ مدیریت.
+ *
+ * پیش‌تر هر فایلِ admin/*.php خودش auth_require_admin() را صدا می‌زد و
+ * این «تنها» لایه‌ی محافظت بود: یک handlerِ تازه که فراموش می‌کرد آن را
+ * بنویسد، با یک URL ساده قابلِ اجرا بود. اکنون گیت پیش از هر handler و
+ * پیش از رندر، روی خودِ مسیر اعمال می‌شود (دفاع در عمق)؛ فراخوانیِ
+ * auth_require_admin() داخلِ صفحه‌ها هم سرِ جای خودش می‌ماند.
+ */
+if (route_meta($route, 'admin', false) === true) {
+    auth_require_admin();
+}
+
 /* ------------------------------------------------------------------ */
 /*  سرصفحه‌های امنیتی                                                  */
 /* ------------------------------------------------------------------ */
@@ -219,6 +234,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'logout':
             require HA_ROOT . '/includes/handlers/logout.php';
             break;
+        case 'progress':
+            require HA_ROOT . '/includes/handlers/progress.php';
+            break;
         // Admin POST handlers
         case 'admin_course_save':
         case 'admin_article_save':
@@ -238,6 +256,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_book_delete':
         case 'admin_research_delete':
         case 'admin_exercise_delete':
+        case 'admin_exercise_move':
         case 'admin_tip_delete':
         case 'admin_category_delete':
         case 'admin_user_delete':

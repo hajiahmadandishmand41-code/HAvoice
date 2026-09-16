@@ -61,6 +61,10 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
                 <?php endforeach; ?>
             </select>
             <p class="field__help">اگر درس انتخاب شده باشد، دوره از همان درس هم استنباط می‌شود.</p></div>
+        <div class="field"><label for="e-order">ترتیب در دوره</label>
+            <input class="input input--num" id="e-order" type="number" name="order" min="0" max="999"
+                   value="<?= e((string) (int) ($item['order'] ?? 0)) ?>">
+            <p class="field__help">عددِ کوچک‌تر = زودتر. ترتیبِ «تمرینِ بعدی» در پنلِ مسیرِ یادگیری از همین عدد و از جایِ درس در دوره می‌آید: اول تمرین‌های درس‌ها به ترتیبِ خودِ درس‌ها، بعد تمرین‌های بدونِ درس. صفر یعنی «ترتیبِ پیش‌فرض».</p></div>
     </div>
 </div>
 

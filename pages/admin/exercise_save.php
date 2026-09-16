@@ -46,6 +46,7 @@ $item = [
     'topics'   => admin_lines('topics_text'),
     'lesson'   => $lesson,
     'course'   => $course,
+    'order'    => max(0, (int) ($_POST['order'] ?? 0)),
     'status'   => admin_post_status(),
     'featured' => !empty($_POST['featured']),
 ];

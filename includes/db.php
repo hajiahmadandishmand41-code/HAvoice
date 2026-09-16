@@ -17,7 +17,7 @@ if (!defined('HA_ROOT')) {
 }
 
 /** نسخهٔ schema که ensure_schema می‌سازد. */
-define('HA_DB_SCHEMA_VERSION', '2');
+define('HA_DB_SCHEMA_VERSION', '3');
 
 /* ------------------------------------------------------------------ */
 /*  پیکربندی و اتصال                                                  */
@@ -152,6 +152,40 @@ function db_ensure_schema(PDO $pdo): bool
 function db_now(): string
 {
     return date('Y-m-d H:i:s');
+}
+
+/**
+ * آیا این جدول در دیتابیس وجود دارد؟ (برخلافِ repo_db_has که «پر بودنِ»
+ * جدول را می‌سنجد، اینجا فقط وجودِ ساختار ملاک است.)
+ *
+ * برای جدول‌هایی که ممکن است خالی باشند ولی باید نوشته شوند — مثلِ
+ * ha_contact_messages و ha_progress — به همین نیاز داریم.
+ */
+function db_table_exists(string $table): bool
+{
+    static $cache = [];
+    if (array_key_exists($table, $cache)) {
+        return $cache[$table];
+    }
+    $allowed = [
+        'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons', 'ha_articles',
+        'ha_books', 'ha_media', 'ha_exercises', 'ha_tips', 'ha_research',
+        'ha_users', 'ha_progress', 'ha_comments', 'ha_settings', 'ha_contact_messages',
+    ];
+    if (!in_array($table, $allowed, true) || !db_ready()) {
+        return $cache[$table] = false;
+    }
+    try {
+        $pdo = db();
+        if ($pdo === null) {
+            return $cache[$table] = false;
+        }
+        $st  = $pdo->query('SHOW TABLES LIKE ' . $pdo->quote($table));
+        $row = $st ? $st->fetch() : false;
+        return $cache[$table] = is_array($row) && $row !== [];
+    } catch (Throwable $e) {
+        return $cache[$table] = false;
+    }
 }
 
 function db_json_encode($value): string
@@ -527,6 +561,7 @@ function db_articles_all(): array
             'blocks'     => db_json_decode($r['blocks_json'] ?? null, []),
             'featured'   => !empty($r['featured']),
             'status'     => (string) ($r['status'] ?? 'published'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -601,6 +636,7 @@ function db_books_all(): array
             'file'       => (string) ($r['file_url'] ?? ''),
             'featured'   => !empty($r['featured']),
             'status'     => (string) ($r['status'] ?? 'published'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -677,6 +713,7 @@ function db_media_all(): array
             'date_fa'    => (string) ($r['date_fa'] ?? ''),
             'featured'   => !empty($r['featured']),
             'status'     => (string) ($r['status'] ?? 'draft'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -756,6 +793,7 @@ function db_exercises_all(): array
             'field'      => (string) ($r['field_slug'] ?? ''),
             'featured'   => !empty($r['featured']),
             'status'     => (string) ($r['status'] ?? 'published'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -825,6 +863,7 @@ function db_tips_all(): array
             'try'        => (string) ($r['try_text'] ?? ''),
             'field'      => (string) ($r['field_slug'] ?? ''),
             'status'     => (string) ($r['status'] ?? 'published'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -887,6 +926,7 @@ function db_research_all(): array
             'blocks'     => db_json_decode($r['blocks_json'] ?? null, []),
             'featured'   => !empty($r['featured']),
             'status'     => (string) ($r['status'] ?? 'published'),
+            'order'      => (int) ($r['sort_order'] ?? 0),
             'created_at' => (string) ($r['created_at'] ?? ''),
             'updated_at' => (string) ($r['updated_at'] ?? ''),
             '_db'        => true,
@@ -1050,6 +1090,121 @@ function db_user_count(): int
 {
     $r = db_one('SELECT COUNT(*) AS c FROM ha_users');
     return (int) ($r['c'] ?? 0);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Progress (lesson / exercise state per user)                       */
+/* ------------------------------------------------------------------ */
+
+/** @return list<array{item_type:string,item_key:string,state:string}> */
+function db_progress_all(string $userId): array
+{
+    if ($userId === '') {
+        return [];
+    }
+    return db_all(
+        'SELECT item_type, item_key, state FROM ha_progress WHERE user_id = ? ORDER BY updated_at ASC',
+        [$userId]
+    );
+}
+
+/**
+ * نوشتنِ وضعیتِ یک قلم. state='' ⇒ حذفِ رکورد.
+ */
+function db_progress_set(string $userId, string $type, string $key, string $state): bool
+{
+    if ($userId === '' || $key === '') {
+        return false;
+    }
+    $type = $type === 'exercise' ? 'exercise' : 'lesson';
+    if ($state !== 'started' && $state !== 'done') {
+        return db_exec(
+            'DELETE FROM ha_progress WHERE user_id = ? AND item_type = ? AND item_key = ?',
+            [$userId, $type, $key]
+        );
+    }
+    $now = db_now();
+    return db_exec(
+        'INSERT INTO ha_progress (user_id, item_type, item_key, state, created_at, updated_at)
+         VALUES (?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE state = VALUES(state), updated_at = VALUES(updated_at)',
+        [$userId, $type, $key, $state, $now, $now]
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Contact messages                                                  */
+/* ------------------------------------------------------------------ */
+
+/** @return list<array<string,mixed>> */
+function db_messages_all(int $limit = 500): array
+{
+    $rows = db_all(
+        'SELECT id, name, email, subject, message, ip, created_at FROM ha_contact_messages
+         ORDER BY created_at DESC, id DESC LIMIT ' . max(1, min(2000, $limit))
+    );
+    $out = [];
+    foreach ($rows as $r) {
+        $out[] = [
+            'id'      => (int) $r['id'],
+            'time'    => (string) ($r['created_at'] ?? ''),
+            'name'    => (string) ($r['name'] ?? ''),
+            'email'   => (string) ($r['email'] ?? ''),
+            'subject' => (string) ($r['subject'] ?? ''),
+            'message' => (string) ($r['message'] ?? ''),
+            'ip'      => (string) ($r['ip'] ?? ''),
+            'source'  => 'db',
+            'ref'     => 'db-' . (int) $r['id'],
+        ];
+    }
+    return $out;
+}
+
+function db_message_save(array $record): bool
+{
+    return db_exec(
+        'INSERT INTO ha_contact_messages (name, email, subject, message, ip, created_at) VALUES (?,?,?,?,?,?)',
+        [
+            (string) ($record['name'] ?? ''),
+            (string) ($record['email'] ?? ''),
+            (string) ($record['subject'] ?? ''),
+            (string) ($record['message'] ?? ''),
+            (string) ($record['ip'] ?? ''),
+            (string) ($record['time'] ?? db_now()),
+        ]
+    );
+}
+
+function db_message_find(int $id): ?array
+{
+    $rows = db_messages_all(2000);
+    foreach ($rows as $m) {
+        if ((int) ($m['id'] ?? 0) === $id) {
+            return $m;
+        }
+    }
+    return null;
+}
+
+function db_message_delete(int $id): bool
+{
+    return $id > 0 && db_exec('DELETE FROM ha_contact_messages WHERE id = ?', [$id]);
+}
+
+function db_message_count(): int
+{
+    $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages');
+    return (int) ($r['c'] ?? 0);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bootstrap flag (first admin — one time only)                      */
+/* ------------------------------------------------------------------ */
+
+function db_setting_get(string $key, string $default = ''): string
+{
+    $r = db_one('SELECT setting_value FROM ha_settings WHERE setting_key = ? LIMIT 1', [$key]);
+    return $r !== null ? (string) ($r['setting_value'] ?? $default) : $default;
 }
 
 /* ------------------------------------------------------------------ */

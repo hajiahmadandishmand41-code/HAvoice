@@ -1,0 +1,642 @@
+/* ==========================================================================
+   HAvoice — learning.css
+   اجزای «مسیرِ یادگیری»: وضعیتِ درس‌ها، پنلِ قدمِ بعدی، نمایشِ PDF/ویدیو/
+   پادکست داخلِ سایت، و بلوکِ نظرات/تجربیات.
+
+   قواعدِ این فایل Mobile-First است (اول حالتِ تلفن، بعد min-width).
+   همه‌ی رنگ‌ها و فاصله‌ها از توکن‌های style.css می‌آیند تا حالتِ روشن/تاریک
+   و کنتراستِ WCAG دست‌نخورده بماند.
+   ========================================================================== */
+
+/* ===== ۱) برچسبِ وضعیت (انجام‌نشده / در حالِ مطالعه / تکمیل‌شده) ========= */
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .18rem .55rem;
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-soft);
+    font-size: var(--fs-2xs);
+    font-weight: var(--fw-bold);
+    line-height: 1.7;
+    white-space: nowrap;
+    max-width: 100%;
+}
+.pill svg { flex: 0 0 auto; }
+.pill span { overflow: hidden; text-overflow: ellipsis; }
+
+.pill--todo     { color: var(--text-mute); background: var(--surface-2); border-color: var(--border); }
+.pill--started  { color: var(--warning);   background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 32%, transparent); }
+.pill--done     { color: var(--success);   background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 32%, transparent); }
+.pill--flag     { color: var(--brand-strong); background: var(--brand-soft); border-color: var(--brand-200); }
+.pill--next     { color: var(--secondary); background: var(--secondary-soft); border-color: color-mix(in srgb, var(--secondary) 28%, transparent); }
+
+/* color-mix در مرورگرهای خیلی قدیمی نیست؛ fallback ساده */
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+    .pill--started { border-color: var(--warning); }
+    .pill--done    { border-color: var(--success); }
+    .pill--next    { border-color: var(--secondary); }
+}
+
+/* ===== ۲) سرصفحه‌ی ساده‌ی صفحه (بدونِ بنر) =============================== */
+
+.page-head { margin-bottom: var(--sp-6); }
+.page-head__title { font-size: var(--fs-h2); margin: var(--sp-2) 0; }
+.page-head__lead { color: var(--text-soft); max-width: 62ch; margin: 0; line-height: var(--lh-base); }
+
+/* ===== ۳) دکمه‌ی خیلی کوچک (برای نوارِ PDF و فهرست‌ها) ==================== */
+
+.btn--xs {
+    padding: .28rem .6rem;
+    font-size: var(--fs-2xs);
+    min-height: 30px;
+    border-radius: var(--r-sm);
+}
+
+/* ===== ۴) پنلِ «مسیرِ یادگیری» ========================================== */
+
+.learn-panel {
+    margin: var(--sp-5) 0 var(--sp-8);
+    padding: var(--sp-5);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background:
+        linear-gradient(180deg, var(--brand-softer), var(--surface) 62%);
+    box-shadow: var(--sh-xs);
+}
+[data-theme="dark"] .learn-panel {
+    background: linear-gradient(180deg, var(--surface-2), var(--surface) 70%);
+}
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] .learn-panel { background: linear-gradient(180deg, var(--surface-2), var(--surface) 70%); }
+}
+[data-theme="dark"] .learn-step.is-active,
+[data-theme="dark"] .learn-step--course { background: var(--surface-2); }
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] .learn-step.is-active,
+    [data-theme="auto"] .learn-step--course { background: var(--surface-2); }
+}
+
+.learn-panel__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    padding-bottom: var(--sp-4);
+    margin-bottom: var(--sp-5);
+    border-bottom: 1px dashed var(--border);
+}
+.learn-panel__heading { min-width: 0; }
+.learn-panel__title {
+    margin: var(--sp-1) 0 0;
+    font-size: var(--fs-base);
+    font-weight: var(--fw-extra);
+    line-height: 1.8;
+    color: var(--text);
+}
+.learn-panel__stats { min-width: 0; display: grid; gap: var(--sp-3); }
+.learn-panel__legend {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-4);
+    font-size: var(--fs-2xs);
+    color: var(--text-mute);
+}
+.learn-panel__legend li { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
+.learn-panel__legend strong { font-variant-numeric: tabular-nums; color: var(--text); }
+.learn-panel__legend-ex { color: var(--text-soft); }
+.learn-panel__foot {
+    display: flex; flex-direction: column; gap: var(--sp-3);
+    align-items: flex-start;
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-4);
+    border-top: 1px dashed var(--border);
+}
+.learn-panel__foot p { margin: 0; }
+
+/* --- جریانِ قدم‌ها -------------------------------------------------------- */
+
+.learn-flow {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-3);
+    counter-reset: learnstep;
+}
+
+.learn-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    transition: border-color var(--dur-fast), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.learn-step__n {
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border-radius: var(--r-full);
+    background: var(--surface-3);
+    color: var(--brand-strong);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-black);
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+}
+.learn-step__body { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.learn-step__label {
+    margin: 0;
+    font-size: var(--fs-2xs);
+    font-weight: var(--fw-extra);
+    letter-spacing: .01em;
+    color: var(--text-mute);
+    text-transform: none;
+}
+.learn-step__title {
+    margin: 0;
+    font-size: var(--fs-base);
+    font-weight: var(--fw-bold);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.learn-step__title a { color: var(--text); }
+.learn-step__title a:hover { color: var(--brand-strong); }
+.learn-step__meta {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--sp-2);
+    margin: 0;
+    font-size: var(--fs-2xs);
+    color: var(--text-mute);
+}
+.learn-step__note {
+    margin: 0;
+    font-size: var(--fs-2xs);
+    color: var(--text-soft);
+    line-height: 1.7;
+}
+.learn-step__actions {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2);
+    margin-top: var(--sp-2);
+}
+.learn-step__actions .btn { max-width: 100%; }
+
+/* قدمِ جاری: روشن‌تر و با مرزِ برند */
+.learn-step.is-active {
+    border-color: var(--brand);
+    box-shadow: var(--sh-md);
+    background: var(--brand-softer);
+}
+.learn-step.is-active .learn-step__n { background: var(--brand); color: var(--on-brand); }
+.learn-step.is-active .learn-step__label { color: var(--brand-strong); }
+
+/* وضعیت‌ها روی خودِ قدم */
+.learn-step.is-done    { border-inline-start: 3px solid var(--success); }
+.learn-step.is-started { border-inline-start: 3px solid var(--warning); }
+.learn-step.is-todo    { border-inline-start: 3px solid var(--border); }
+.learn-step--course    { background: var(--surface-2); }
+.learn-step--exercise,
+.learn-step--exercise-next { background: color-mix(in srgb, var(--accent-soft) 42%, var(--surface)); }
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+    .learn-step--exercise, .learn-step--exercise-next { background: var(--surface-2); }
+}
+.learn-step--exercise .learn-step__n,
+.learn-step--exercise-next .learn-step__n { color: var(--accent-strong); }
+
+/* فلشِ بینِ قدم‌ها — فقط در چیدمانِ افقیِ دسکتاپ */
+.learn-step::after { display: none; }
+
+@media (min-width: 720px) {
+    .learn-panel__head { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: var(--sp-6); }
+    .learn-panel__heading { flex: 1 1 auto; }
+    .learn-panel__stats { flex: 0 1 340px; }
+    .learn-panel__foot { flex-direction: row; align-items: center; justify-content: space-between; }
+    .learn-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+}
+
+@media (min-width: 1100px) {
+    .learn-flow { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); }
+    .learn-step { padding: var(--sp-4) var(--sp-4) var(--sp-4); }
+    /* فلشِ جهت‌دار بینِ کارت‌ها (RTL: به سمتِ چپ) */
+    .learn-step:not(:last-child)::after {
+        display: grid; place-items: center;
+        content: "";
+        position: absolute;
+        inset-inline-end: -0.78rem;
+        top: 50%;
+        width: 20px; height: 20px;
+        transform: translateY(-50%);
+        border-radius: var(--r-full);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        /* فلش با دو خطِ مورب ساخته می‌شود تا به آیکونِ sprite وابسته نباشد */
+        background-image:
+            linear-gradient(to bottom left, transparent 46%, var(--text-mute) 46%, var(--text-mute) 54%, transparent 54%),
+            linear-gradient(to top left, transparent 46%, var(--text-mute) 46%, var(--text-mute) 54%, transparent 54%);
+        background-size: 9px 9px, 9px 9px;
+        background-position: 62% 32%, 62% 68%;
+        background-repeat: no-repeat;
+        z-index: 1;
+    }
+}
+
+/* ===== ۵) نوارِ «قدمِ بعدی» (چسبان روی موبایل) ========================== */
+
+.next-bar {
+    margin-top: var(--sp-8);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    padding: var(--sp-4);
+}
+.next-bar__inner { display: flex; flex-direction: column; gap: var(--sp-3); }
+.next-bar__info { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.next-bar__label {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--brand-strong);
+    line-height: 1.7;
+}
+.next-bar__prev { font-size: var(--fs-2xs); color: var(--text-mute); display: inline-flex; align-items: center; gap: .25rem; }
+.next-bar__prev:hover { color: var(--brand-strong); }
+.next-bar__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.next-bar__actions .btn { flex: 1 1 auto; justify-content: center; }
+.next-bar__actions .progress-form { flex: 1 1 auto; display: flex; }
+.next-bar__actions .progress-form .btn { width: 100%; }
+
+/* روی موبایل همین نوار پایینِ صفحه می‌چسبد تا «قدمِ بعدی» همیشه در دست باشد */
+@media (max-width: 719.98px) {
+    .route-lesson .next-bar {
+        position: fixed;
+        inset-inline: 0;
+        inset-block-end: 0;
+        margin: 0;
+        border-radius: 0;
+        border-inline: 0; border-block-end: 0;
+        background: var(--surface);
+        box-shadow: 0 -6px 18px rgba(11, 27, 63, .12);
+        padding: var(--sp-3) var(--sp-3) calc(var(--sp-3) + env(safe-area-inset-bottom));
+        z-index: calc(var(--z-header) - 1);
+    }
+    .route-lesson .next-bar__label { font-size: var(--fs-2xs); }
+    .route-lesson .next-bar__prev { display: none; }
+    .route-lesson .next-bar__actions .btn--ghost { display: none; }
+    .route-lesson { padding-bottom: 92px; }
+    .route-lesson .to-top { inset-block-end: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width: 720px) {
+    .next-bar__inner { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--sp-4); }
+    .next-bar__actions { flex-wrap: nowrap; }
+    .next-bar__actions .btn { flex: 0 0 auto; }
+}
+
+/* ===== ۶) فرم‌های پیشرفت (PRG، بدونِ JS) ================================ */
+
+.progress-form { display: inline-flex; margin: 0; min-width: 0; }
+.progress-form .btn { max-width: 100%; }
+.progress-form--inline { display: inline-flex; vertical-align: middle; }
+
+/* ===== ۷) نمایشِ PDF داخلِ سایت ========================================= */
+
+.pdf-viewer {
+    margin-top: var(--sp-4);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--surface);
+}
+.pdf-viewer__bar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+.pdf-viewer__title { display: inline-flex; align-items: center; gap: .35rem; font-weight: var(--fw-bold); font-size: var(--fs-sm); min-width: 0; }
+.pdf-viewer__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.pdf-viewer__frame {
+    display: block;
+    width: 100%;
+    /* ارتفاعِ ثابت ولی واکنش‌گرا: روی موبایل کوتاه‌تر تا از کادر بیرون نزند */
+    height: 62vh;
+    min-height: 320px;
+    max-height: 780px;
+    border: 0;
+    background: var(--surface-3);
+}
+.pdf-viewer__note, .pdf-viewer__fallback { margin: 0; padding: var(--sp-3) var(--sp-4); font-size: var(--fs-2xs); line-height: 1.8; }
+.pdf-viewer__fallback { border-top: 1px dashed var(--border); }
+@media (min-width: 900px) {
+    .pdf-viewer__frame { height: 74vh; }
+}
+
+/* ===== ۸) پخش‌کننده‌ی ویدیو / پادکست ==================================== */
+
+.media-player { min-width: 0; }
+.media-player video,
+.media-player audio,
+.media-player iframe {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: #000;
+}
+.media-player audio { background: transparent; height: 44px; }
+.media-player video { aspect-ratio: 16 / 9; height: auto; background: #000; }
+.media-player--embed iframe { aspect-ratio: 16 / 9; height: auto; background: #000; }
+/* iOS قدیمی aspect-ratio ندارد */
+@supports not (aspect-ratio: 16 / 9) {
+    .media-player video, .media-player--embed iframe { height: 210px; }
+}
+
+.media-stack { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); }
+.media-stack__item { display: grid; gap: var(--sp-2); min-width: 0; }
+.media-stack__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-2); }
+.media-stack__title { font-size: var(--fs-sm); font-weight: var(--fw-bold); line-height: 1.7; min-width: 0; overflow-wrap: anywhere; }
+
+.lesson-media { margin-top: var(--sp-7); }
+.lesson-media__title { font-size: var(--fs-md); display: flex; align-items: center; gap: .4rem; margin-bottom: var(--sp-3); }
+.lesson-media__item { margin-bottom: var(--sp-4); min-width: 0; }
+.lesson-media__label { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); color: var(--text-soft); display: flex; align-items: center; gap: .35rem; }
+
+/* مودالِ پخش */
+.media-modal .modal__panel--wide { width: min(96vw, 900px); max-width: 96vw; }
+.media-modal .modal__body { padding: var(--sp-3); }
+.media-modal .media-player video,
+.media-modal .media-player--embed iframe { max-height: 68vh; }
+
+/* دکمه‌ی پخشِ کارتِ ویدیو یک پیوندِ واقعی است که JS آن را به مودال تبدیل
+   می‌کند؛ پس هم بدونِ JS کار می‌کند و هم استایلِ قبلیِ کارت دست‌نخورده می‌ماند. */
+a.media-card__play, button.media-card__play {
+    font: inherit;
+    color: var(--brand);
+    cursor: pointer;
+    border: 0;
+    text-decoration: none;
+}
+.media-card__play--link { text-decoration: none; }
+.media-card__play:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+
+/* بازخوردِ لحظه‌ی ارسالِ فرمِ وضعیت (جلوگیری از کلیکِ دوباره) */
+.btn.is-busy { opacity: .72; pointer-events: none; }
+.btn.is-busy::after {
+    content: "";
+    inline-size: .85em; block-size: .85em;
+    margin-inline-start: .45em;
+    border-radius: var(--r-full);
+    border: 2px solid currentColor;
+    border-block-start-color: transparent;
+    animation: ha-spin .7s linear infinite;
+}
+@keyframes ha-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .btn.is-busy::after { animation: none; }
+}
+
+/* ===== ۹) فهرستِ کوچکِ تمرین‌ها (سایدبارِ دوره) ========================= */
+
+.exercise-mini-list { display: grid; gap: var(--sp-2); }
+.exercise-mini-list__item {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+    line-height: 1.7;
+    min-width: 0;
+}
+.exercise-mini-list__item a { font-weight: var(--fw-bold); }
+.exercise-mini-list__item .muted-sm { flex: 1 1 100%; }
+.exercise-mini-list__item.is-done { border-color: var(--success); background: var(--success-soft); }
+.exercise-mini-list__item.is-done a { color: var(--success); }
+
+/* ===== ۱۰) وضعیتِ درس در فهرستِ سرفصل‌ها ================================ */
+
+.lesson-item.is-started .lesson-item__link { border-color: color-mix(in srgb, var(--warning) 45%, var(--border)); background: var(--warning-soft); }
+.lesson-item.is-started .lesson-item__num { background: var(--warning); color: #fff; }
+@supports not (color: color-mix(in srgb, red 50%, transparent)) {
+    .lesson-item.is-started .lesson-item__link { border-color: var(--warning); }
+}
+.lesson-item.is-current .lesson-item__link {
+    border-color: var(--brand);
+    box-shadow: var(--sh-md);
+    background: var(--brand-softer);
+}
+.lesson-item.is-current .lesson-item__num { background: var(--brand); color: var(--on-brand); }
+.lesson-item.is-next .lesson-item__link { border-style: dashed; border-color: var(--brand-200); }
+.lesson-item__side .pill { max-width: 100%; }
+
+.syllabus-head {
+    display: grid; gap: var(--sp-2);
+    margin: var(--sp-7) 0 var(--sp-5);
+    padding-bottom: var(--sp-3);
+    border-bottom: 2px solid var(--border);
+    scroll-margin-top: calc(var(--ha-header-h, 64px) + 12px);
+}
+.syllabus-head__title { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: var(--fs-h3); }
+.syllabus-head p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+
+.stage { scroll-margin-top: calc(var(--ha-header-h, 64px) + 12px); }
+
+/* ===== ۱۱) نظرات / تجربیات ============================================= */
+
+.comments-teaser { display: grid; gap: var(--sp-3); }
+.comments-teaser__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.comments-teaser__head h2 { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: var(--fs-base); }
+.comments-teaser__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.comments-teaser__item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); }
+.comments-teaser__avatar {
+    display: grid; place-items: center;
+    width: 34px; height: 34px;
+    border-radius: var(--r-full);
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+    font-weight: var(--fw-extra);
+    font-size: var(--fs-sm);
+}
+.comments-teaser__text { margin: 0; font-size: var(--fs-sm); line-height: 1.9; color: var(--text); overflow-wrap: anywhere; }
+.comments-teaser__by { margin: .2rem 0 0; font-size: var(--fs-2xs); }
+
+/* دکمه‌ی نظرات در هدر، کنارِ کنترلِ حالتِ روشن/تاریک */
+.header-actions__comments.is-active { color: var(--brand-strong); background: var(--brand-soft); }
+@media (max-width: 479.98px) {
+    /* در عرضِ خیلی کم، منوی کشو همان پیوند را دارد؛ هدر سرریز نکند */
+    .header-actions__comments, .header-actions__progress { display: none; }
+}
+
+/* ===== ۱۲) صفحه‌ی «پیشرفتِ یادگیریِ من» ================================= */
+
+.progress-overview { display: grid; gap: var(--sp-4); }
+.progress-overview__stats { display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6); }
+.progress-overview__stats > div { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.progress-overview__stats strong { font-size: var(--fs-lg); color: var(--brand); font-variant-numeric: tabular-nums; }
+.progress-overview__stats span { font-size: var(--fs-2xs); color: var(--text-mute); }
+
+.progress-card { display: flex; flex-direction: column; gap: var(--sp-3); }
+.progress-card__top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.progress-card__title { margin: 0; font-size: var(--fs-base); line-height: 1.7; }
+.progress-card__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.progress-card__list li {
+    display: grid; grid-template-columns: 84px minmax(0, 1fr);
+    gap: var(--sp-2); align-items: baseline;
+    padding: var(--sp-2) 0;
+    border-top: 1px dashed var(--border);
+    font-size: var(--fs-sm);
+}
+.progress-card__k { color: var(--text-mute); font-size: var(--fs-2xs); font-weight: var(--fw-bold); }
+.progress-card__v { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+.progress-card__v a { font-weight: var(--fw-bold); overflow-wrap: anywhere; }
+.progress-card__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: auto; }
+
+/* ===== ۱۳) کارتِ تمرین: وضعیت ========================================== */
+
+.exercise-card__head { flex-wrap: wrap; }
+.exercise-card__state { margin-inline-start: auto; }
+.exercise-card.is-done { border-color: var(--success); background: var(--success-soft); }
+.exercise-card.is-done .exercise-card__title { color: var(--success); }
+.exercise-card__tools { flex-wrap: wrap; }
+.exercise-card__tools .progress-form { margin-inline-start: auto; }
+
+.lesson__actions-btns { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.lesson__actions-btns .progress-form { display: inline-flex; }
+
+/* ===== ۱۴) کارتِ فیلترِ تمرین‌ها (درس / دوره) ========================== */
+
+.side-card__top {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: var(--sp-2) var(--sp-3);
+}
+.side-card__top h2 { margin-bottom: 0; min-width: 0; overflow-wrap: anywhere; }
+.side-card .btn-row { margin-top: var(--sp-3); }
+.side-card .btn-row .btn { margin-top: 0; }
+
+/* ===== ۱۵) چاپ و کاهشِ حرکت ============================================ */
+
+@media print {
+    .learn-panel, .next-bar, .pdf-viewer__bar, .media-player { break-inside: avoid; }
+    .route-lesson .next-bar { position: static; box-shadow: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .learn-step, .next-bar, .pill { transition: none; }
+}
+
+/* ===== ۱۶) پنلِ مدیریت: سازنده‌ی مراحل/درس‌ها ==========================
+   هدف: مدیر بدونِ دست‌زدن به JSON بتواند چند درس و تمرین برایِ یک دوره
+   بسازد و ترتیبشان را عوض کند. Mobile-First: در عرضِ کم، هر درس یک کارتِ
+   تمام‌عرض است و ابزارِ ترتیب در یک ردیفِ جدا می‌نشیند.
+   ========================================================================== */
+
+.input--num { max-width: 5.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.field__help--warn { color: var(--warning); }
+
+.builder { display: grid; gap: var(--sp-5); }
+
+.builder__stage {
+    margin: 0;
+    padding: var(--sp-4);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    min-width: 0;
+}
+.builder__stage--blank { background: var(--surface-2); }
+.builder__legend {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: 0 var(--sp-2);
+    font-size: var(--fs-sm); font-weight: var(--fw-extra);
+    color: var(--brand-strong);
+    min-width: 0;
+}
+.builder__legend-title { font-weight: var(--fw-bold); color: var(--text); overflow-wrap: anywhere; }
+.builder__n {
+    display: grid; place-items: center;
+    inline-size: 24px; block-size: 24px;
+    border-radius: var(--r-full);
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+    font-size: var(--fs-2xs);
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+}
+
+.builder__tools {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--sp-2);
+    margin: var(--sp-3) 0 var(--sp-4);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px dashed var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+}
+.builder__order {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-2xs); color: var(--text-mute); font-weight: var(--fw-bold);
+}
+.builder__remove { margin-inline-start: auto; font-size: var(--fs-2xs); color: var(--danger); }
+.builder__remove input { accent-color: var(--danger); }
+
+.builder__lessons { display: grid; gap: var(--sp-3); margin-top: var(--sp-4); }
+.builder__lesson {
+    padding: var(--sp-3);
+    border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--brand-200);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    min-width: 0;
+}
+.builder__lesson--blank { border-style: dashed; border-inline-start-style: dashed; opacity: .95; }
+.builder__lesson-head {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+}
+.builder__lesson-title {
+    flex: 1 1 8rem;
+    font-size: var(--fs-sm); font-weight: var(--fw-bold);
+    min-width: 0; overflow-wrap: anywhere;
+}
+.builder__lesson-head .builder__order { margin-inline-start: auto; }
+.builder__lesson .admin-form-grid { gap: var(--sp-3); }
+.builder__lesson textarea.input { min-height: 5rem; }
+.builder__advanced { margin-top: var(--sp-3); }
+.builder__new-stage > summary {
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px dashed var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    font-weight: var(--fw-bold); font-size: var(--fs-sm);
+}
+.builder__new-stage[open] > summary { margin-bottom: var(--sp-3); }
+
+/* ردیفِ الگو فقط برایِ JS است و هرگز دیده نمی‌شود */
+[data-lesson-template][hidden] { display: none !important; }
+
+/* بازخوردِ جابه‌جایی با دکمه‌های بالا/پایین */
+.builder__lesson.is-moved, .builder__stage.is-moved {
+    animation: ha-builder-flash .6s var(--ease);
+}
+@keyframes ha-builder-flash {
+    from { box-shadow: 0 0 0 3px var(--brand-soft); }
+    to   { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (min-width: 900px) {
+    .builder__stage { padding: var(--sp-5); }
+    .builder__lesson { padding: var(--sp-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .builder__lesson.is-moved, .builder__stage.is-moved { animation: none; }
+}

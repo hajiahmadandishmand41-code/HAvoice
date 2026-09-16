@@ -26,7 +26,7 @@ $allCourses = courses_all();
 $lessonIndex = course_lesson_index();
 ?>
 <?= admin_flash() ?>
-<form class="admin-form" method="post" action="<?= e(url('admin_audio_save')) ?>">
+<form class="admin-form" method="post" action="<?= e(url('admin_audio_save')) ?>" enctype="multipart/form-data">
 <?= csrf_field() ?>
 <input type="hidden" name="original_slug" value="<?= e($slug) ?>">
 <input type="hidden" name="type" value="audio">
@@ -40,16 +40,22 @@ $lessonIndex = course_lesson_index();
         </div>
         <div class="field">
             <label for="a-slug">نامک (خودکار اگر خالی)</label>
-            <input class="input" id="a-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100">
+            <input class="input" id="a-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
+            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p>
         </div>
         <div class="field" style="grid-column:1/-1">
             <label for="a-excerpt">توضیح</label>
             <textarea class="input" id="a-excerpt" name="excerpt" rows="3" maxlength="500"><?= e($item['excerpt'] ?? '') ?></textarea>
         </div>
         <div class="field" style="grid-column:1/-1">
-            <label for="a-url">نشانی فایل صوتی * (mp3 / ogg یا URL مستقیم)</label>
-            <input class="input" id="a-url" type="url" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" required placeholder="https://… یا /uploads/…">
-            <p class="field__help">بدون نشانی واقعی، صوت در سایت عمومی نمایش داده نمی‌شود.</p>
+            <label for="a-file">۱) آپلود فایلِ صوتی (MP3 / M4A / OGG / WAV)</label>
+            <input class="input" id="a-file" type="file" name="audio_file" accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav">
+            <p class="field__help"><?= e(ha_upload_kind_hint('audio')) ?></p>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+            <label for="a-url">۲) یا نشانیِ فایل صوتی (mp3 / ogg یا پیوندِ مستقیم)</label>
+            <input class="input" id="a-url" type="text" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" placeholder="https://… یا uploads/…">
+            <p class="field__help">یکی از این دو لازم است. اگر فایل آپلود کنید، نشانیِ نوشته‌شده نادیده گرفته می‌شود. پادکست با پخش‌کننده‌ی داخلِ سایت پخش می‌شود (بدونِ خروج از صفحه).</p>
         </div>
         <div class="field">
             <label for="a-course">دوره مرتبط</label>

@@ -389,111 +389,186 @@
     })();
 
     /* ---------------- پیشرفت دوره (localStorage) — scoped به دوره جاری ---------------- */
-    (function progressModule() {
-        var KEY = 'ha-progress';
-        var done = store.get(KEY, []);
-        if (!Array.isArray(done)) { done = []; }
+    /* ---------------- مسیرِ یادگیری (سرور-محور) ----------------
+       وضعیتِ درس‌ها و تمرین‌ها سمتِ سرور ذخیره و رندر می‌شود
+       (includes/progress.php + pages/progress.php) و همه‌ی دکمه‌های وضعیت
+       فرمِ واقعیِ POST هستند؛ پس بدونِ JS هم کامل کار می‌کنند.
+       این ماژول فقط سه بهبودِ اختیاری اضافه می‌کند:
+         ۱) تأییدِ پیش از «پاک کردنِ پیشرفتِ دوره» (data-confirm)
+         ۲) پخشِ ویدیو/پادکست در مودالِ داخلِ سایت (data-media-open)
+         ۳) اسکرولِ نرمِ لنگرها با احتسابِ ارتفاعِ هدرِ چسبان (data-scroll-to)
+       و هنگامِ ثبتِ وضعیت، پیامِ کوتاهِ تأیید نشان می‌دهد. */
+    (function learningModule() {
 
-        var save = function () { store.set(KEY, done); };
-        var has = function (slug) { return done.indexOf(slug) !== -1; };
+        /* --- ۱) تأییدِ عملیاتِ مخرب (فرم‌هایی که data-confirm دارند) --- */
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+            if (!form || !form.getAttribute) { return; }
+            var message = form.getAttribute('data-confirm');
+            if (!message || form.getAttribute('data-ha-confirmed') === '1') { return; }
+            event.preventDefault();
+            if (!window.confirm(message)) { return; }
+            form.setAttribute('data-ha-confirmed', '1');
+            var button = form.querySelector('button[type="submit"]');
+            if (button) { button.disabled = true; }
+            if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+        });
 
-        /* محدوده‌ی درس‌های همین صفحه (دوره/درس) — اگر نباشد، از کل lessonKeys */
-        var scopeEl = $('[data-course-lessons]');
-        var scopeKeys = scopeEl
-            ? String(scopeEl.getAttribute('data-course-lessons') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean)
-            : (config.lessonKeys || []);
+        /* --- ۲) مودالِ پخشِ رسانه (ویدیو / پادکست / امبدِ مجاز) --- */
+        var mediaModal = $('[data-media-modal]');
+        var mediaTitle = mediaModal ? $('[data-media-modal-title]', mediaModal) : null;
+        var mediaBody  = mediaModal ? $('[data-media-modal-body]', mediaModal) : null;
+        var mediaFocus = null;
 
-        var doneInScope = function () {
-            if (!scopeKeys.length) { return done.slice(); }
-            return done.filter(function (s) { return scopeKeys.indexOf(s) !== -1; });
+        /* با خالی‌کردنِ src پخش متوقف می‌شود؛ وگرنه صدای ویدیو پشتِ مودال می‌ماند. */
+        var clearMedia = function () {
+            if (!mediaBody) { return; }
+            $$('video, audio, iframe', mediaBody).forEach(function (el) {
+                try { if (el.pause) { el.pause(); } } catch (e) {}
+                if (el.tagName === 'IFRAME') { el.src = 'about:blank'; }
+                else { el.removeAttribute('src'); try { el.load(); } catch (e) {} }
+            });
+            while (mediaBody.firstChild) { mediaBody.removeChild(mediaBody.firstChild); }
         };
 
-        var paintBars = function () {
-            var scoped = doneInScope();
-            var total = scopeKeys.length || (config.lessonKeys || []).length;
-            var pct = total ? Math.round(scoped.length / total * 100) : 0;
-
-            $$('[data-total-progress] .progress__bar').forEach(function (bar) {
-                bar.style.setProperty('--progress', pct + '%');
-            });
-            $$('[data-total-progress] .progress__label').forEach(function (label) {
-                label.textContent = fa(pct) + '٪';
-            });
-            $$('[data-count-done]').forEach(function (el) { el.textContent = fa(scoped.length); });
-
-            $$('[data-stage-progress], [data-stage-minutes]').forEach(function (wrap) {
-                var slugs = String(wrap.getAttribute('data-stage-progress') || wrap.getAttribute('data-stage-minutes') || '').split(',').filter(Boolean);
-                if (!slugs.length) { return; }
-                var n = slugs.filter(function (s) { return has(s); }).length;
-                var p = Math.round(n / slugs.length * 100);
-                var bar = $('.progress__bar', wrap);
-                if (bar) { bar.style.setProperty('--progress', p + '%'); }
-                var label = $('.progress__label', wrap);
-                if (label) { label.textContent = fa(n) + '/' + fa(slugs.length); }
-            });
-
-            $$('[data-lesson-row]').forEach(function (row) {
-                var s = row.getAttribute('data-lesson-row');
-                if (has(s)) { row.classList.add('is-done'); }
-                else { row.classList.remove('is-done'); }
-            });
+        var closeMedia = function () {
+            if (!mediaModal) { return; }
+            clearMedia();
+            mediaModal.hidden = true;
+            document.body.classList.remove('modal-open');
+            if (mediaFocus && mediaFocus.focus) { mediaFocus.focus(); }
+            mediaFocus = null;
         };
 
-        $$('[data-lesson-row]').forEach(function (row) {
-            if (has(row.getAttribute('data-lesson-row'))) { row.classList.add('is-done'); }
+        var buildPlayer = function (payload) {
+            var wrap = document.createElement('div');
+            wrap.className = 'media-player';
+            var el;
+            if (payload.embed) {
+                wrap.className += ' media-player--embed';
+                el = document.createElement('iframe');
+                el.src = payload.embed;
+                el.title = payload.title || 'ویدیو';
+                el.setAttribute('allowfullscreen', '');
+                el.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture');
+                el.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                el.setAttribute('loading', 'lazy');
+            } else if (payload.type === 'audio') {
+                wrap.className += ' media-player--audio';
+                el = document.createElement('audio');
+                el.controls = true;
+                el.preload = 'auto';
+                el.src = payload.src;
+                el.setAttribute('aria-label', payload.title || 'فایلِ صوتی');
+            } else {
+                wrap.className += ' media-player--video';
+                el = document.createElement('video');
+                el.controls = true;
+                el.playsInline = true;
+                el.preload = 'metadata';
+                el.src = payload.src;
+                el.setAttribute('aria-label', payload.title || 'ویدیو');
+            }
+            wrap.appendChild(el);
+            return wrap;
+        };
+
+        var openMedia = function (payload, trigger) {
+            if (!mediaModal || !mediaBody) { return false; }
+            if (!payload || (!payload.embed && !payload.src)) { return false; }
+            clearMedia();
+            if (mediaTitle) {
+                mediaTitle.textContent = payload.title || (payload.type === 'audio' ? 'پادکست' : 'ویدیو');
+            }
+            mediaBody.appendChild(buildPlayer(payload));
+            mediaFocus = trigger || null;
+            mediaModal.hidden = false;
+            document.body.classList.add('modal-open');
+            var closer = $('button[data-media-modal-close]', mediaModal);
+            if (closer) { setTimeout(function () { closer.focus(); }, 40); }
+            return true;
+        };
+
+        document.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!target || !target.closest) { return; }
+            var trigger = target.closest('[data-media-open]');
+            if (!trigger || !mediaModal) { return; }
+            var payload = null;
+            try { payload = JSON.parse(trigger.getAttribute('data-media-payload') || 'null'); } catch (e) { payload = null; }
+            /* اگر داده‌ای نبود، پیوندِ واقعی کارِ خودش را می‌کند (fallback بدونِ JS). */
+            if (payload && openMedia(payload, trigger)) { event.preventDefault(); }
         });
 
-        $$('[data-lesson-complete]').forEach(function (button) {
-            var slug = button.getAttribute('data-lesson-complete');
-            var label = $('[data-lesson-complete-label]', button) || button;
-
-            var render = function () {
-                var state = has(slug);
-                button.setAttribute('aria-pressed', state ? 'true' : 'false');
-                setLabel(label, state ? 'این درس انجام شد' : 'علامت‌گذاری به‌عنوان انجام‌شده', state ? 'check' : null);
-            };
-
-            button.addEventListener('click', function () {
-                if (has(slug)) {
-                    done = done.filter(function (s) { return s !== slug; });
-                } else {
-                    done.push(slug);
-                }
-                save();
-                render();
-                paintBars();
-                toast(has(slug) ? 'درس انجام‌شده ثبت شد' : 'علامت حذف شد');
+        if (mediaModal) {
+            $$('[data-media-modal-close]', mediaModal).forEach(function (el) {
+                el.addEventListener('click', closeMedia);
             });
+            document.addEventListener('keydown', function (event) {
+                if (mediaModal.hidden) { return; }
+                if (event.key === 'Escape') { closeMedia(); return; }
+                if (event.key !== 'Tab') { return; }
+                var focusables = $$('button, [href], input, select, textarea, video[controls], audio[controls]', mediaModal)
+                    .filter(function (el) { return el.offsetParent !== null; });
+                if (!focusables.length) { return; }
+                var first = focusables[0];
+                var last = focusables[focusables.length - 1];
+                if (event.shiftKey && document.activeElement === first) { last.focus(); event.preventDefault(); }
+                else if (!event.shiftKey && document.activeElement === last) { first.focus(); event.preventDefault(); }
+            });
+        }
 
-            render();
+        /* --- ۳) اسکرولِ نرمِ لنگرها با احتسابِ هدرِ چسبان --- */
+        var headerOffset = function () {
+            var header = $('.site-header');
+            var h = header ? header.offsetHeight : 0;
+            return Math.max(12, h + 12);
+        };
+        var scrollToTarget = function (target) {
+            if (!target) { return; }
+            var top = target.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+            /* دسترس‌پذیری: تمرکز روی مقصد تا صفحه‌خوان بداند کجاییم */
+            if (!target.hasAttribute('tabindex')) { target.setAttribute('tabindex', '-1'); }
+            window.setTimeout(function () { try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); } }, reduce ? 0 : 420);
+        };
+        document.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!target || !target.closest) { return; }
+            var link = target.closest('a[data-scroll-to], a[href^="#"]');
+            if (!link) { return; }
+            var id = link.getAttribute('data-scroll-to') || String(link.getAttribute('href') || '').replace(/^#/, '');
+            if (!id) { return; }
+            var el = document.getElementById(id);
+            if (!el) { return; }              /* لنگرِ نامعتبر: چیزی را خراب نکن */
+            event.preventDefault();
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', '#' + id);
+            }
+            scrollToTarget(el);
         });
+        /* اگر صفحه با #لنگر باز شد (مثلاً بازگشت از درس)، همان‌جا برو */
+        if (window.location.hash) {
+            var initial = document.getElementById(String(window.location.hash).replace(/^#/, ''));
+            if (initial) { window.setTimeout(function () { scrollToTarget(initial); }, 120); }
+        }
 
-        $$('[data-reset-progress]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var msg = scopeKeys.length
-                    ? 'پیشرفت همین دوره در این مرورگر پاک شود؟'
-                    : 'پیشرفت ذخیره‌شده در این مرورگر پاک شود؟';
-                if (!window.confirm(msg)) { return; }
-                if (scopeKeys.length) {
-                    done = done.filter(function (s) { return scopeKeys.indexOf(s) === -1; });
-                } else {
-                    done = [];
-                }
-                save();
-                $$('[data-lesson-complete]').forEach(function (b) {
-                    var l = $('[data-lesson-complete-label]', b) || b;
-                    var s = b.getAttribute('data-lesson-complete');
-                    if (!scopeKeys.length || scopeKeys.indexOf(s) !== -1) {
-                        b.setAttribute('aria-pressed', 'false');
-                        l.textContent = 'علامت‌گذاری به‌عنوان انجام‌شده';
-                    }
-                });
-                paintBars();
-                toast('پیشرفت پاک شد');
+        /* --- ۴) بازخوردِ ثبتِ وضعیت (فرم‌های پیشرفت) --- */
+        $$('.progress-form').forEach(function (form) {
+            form.addEventListener('submit', function () {
+                var button = form.querySelector('button[type="submit"]');
+                if (!button || button.getAttribute('data-busy') === '1') { return; }
+                button.setAttribute('data-busy', '1');
+                button.disabled = true;
+                button.classList.add('is-busy');
+                window.setTimeout(function () {
+                    button.disabled = false;
+                    button.classList.remove('is-busy');
+                    button.removeAttribute('data-busy');
+                }, 6000);
             });
         });
-
-        paintBars();
     })();
 
     /* ---------------- تایمر قابل استفاده‌ی مجدد ---------------- */
@@ -890,21 +965,116 @@
     })();
 })();
 
-// HAvoice 2.0 — الحاقات جاوااسکریپت سبک
-(function(){
-  'use strict';
-  // بهبود فیلتر دسته در صفحات جدید (اگر input.live-filter وجود نداشته باشد، چیزی نکن)
-  // پخش‌کننده صوت: اگر audio با src خالی باشد، کلیک روی کارت پیامی بدهد — قبلاً placeholder است، پس کاری نکن
-  // تمرکز کیبورد برای کارت‌های دسته و دوره: اطمینان از تب‌پذیری (a tag already)
-  // اضافه کردن شمارنده پیشرفت برای دوره‌های چندگانه — از همان localStorage کلید ha-progress استفاده می‌شود (لسن‌ها یکتا هستند)
-  // هیچ رفتار جعلی اضافه نشد؛ فقط UI بهبود یافت
-  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(prefersReduced){
-    document.documentElement.style.setProperty('--ease','linear');
-  }
-  // Smooth focus for category cards already via :focus-visible
-  // اضافه: کپی لینک برای پژوهش و کتاب
-  var copyBtns = document.querySelectorAll('[data-copy-link]');
-  // already handled in original module
-  // نکته: اگر صفحه‌ی ویدیو بدون src باشد، دکمه‌ی "به‌زودی" غیرفعال بماند — از CSS
+    /* ---------------- سازنده‌ی دوره در پنلِ مدیریت ----------------
+       جابه‌جاییِ مرحله/درس با دکمه‌های بالا و پایین و «افزودنِ درس».
+       بدونِ JS هم کار می‌کند: مدیر عددِ «ترتیب» را می‌نویسد و برایِ درسِ
+       تازه، ردیف‌های خالیِ آماده در فرم هست. این ماژول فقط همان کار را
+       سریع‌تر می‌کند و در پایان، عددهای «ترتیب» را از نو می‌نویسد تا
+       سرور همان چیدمانی را ذخیره کند که مدیر می‌بیند. */
+    (function adminBuilderModule() {
+        var builder = $('[data-builder]');
+        if (!builder) { return; }
+
+        var renumber = function (container) {
+            if (!container) { return; }
+            var items = $$(':scope > [data-sort-item]', container).filter(function (el) { return !el.hidden && !el.hasAttribute('data-lesson-template'); });
+            items.forEach(function (item, index) {
+                var input = $('[data-sort-input]', item);
+                if (input) { input.value = String(index + 1); }
+                var badge = $('.builder__n', item);
+                if (badge && item.classList.contains('builder__lesson')) { badge.textContent = fa(index + 1); }
+            });
+        };
+
+        var flash = function (item) {
+            item.classList.remove('is-moved');
+            /* restart animation */
+            void item.offsetWidth;
+            item.classList.add('is-moved');
+        };
+
+        var listOf = function (item) {
+            var parent = item.parentElement;
+            while (parent && !parent.hasAttribute('data-sortable') && parent !== builder) { parent = parent.parentElement; }
+            return parent;
+        };
+
+        var move = function (item, direction) {
+            var list = listOf(item);
+            if (!list) { return; }
+            var siblings = $$(':scope > [data-sort-item]', list).filter(function (el) { return !el.hidden && !el.hasAttribute('data-lesson-template'); });
+            var index = siblings.indexOf(item);
+            if (index === -1) { return; }
+            var target = index + direction;
+            if (target < 0 || target >= siblings.length) { return; }
+            if (direction < 0) {
+                list.insertBefore(item, siblings[target]);
+            } else {
+                list.insertBefore(siblings[target], item);
+            }
+            renumber(list);
+            flash(item);
+            item.scrollIntoView({ block: 'nearest', behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        };
+
+        builder.addEventListener('click', function (event) {
+            var button = event.target && event.target.closest ? event.target.closest('button') : null;
+            if (!button) { return; }
+            var item = button.closest('[data-sort-item]');
+
+            if (button.hasAttribute('data-sort-up') && item) { move(item, -1); return; }
+            if (button.hasAttribute('data-sort-down') && item) { move(item, 1); return; }
+
+            if (button.hasAttribute('data-sort-add')) {
+                var lessonsWrap = button.parentElement;
+                var template = lessonsWrap ? $('[data-lesson-template]', lessonsWrap) : null;
+                if (!lessonsWrap || !template) { return; }
+                /* بزرگ‌ترین شماره‌ی ردیفِ موجود + ۱ تا نامِ فیلدها تکراری نشود */
+                var maxIndex = 0;
+                $$('input[name], textarea[name], select[name]', lessonsWrap).forEach(function (field) {
+                    var match = /\[lessons\]\[(\d+)\]/.exec(field.getAttribute('name') || '');
+                    if (match) { maxIndex = Math.max(maxIndex, parseInt(match[1], 10)); }
+                });
+                var clone = template.cloneNode(true);
+                clone.removeAttribute('hidden');
+                clone.removeAttribute('data-lesson-template');
+                $$('[name]', clone).forEach(function (field) {
+                    field.setAttribute('name', field.getAttribute('name').replace('__IDX__', String(maxIndex + 1)));
+                });
+                var addButtons = $('[data-sort-add]', lessonsWrap);
+                lessonsWrap.insertBefore(clone, addButtons || null);
+                renumber(lessonsWrap);
+                flash(clone);
+                var firstInput = $('input[type="text"]', clone);
+                if (firstInput) { firstInput.focus(); }
+            }
+        });
+
+        /* عنوانِ درس/مرحله در سربرگ زنده تازه می‌شود تا گم نشود */
+        builder.addEventListener('input', function (event) {
+            var field = event.target;
+            if (!field || !field.getAttribute) { return; }
+            var name = field.getAttribute('name') || '';
+            if (!/\]\[title\]$/.test(name)) { return; }
+            var item = field.closest('[data-sort-item]');
+            if (!item) { return; }
+            var label = $('.builder__lesson-title, .builder__legend-title', item);
+            if (label && field.value.trim() !== '') { label.textContent = field.value.trim(); }
+        });
+
+        /* ترتیبِ اولیه بر اساسِ عددهایِ خودِ فرم */
+        $$('[data-sortable]', builder).forEach(renumber);
+        renumber(builder);
+    })();
+
+/* ----------------------------------------------------------------------
+   الحاقاتِ سبک — فقط رفتارهایی که به CSS/دسترس‌پذیری مربوط می‌شوند.
+   ---------------------------------------------------------------------- */
+(function () {
+    'use strict';
+    /* کاهشِ حرکت: همان‌طور که CSS با prefers-reduced-motion رفتار می‌کند،
+       منحنیِ حرکتِ JS هم خطی می‌شود تا حسِ «پرش» نداشته باشد. */
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.style.setProperty('--ease', 'linear');
+    }
 })();

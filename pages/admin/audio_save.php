@@ -12,18 +12,45 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
 $editUrl = url('admin_audio_edit', $orig !== '' ? ['slug' => $orig] : []);
+
+/* نامک: اول آنچه مدیر تایپ کرده، وگرنه ساختِ خودکار از عنوان — عنوانِ
+   فارسی هم با نویسه‌گردانی به نامکِ خوانا تبدیل می‌شود و اگر تکراری باشد
+   شماره می‌گیرد تا صوتِ دیگری بازنویسی نشود. */
+$slug  = admin_post_slug($title, 'audio', static function (string $candidate) use ($orig): bool {
+    if ($candidate === $orig) {
+        return false;              // همان موردی که در حالِ ویرایش است
+    }
+    foreach (media_all() as $m) {
+        if ((string) ($m['type'] ?? '') !== 'audio') {
+            continue;
+        }
+        if (slugify((string) ($m['slug'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+    return false;
+});
 
 if ($title === '' || $slug === '') {
     flash('error', 'عنوان الزامی است.');
     redirect($editUrl);
 }
 
-$url = ha_safe_media_url((string) ($_POST['url'] ?? ''));
+$kinds = ha_upload_kinds();
+
+/* فایلِ صوتی (اختیاری): اگر آپلود شود، همان نشانیِ پخش می‌شود. */
+$upAudio = ha_upload_store('audio_file', $kinds['audio'], 'audio');
+if (!$upAudio['ok'] && $upAudio['error'] !== null) {
+    flash('error', 'آپلود صوت: ' . $upAudio['error']);
+    redirect($editUrl);
+}
+$uploadedAudio = $upAudio['ok'] ? (string) $upAudio['path'] : '';
+
+$url = $uploadedAudio !== '' ? $uploadedAudio : ha_safe_media_url((string) ($_POST['url'] ?? ''));
 if ($url === '') {
-    flash('error', 'نشانی فایل صوتی معتبر نیست.');
+    flash('error', 'یا فایلِ صوتی را آپلود کنید یا نشانیِ آن را بنویسید؛ بدونِ یکی از این دو، پادکست در سایت پخش نمی‌شود.');
     redirect($editUrl);
 }
 
@@ -72,5 +99,6 @@ if (!repo_save_media($item, $orig)) {
     flash('error', 'ذخیره‌سازی صوت ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
-flash('success', $item['status'] === 'published' ? 'فایل صوتی ذخیره و منتشر شد.' : 'فایل صوتی به‌عنوان پیش‌نویس ذخیره شد.');
+flash('success', ($item['status'] === 'published' ? 'فایل صوتی ذخیره و منتشر شد.' : 'فایل صوتی به‌عنوان پیش‌نویس ذخیره شد.')
+    . ($uploadedAudio !== '' ? ' فایلِ صوتی در uploads/ ذخیره شد و با پخش‌کننده‌ی سایت پخش می‌شود.' : ''));
 redirect(url('admin_audios'));

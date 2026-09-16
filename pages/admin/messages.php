@@ -12,12 +12,15 @@ require HA_ROOT . '/pages/admin/_layout_start.php';
 $allMessages = admin_messages_all();
 $csvCount    = count(contact_messages_read());
 $panelCount  = count(admin_load('messages'));
+$dbCount     = db_table_exists('ha_contact_messages') ? count(db_messages_all(2000)) : 0;
 $flash       = flash();
 ?>
 <?php if (!empty($flash['message'])): ?><div class="alert alert--<?= e($flash['type'] === 'success' ? 'success' : 'error') ?>" role="<?= $flash['type'] === 'success' ? 'status' : 'alert' ?>"><?= e($flash['message']) ?></div><?php endif; ?>
 
 <div class="admin-toolbar">
-    <span class="muted-sm"><?= fa_num(count($allMessages)) ?> پیام · <?= fa_num($csvCount) ?> از فرمِ تماس · <?= fa_num($panelCount) ?> از پنل</span>
+    <span class="muted-sm"><?= fa_num(count($allMessages)) ?> پیام ·
+        <?php if ($dbCount > 0): ?><?= fa_num($dbCount) ?> در دیتابیس · <?php endif; ?>
+        <?= fa_num($csvCount) ?> در فایلِ CSV · <?= fa_num($panelCount) ?> از پنل</span>
 </div>
 
 <div class="admin-table-wrap"><table class="admin-table"><thead>
@@ -32,7 +35,11 @@ $flash       = flash();
 <td><?= e($msg['name'] ?? '') ?></td>
 <td dir="ltr"><?= e($msg['email'] ?? '') ?></td>
 <td><?= e($msg['subject'] ?? '') ?></td>
-<td><span class="admin-badge <?= ($msg['source'] ?? '') === 'panel' ? 'admin-badge--success' : 'admin-badge--info' ?>"><?= e(($msg['source'] ?? '') === 'panel' ? 'پنل' : 'فرم تماس') ?></span></td>
+<td><?php
+    $msgSource = (string) ($msg['source'] ?? 'csv');
+    $msgBadge  = $msgSource === 'panel' ? ['admin-badge--success', 'پنل']
+        : ($msgSource === 'db' ? ['admin-badge--info', 'دیتابیس'] : ['admin-badge--info', 'فایلِ CSV']);
+    ?><span class="admin-badge <?= e($msgBadge[0]) ?>"><?= e($msgBadge[1]) ?></span></td>
 <td class="actions">
     <a class="btn btn--ghost btn--sm" href="<?= e(url('admin_message_view', ['slug' => $ref])) ?>"><?= ha_icon('eye', 14) ?> مشاهده</a>
     <form method="post" action="<?= e(url('admin_message_delete')) ?>" class="inline-form"

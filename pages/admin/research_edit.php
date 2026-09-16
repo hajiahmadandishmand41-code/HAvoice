@@ -19,7 +19,8 @@ if ($slug !== '') {
     <h2>مشخصاتِ پژوهش</h2>
     <div class="admin-form-grid">
         <div class="field"><label for="r-title">عنوان *</label><input class="input" id="r-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200"></div>
-        <div class="field"><label for="r-slug">نامک (slug) *</label><input class="input" id="r-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" required dir="ltr" maxlength="100"></div>
+        <div class="field"><label for="r-slug">نامک (خودکار اگر خالی)</label><input class="input" id="r-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
+            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p></div>
         <?= admin_field_select($item ?? []) ?>
         <div class="field"><label for="r-category">برچسبِ موضوع (نمایشی)</label><input class="input" id="r-category" type="text" name="category" value="<?= e($item['category'] ?? '') ?>" maxlength="80"></div>
         <div class="field"><label for="r-datefa">تاریخ فارسی</label><input class="input" id="r-datefa" type="text" name="date_fa" value="<?= e($item['date_fa'] ?? '') ?>" placeholder="۱۴۰۴/۰۲/۱۵"></div>

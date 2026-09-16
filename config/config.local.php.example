@@ -37,3 +37,12 @@ define('HA_DB_PASS', 'YOUR_DB_PASSWORD');
 // define('HA_SEED_ADMIN_EMAIL', 'admin@example.com');
 // define('HA_SEED_ADMIN_PASSWORD', 'ChangeMe_Strong_8+');
 // define('HA_SEED_ADMIN_NAME', 'مدیر');
+
+/* ---- آپلودِ فایل (ویدیو، پادکست، PDF، تصویر) ----
+   فایل‌ها در uploads/ با نامِ تصادفی و پسوندِ تأییدشده ذخیره می‌شوند و
+   اجرای اسکریپت در آن پوشه با .htaccess مسدود است.
+   مقدارِ واقعی هرگز از upload_max_filesize / post_max_sizeِ PHP بیشتر
+   نمی‌شود؛ برای ویدیوی بزرگ روی میزبانیِ اشتراکی، پیوندِ آپارات/یوتیوب
+   (امبدِ مجاز) را در فیلدِ «نشانی» بگذارید. */
+// define('HA_UPLOAD_MAX_BYTES', 8388608);        // ۸ مگابایت برای PDF و تصویر
+// define('HA_UPLOAD_MAX_MEDIA_BYTES', 26214400);  // ۲۵ مگابایت برای ویدیو/صوت (۰ = همان سقفِ عمومی)

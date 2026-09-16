@@ -11,18 +11,46 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
 $title = trim((string) ($_POST['title'] ?? ''));
-$slug  = admin_post_slug($title);
 $orig  = slugify((string) ($_POST['original_slug'] ?? ''));
 $editUrl = url('admin_video_edit', $orig !== '' ? ['slug' => $orig] : []);
+
+/* نامک: تایپِ مدیر، وگرنه ساختِ خودکار از عنوان (فارسی ⇒ نویسه‌گردانی)
+   و در صورتِ تکراری بودن، شماره‌دار تا ویدیوی دیگری بازنویسی نشود. */
+$slug  = admin_post_slug($title, 'video', static function (string $candidate) use ($orig): bool {
+    if ($candidate === $orig) {
+        return false;              // همان موردی که در حالِ ویرایش است
+    }
+    foreach (media_all() as $m) {
+        if ((string) ($m['type'] ?? '') !== 'video') {
+            continue;
+        }
+        if (slugify((string) ($m['slug'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+    return false;
+});
 
 if ($title === '' || $slug === '') {
     flash('error', 'عنوان الزامی است.');
     redirect($editUrl);
 }
 
-$url = ha_safe_media_url((string) ($_POST['url'] ?? ''));
+$kinds = ha_upload_kinds();
+
+/* فایلِ ویدیو (اختیاری): اگر مدیر فایل آپلود کند، همان نشانیِ پخش می‌شود و
+   فیلدِ «نشانی» می‌تواند خالی بماند. ویدیوی بزرگ روی میزبانیِ اشتراکی
+   معمولاً ممکن نیست؛ در آن حالت پیوندِ آپارات/یوتیوب مسیرِ پیشنهادی است. */
+$upVideo = ha_upload_store('video_file', $kinds['video'], 'video');
+if (!$upVideo['ok'] && $upVideo['error'] !== null) {
+    flash('error', 'آپلود ویدیو: ' . $upVideo['error']);
+    redirect($editUrl);
+}
+$uploadedVideo = $upVideo['ok'] ? (string) $upVideo['path'] : '';
+
+$url = $uploadedVideo !== '' ? $uploadedVideo : ha_safe_media_url((string) ($_POST['url'] ?? ''));
 if ($url === '') {
-    flash('error', 'نشانی ویدیو معتبر نیست. بدون URL واقعی، ویدیو در سایت نمایش داده نمی‌شود.');
+    flash('error', 'یا فایلِ ویدیو را آپلود کنید یا نشانیِ آن (آپارات/یوتیوب/Vimeo یا فایلِ mp4) را بنویسید؛ بدونِ یکی از این دو، ویدیو در سایت پخش نمی‌شود.');
     redirect($editUrl);
 }
 
@@ -56,19 +84,13 @@ if ($category === '' && $field !== '') {
 
 /* بندانگشتی: آپلود یا URL */
 $thumb = ha_safe_file_url((string) ($_POST['thumbnail'] ?? ''));
-if (function_exists('ha_upload_store')) {
-    $up = ha_upload_store('thumbnail_file', [
-        'image/jpeg' => 'jpg',
-        'image/png'  => 'png',
-        'image/webp' => 'webp',
-    ]);
-    if (!$up['ok'] && !empty($up['error'])) {
-        flash('error', 'آپلود بندانگشتی: ' . $up['error']);
-        redirect($editUrl);
-    }
-    if ($up['ok'] && $up['path'] !== '') {
-        $thumb = $up['path'];
-    }
+$up = ha_upload_store('thumbnail_file', $kinds['image'], 'image');
+if (!$up['ok'] && $up['error'] !== null) {
+    flash('error', 'آپلود بندانگشتی: ' . $up['error']);
+    redirect($editUrl);
+}
+if ($up['ok'] && $up['path'] !== '') {
+    $thumb = $up['path'];
 }
 
 $now = date('c');
@@ -105,5 +127,6 @@ if (!repo_save_media($item, $orig)) {
     flash('error', 'ذخیره‌سازی ویدیو ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
-flash('success', $item['status'] === 'published' ? 'ویدیو ذخیره و منتشر شد.' : 'ویدیو به‌عنوان پیش‌نویس ذخیره شد.');
+flash('success', ($item['status'] === 'published' ? 'ویدیو ذخیره و منتشر شد.' : 'ویدیو به‌عنوان پیش‌نویس ذخیره شد.')
+    . ($uploadedVideo !== '' ? ' فایلِ ویدیو در uploads/ ذخیره شد و در سایت پخش می‌شود.' : ''));
 redirect(url('admin_videos'));
