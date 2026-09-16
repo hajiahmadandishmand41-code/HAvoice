@@ -280,6 +280,57 @@ function repo_delete_exercise(string $key): bool
     return repo_write_ok($dbOk, $jsonOk);
 }
 
+/**
+ * جابه‌جایی ترتیب یک تمرین با همسایه‌اش (بالا/پایین).
+ */
+function repo_move_exercise(string $key, string $dir): bool
+{
+    $key = slugify($key);
+    $dir = $dir === 'up' ? 'up' : 'down';
+    $all = exercises_all();
+    if ($all === []) {
+        return false;
+    }
+    usort($all, static function (array $a, array $b): int {
+        $oa = (int) ($a['order'] ?? 0);
+        $ob = (int) ($b['order'] ?? 0);
+        if ($oa === $ob) {
+            return strcmp((string) ($a['id'] ?? ''), (string) ($b['id'] ?? ''));
+        }
+        return $oa <=> $ob;
+    });
+    $idx = null;
+    foreach ($all as $i => $ex) {
+        if (slugify((string) ($ex['id'] ?? '')) === $key) {
+            $idx = $i;
+            break;
+        }
+    }
+    if ($idx === null) {
+        return false;
+    }
+    $swap = $dir === 'up' ? $idx - 1 : $idx + 1;
+    if (!isset($all[$swap])) {
+        return true; // انتهای فهرست
+    }
+    $tmp = $all[$idx];
+    $all[$idx] = $all[$swap];
+    $all[$swap] = $tmp;
+    $ok = true;
+    foreach ($all as $i => $ex) {
+        if (!is_array($ex)) {
+            continue;
+        }
+        $ex['order'] = $i + 1;
+        $id = slugify((string) ($ex['id'] ?? ''));
+        if ($id === '') {
+            continue;
+        }
+        $ok = repo_save_exercise($ex, $id) && $ok;
+    }
+    return $ok;
+}
+
 function repo_save_tip(array $item, string $orig = ''): bool
 {
     $dbOk = !db_ready() || db_tip_upsert($item, $orig);
@@ -648,7 +699,7 @@ function repo_seed(bool $force = false): array
                     (string) ($u['name'] ?? ''),
                     strtolower(trim((string) $u['email'])),
                     (string) $u['pass_hash'],
-                    (($u['role'] ?? '') === 'admin' || $n === 0) ? 'admin' : 'user',
+                    ((string) ($u['role'] ?? '')) === 'admin' ? 'admin' : 'user',
                     !empty($u['last_login']) ? date('Y-m-d H:i:s', strtotime((string) $u['last_login']) ?: time()) : null,
                     !empty($u['created_at']) ? date('Y-m-d H:i:s', strtotime((string) $u['created_at']) ?: time()) : $now,
                     $now,
@@ -669,7 +720,12 @@ function repo_seed(bool $force = false): array
             );
             if (!empty($res['ok'])) {
                 $n = 1;
+                if (function_exists('auth_bootstrap_record')) {
+                    auth_bootstrap_record((string) ($res['user']['id'] ?? ''));
+                }
             }
+        } elseif ($n > 0 && function_exists('auth_bootstrap_heal_if_needed')) {
+            auth_bootstrap_heal_if_needed();
         }
         $counts['users'] = $n;
     }

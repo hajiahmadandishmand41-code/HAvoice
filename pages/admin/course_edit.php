@@ -66,42 +66,44 @@ $curCat = (string) ($course['category'] ?? '');
 <div class="admin-card">
     <h2>مشخصاتِ دوره</h2>
     <div class="admin-form-grid">
-        <div class="field"><label for="c-title">عنوان *</label>
+        <div class="field"><label for="c-title">نام *</label>
             <input class="input" id="c-title" type="text" name="title" required maxlength="200"
                    value="<?= e($course['title'] ?? '') ?>"></div>
-        <div class="field"><label for="c-slug">نامک (slug) *</label>
-            <input class="input" id="c-slug" type="text" name="slug" required maxlength="100" dir="ltr"
-                   value="<?= e($course['slug'] ?? '') ?>"
-                   placeholder="public-speaking-fundamentals">
-            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره. در نشانیِ صفحه‌ی دوره استفاده می‌شود.</p></div>
-        <div class="field"><label for="c-category">حوزه *</label>
-            <select class="input" id="c-category" name="category" required>
-                <option value="">— انتخاب کنید —</option>
-                <?php foreach ($cats as $c): $cs = (string) ($c['slug'] ?? ''); ?>
-                <option value="<?= e($cs) ?>"<?= $cs === $curCat ? ' selected' : '' ?>><?= e($c['title'] ?? $cs) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <p class="field__help">برایِ رنگِ کارت و فیلترِ صفحه‌ی حوزه استفاده می‌شود.</p></div>
-        <div class="field"><label for="c-level">سطح</label>
-            <input class="input" id="c-level" type="text" name="level" maxlength="80"
-                   value="<?= e($course['level'] ?? 'مقدماتی تا متوسط') ?>"></div>
-        <div class="field"><label for="c-excerpt">توضیحِ کوتاه (کارت)</label>
-            <textarea class="input" id="c-excerpt" name="excerpt" rows="2" maxlength="300"><?= e($course['excerpt'] ?? '') ?></textarea>
-            <p class="field__help">روی کارتِ دوره نمایش داده می‌شود؛ کوتاه نگهش دارید. اگر خالی بماند، از رویِ «معرفیِ کامل» ساخته می‌شود.</p></div>
-        <div class="field"><label for="c-intro">معرفیِ کامل</label>
-            <textarea class="input" id="c-intro" name="intro" rows="4"><?= e($course['intro'] ?? '') ?></textarea></div>
-        <div class="field"><label for="c-howto">«چطور پیش برویم؟» — هر خط یک مورد</label>
-            <textarea class="input" id="c-howto" name="how_to_text" rows="4"><?= e(implode("\n", array_map('strval', $howTo))) ?></textarea></div>
-        <div class="field"><label for="c-prereq">پیش‌نیازِ دوره (اختیاری)</label>
-            <input class="input" id="c-prereq" type="text" name="prereq" maxlength="200"
-                   value="<?= e($course['prereq'] ?? '') ?>">
-            <p class="field__help">یادداشتِ کوتاهِ پیش‌نیاز؛ زیرِ عنوانِ دوره نمایش داده می‌شود.</p></div>
+        <div class="field" style="grid-column:1/-1"><label for="c-intro">توضیح</label>
+            <textarea class="input" id="c-intro" name="intro" rows="4" placeholder="این دوره درباره‌ی چیست؟"><?= e($course['intro'] ?? ($course['excerpt'] ?? '')) ?></textarea>
+            <p class="field__help">همین متن روی کارت و صفحه‌ی دوره نشان داده می‌شود. نامک و بقیه‌ی تنظیمات خودکارند.</p></div>
         <?= admin_status_field($course ?? [], $slug === '') ?>
-        <div class="field">
-            <label class="check"><input type="checkbox" name="featured" value="1"<?= !empty($course['featured']) ? ' checked' : '' ?>>
-                <span>دوره‌ی ویژه (در صفحه‌ی اصلی نمایش داده شود)</span></label>
-        </div>
     </div>
+    <details class="admin-advanced">
+        <summary>تنظیمات بیشتر (اختیاری)</summary>
+        <div class="admin-form-grid">
+            <div class="field"><label for="c-slug">نامک (خودکار اگر خالی)</label>
+                <input class="input" id="c-slug" type="text" name="slug" maxlength="100" dir="ltr"
+                       value="<?= e($course['slug'] ?? '') ?>"
+                       placeholder="از روی نام ساخته می‌شود"></div>
+            <div class="field"><label for="c-category">حوزه</label>
+                <select class="input" id="c-category" name="category">
+                    <option value="">— خودکار —</option>
+                    <?php foreach ($cats as $c): $cs = (string) ($c['slug'] ?? ''); ?>
+                    <option value="<?= e($cs) ?>"<?= $cs === $curCat ? ' selected' : '' ?>><?= e($c['title'] ?? $cs) ?></option>
+                    <?php endforeach; ?>
+                </select></div>
+            <div class="field"><label for="c-level">سطح</label>
+                <input class="input" id="c-level" type="text" name="level" maxlength="80"
+                       value="<?= e($course['level'] ?? 'مقدماتی تا متوسط') ?>"></div>
+            <div class="field"><label for="c-excerpt">توضیح کوتاه کارت</label>
+                <textarea class="input" id="c-excerpt" name="excerpt" rows="2" maxlength="300"><?= e($course['excerpt'] ?? '') ?></textarea></div>
+            <div class="field"><label for="c-howto">«چطور پیش برویم؟» — هر خط یک مورد</label>
+                <textarea class="input" id="c-howto" name="how_to_text" rows="3"><?= e(implode("\n", array_map('strval', $howTo))) ?></textarea></div>
+            <div class="field"><label for="c-prereq">پیش‌نیاز</label>
+                <input class="input" id="c-prereq" type="text" name="prereq" maxlength="200"
+                       value="<?= e($course['prereq'] ?? '') ?>"></div>
+            <div class="field">
+                <label class="check"><input type="checkbox" name="featured" value="1"<?= !empty($course['featured']) ? ' checked' : '' ?>>
+                    <span>دوره‌ی ویژه (صفحه‌ی اصلی)</span></label>
+            </div>
+        </div>
+    </details>
 </div>
 
 <div class="admin-card">

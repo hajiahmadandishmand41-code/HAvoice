@@ -19,7 +19,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست شما تمام شده. دوباره تلاش کنید.'); redirect(url($listRoute)); }
 
 $title   = trim((string) ($_POST['title'] ?? ''));
-$slug    = slugify((string) ($_POST['slug'] ?? ''));
 $orig    = slugify((string) ($_POST['original_slug'] ?? ''));
 $excerpt = trim((string) ($_POST['excerpt'] ?? ''));
 $intro   = trim((string) ($_POST['intro'] ?? ''));
@@ -27,23 +26,37 @@ $level   = trim((string) ($_POST['level'] ?? ''));
 
 $editUrl = url('admin_course_edit', $orig !== '' ? ['slug' => $orig] : []);
 
-if ($title === '' || $slug === '') {
-    flash('error', 'عنوان و نامک الزامی است.');
+if ($title === '') {
+    flash('error', 'نام دوره الزامی است.');
     redirect($editUrl);
 }
 
-/* ---- حوزه: باید یکی از حوزه‌های شناخته‌شده باشد ---- */
+$slug = admin_post_slug($title, 'course', static function (string $candidate) use ($orig): bool {
+    if ($candidate === $orig) {
+        return false;
+    }
+    foreach (courses_all() as $c) {
+        if (slugify((string) ($c['slug'] ?? '')) === $candidate) {
+            return true;
+        }
+    }
+    return false;
+});
+if ($slug === '' && $orig !== '') {
+    $slug = $orig;
+}
+if ($slug === '') {
+    flash('error', 'نامک از روی نام ساخته نشد؛ یک نام لاتین یا فارسی بنویسید.');
+    redirect($editUrl);
+}
+
+/* ---- حوزه: اختیاری؛ اگر خالی باشد اولین حوزه یا همان قبلی ---- */
 $categoryRaw = trim((string) ($_POST['category'] ?? ''));
 $category    = slugify($categoryRaw);
-if ($category === '' || find_category_any($category) === null) {
+if ($category !== '' && find_category_any($category) === null) {
     flash('error', 'حوزه‌ی انتخاب‌شده معتبر نیست.');
     redirect($editUrl);
 }
-
-/* ---- مراحل و درس‌ها ----
-   مسیرِ اصلی: فرمِ ساختاریافته (فیلدهای مراحل/درس‌ها + «ترتیب»).
-   مسیرِ پیشرفته: فقط وقتی مدیر صریحاً «ذخیره از روی JSON» را بزند، همان
-   JSON ملاک است تا فرمِ ساده و JSON با هم تداخل نکنند. */
 /* نسخه‌ی فعلیِ همین دوره (از فایلِ data یا ذخیره‌ی قبلیِ پنل) — برایِ اینکه
    هنگامِ ویرایش، داده‌ای که فرمِ ساده نشان نمی‌دهد پاک نشود. */
 $existingCourseForBuilder = [];
@@ -53,6 +66,12 @@ foreach (courses_all() as $c) {
         $existingCourseForBuilder = $c;
         break;
     }
+}
+if ($category === '') {
+    $cats = function_exists('categories_all') ? categories_all() : categories();
+    $category = slugify((string) (($existingCourseForBuilder['category'] ?? '') !== ''
+        ? $existingCourseForBuilder['category']
+        : ($cats[0]['slug'] ?? '')));
 }
 $stages = [];
 

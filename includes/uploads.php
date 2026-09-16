@@ -57,6 +57,11 @@ function ha_upload_store(string $field, array $mimeMap, string $kind = ''): arra
     if ($tmp === '' || !is_uploaded_file($tmp)) {
         return $fail('فایلِ موقتِ آپلود معتبر نیست.');
     }
+    /* مسیرِ موقت باید داخلِ پوشه‌ی upload_tmp_dir یا sys temp باشد. */
+    $realTmp = realpath($tmp);
+    if ($realTmp === false || !is_file($realTmp)) {
+        return $fail('مسیر فایل موقت نامعتبر است.');
+    }
     $max = ha_upload_max_bytes($kind);
     if ($size <= 0 || $size > $max) {
         return $fail('حجمِ فایل باید بین ۱ بایت تا ' . fa_num((string) round($max / 1048576, 1)) . ' مگابایت باشد.'
@@ -79,16 +84,22 @@ function ha_upload_store(string $field, array $mimeMap, string $kind = ''): arra
     }
     $ext = strtolower((string) $mimeMap[$mime]);
 
-    /* پسوندِ نامِ اصلی فقط برای ردِ double-extension خطرناک (file.php.jpg) */
+    /* پسوندِ نامِ اصلی: فهرست سفید + ردِ double-extension خطرناک */
     $origName = (string) ($info['name'] ?? '');
     $origName = str_replace(["\0", '\\', '/', '..'], '', $origName);
-    if (preg_match('/\.(php|phtml|phar|cgi|pl|py|sh|exe|htaccess|js|html|htm)(\.|$)/i', $origName)) {
+    if (preg_match('/\.(php|phtml|phar|cgi|pl|py|sh|exe|htaccess|js|html|htm|shtml|asp|aspx)(\.|$)/i', $origName)) {
         return $fail('نام یا پسوندِ فایل مجاز نیست.');
     }
-    /* فهرست سفید پسوندِ نهایی */
-    $allowedExt = array_unique(array_map('strtolower', array_values($mimeMap)));
+    $allowedExt = array_values(array_unique(array_map('strtolower', array_values($mimeMap))));
     if (!in_array($ext, $allowedExt, true)) {
         return $fail('پسوند فایل مجاز نیست.');
+    }
+    $origExt = strtolower((string) pathinfo($origName, PATHINFO_EXTENSION));
+    if ($origExt !== '' && !in_array($origExt, $allowedExt, true)) {
+        return $fail('پسوند فایل با نوع مجاز هم‌خوان نیست.');
+    }
+    if (!ha_upload_magic_ok($tmp, $ext)) {
+        return $fail('امضای فایل با نوع اعلام‌شده هم‌خوان نیست.');
     }
 
     $dir = ha_uploads_dir();
@@ -113,10 +124,18 @@ function ha_upload_store(string $field, array $mimeMap, string $kind = ''): arra
         return $fail('نام فایل نامعتبر ساخته شد.');
     }
     $dest = $dir . '/' . $name;
+    if (is_file($dest)) {
+        return $fail('نام فایل تصادفی تکراری شد؛ دوباره تلاش کنید.');
+    }
     if (!@move_uploaded_file($tmp, $dest)) {
         return $fail('ذخیره‌ی فایل روی سرور ناموفق بود.');
     }
     @chmod($dest, 0644);
+    $realDest = realpath($dest);
+    if ($realDest === false || !str_starts_with($realDest, $realDir . DIRECTORY_SEPARATOR)) {
+        @unlink($dest);
+        return $fail('مسیر نهایی فایل خارج از uploads است.');
+    }
 
     /* دفاع لایه‌ای: اگر به‌اشتباه PHP در uploads اجرا شود، محتوای polyglot را سخت‌تر می‌کند */
     if (is_file($dest) && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'mp4', 'webm', 'ogv', 'mp3', 'm4a', 'ogg', 'wav', 'weba'], true)) {
@@ -203,6 +222,55 @@ function ha_php_upload_limit(): int
     $post = $parse((string) ini_get('post_max_size'));
     $limits = array_filter([$up, $post]);
     return $limits === [] ? 0 : min($limits);
+}
+
+/**
+ * بررسی امضای باینری (magic bytes) برای نوعِ نهایی.
+ * اگر امضا ناشناخته باشد ولی MIME از فهرست سفید آمده، رد نمی‌شود.
+ */
+function ha_upload_magic_ok(string $path, string $ext): bool
+{
+    $ext = strtolower($ext);
+    $fh = @fopen($path, 'rb');
+    if ($fh === false) {
+        return false;
+    }
+    $head = (string) @fread($fh, 16);
+    fclose($fh);
+    if ($head === '') {
+        return false;
+    }
+    $hex = bin2hex(substr($head, 0, 12));
+    switch ($ext) {
+        case 'pdf':
+            return str_starts_with($head, '%PDF');
+        case 'jpg':
+        case 'jpeg':
+            return str_starts_with($hex, 'ffd8ff');
+        case 'png':
+            return str_starts_with($hex, '89504e470d0a');
+        case 'webp':
+            return str_starts_with($head, 'RIFF') && substr($head, 8, 4) === 'WEBP';
+        case 'mp4':
+        case 'm4a':
+            return strlen($head) >= 8 && substr($head, 4, 4) === 'ftyp';
+        case 'webm':
+        case 'weba':
+        case 'ogv':
+            return str_starts_with($hex, '1a45dfa3') || str_starts_with($head, 'OggS');
+        case 'ogg':
+            return str_starts_with($head, 'OggS');
+        case 'mp3':
+            return str_starts_with($head, 'ID3')
+                || str_starts_with($hex, 'fffb')
+                || str_starts_with($hex, 'fff3')
+                || str_starts_with($hex, 'fff2')
+                || str_starts_with($hex, 'ffe3');
+        case 'wav':
+            return str_starts_with($head, 'RIFF') && (strlen($head) < 12 || substr($head, 8, 4) === 'WAVE');
+        default:
+            return true;
+    }
 }
 
 /** برچسبِ فارسی و راهنمای کوتاهِ هر نوعِ آپلود (برای فرمِ مدیریت). */

@@ -16,7 +16,7 @@ if (!in_array($filter, ['', 'pending', 'approved'], true)) {
 
 $dbReady = comments_db() !== null;
 $counts  = comments_admin_counts();
-$rows    = $dbReady ? comments_admin_list($filter) : [];
+$rows    = comments_admin_list($filter);
 
 $tabUrl = static function (string $status): string {
     return $status === '' ? url('admin_comments') : url('admin_comments', ['status' => $status]);
@@ -25,11 +25,10 @@ $tabUrl = static function (string $status): string {
 <?php if (!empty($flash['message'])): ?><div class="alert alert--<?= e($flash['type'] === 'success' ? 'success' : 'error') ?>" role="<?= $flash['type'] === 'success' ? 'status' : 'alert' ?>"><?= e($flash['message']) ?></div><?php endif; ?>
 
 <?php if (!$dbReady): ?>
-<div class="alert alert--error" role="alert">
-    اتصالِ دیتابیسِ نظرات برقرار نشد. مقادیرِ <code>HA_DB_HOST / HA_DB_NAME / HA_DB_USER / HA_DB_PASS</code>
-    را در <code>config/config.php</code> تنظیم کنید (راهنما در همان فایل و <code>sql/001-create-comments.sql</code>).
+<div class="alert alert--warning" role="status">
+    دیتابیس پیکربندی نشده؛ نظرات در فایل ذخیره می‌شوند و از همین صفحه قابلِ تأیید/حذف هستند.
 </div>
-<?php else: ?>
+<?php endif; ?>
 
 <div class="admin-toolbar">
     <nav class="chip-row mt-0" aria-label="فیلترِ وضعیت">
@@ -82,5 +81,4 @@ $tabUrl = static function (string $status): string {
 <tr><td colspan="5" class="admin-empty"><?= $filter === 'pending' ? 'نظری در انتظارِ تأیید نیست.' : ($filter === 'approved' ? 'هنوز نظری منتشر نشده است.' : 'هنوز نظری ثبت نشده است.') ?></td></tr>
 <?php endif; ?>
 </tbody></table></div>
-<?php endif; ?>
 <?php require HA_ROOT . '/pages/admin/_layout_end.php'; ?>

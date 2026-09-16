@@ -5,8 +5,14 @@ $users = auth_load_users();
    در storage/admin/auth_bootstrap.json). اگر نصبِ قدیمی پرچم نداشته باشد،
    اولین کاربرِ فهرست به‌عنوان مدیرِ اصلی در نظر گرفته می‌شود. */
 $primaryId = (string) (auth_bootstrap_state()['admin_id'] ?? '');
-if ($primaryId === '') {
-    $primaryId = (string) ($users[0]['id'] ?? '');
+if ($primaryId === '' || $primaryId === 'locked') {
+    $primaryId = '';
+    foreach ($users as $u) {
+        if ((string) ($u['role'] ?? '') === 'admin') {
+            $primaryId = (string) ($u['id'] ?? '');
+            break;
+        }
+    }
 }
 $adminCount = 0;
 foreach ($users as $u) {

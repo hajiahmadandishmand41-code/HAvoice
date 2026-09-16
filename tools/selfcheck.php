@@ -645,6 +645,83 @@ check('پنل: نشانِ منبعِ پیام (DB/CSV/پنل)', str_contains($ms
 /* ط) نسخه‌ی جاری */
 check('نسخه‌ی اعلامی ۳٫۳ به‌بعد', defined('HA_VERSION') && version_compare((string) HA_VERSION, '3.3.0', '>='), HA_VERSION);
 
+group('۶د. پنل مدیریت، نقش‌ها، CRUD و مجوزها');
+
+foreach (['/includes/db.php', '/includes/repository.php', '/includes/auth.php', '/includes/comments.php'] as $incFile) {
+    if (is_file(HA_ROOT . $incFile)) {
+        require_once HA_ROOT . $incFile;
+    }
+}
+
+check('تابع auth_bootstrap_may_grant', function_exists('auth_bootstrap_may_grant'));
+check('bootstrap: جدول خالی + پرچم باز ⇒ مدیر اولیه مجاز', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(false, 0) === true);
+check('bootstrap: وجود کاربر ⇒ قفل', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(false, 1) === false);
+check('bootstrap: پرچم قفل ⇒ هرگز مدیر خودکار', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(true, 0) === false);
+check('bootstrap: پرچم قفل + کاربر ⇒ قفل', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(true, 5) === false);
+
+$norm = function_exists('auth_normalize_roles') ? auth_normalize_roles([
+    ['id' => 'aaa', 'email' => 'a@example.com'],
+    ['id' => 'bbb', 'email' => 'b@example.com', 'role' => 'user'],
+]) : [];
+check('normalize: کاربر بدون role هرگز خودکار admin نمی‌شود',
+    $norm !== [] && ($norm[0]['role'] ?? '') === 'user' && ($norm[1]['role'] ?? '') === 'user');
+check('auth_is_admin فقط نقش ذخیره‌شده را می‌خواند',
+    str_contains((string) @file_get_contents(HA_ROOT . '/includes/auth.php'), "(\$user['role'] ?? '') === 'admin'"));
+check('seed کاربران اولین رکورد را admin نمی‌کند',
+    !str_contains((string) @file_get_contents(HA_ROOT . '/includes/repository.php'), "\$n === 0) ? 'admin'"));
+
+$adminMissing = [];
+$adminNotGated = [];
+foreach (routes() as $name => $meta) {
+    if (!str_starts_with($name, 'admin')) {
+        continue;
+    }
+    if (empty($meta['admin'])) {
+        $adminNotGated[] = $name;
+    }
+    $file = HA_ROOT . '/pages/' . (string) ($meta['file'] ?? '');
+    if (!is_file($file)) {
+        $adminMissing[] = $name . ' → ' . (string) ($meta['file'] ?? '');
+    }
+}
+check('همه‌ی مسیرهای admin فایل دارند', $adminMissing === [], $adminMissing === [] ? '' : implode(' | ', array_slice($adminMissing, 0, 8)));
+check('همه‌ی مسیرهای admin با فلگ admin محافظت می‌شوند', $adminNotGated === [], $adminNotGated === [] ? '' : implode(', ', $adminNotGated));
+check('گیت مرکزی bootstrap برای admin', str_contains((string) @file_get_contents(HA_ROOT . '/includes/bootstrap.php'), "route_meta(\$route, 'admin'"));
+check('exercise_move.php موجود است', is_file(HA_ROOT . '/pages/admin/exercise_move.php'));
+check('تابع repo_move_exercise', function_exists('repo_move_exercise'));
+check('تابع repo_save_course / delete', function_exists('repo_save_course') && function_exists('repo_delete_course'));
+check('تابع repo_save_exercise / delete', function_exists('repo_save_exercise') && function_exists('repo_delete_exercise'));
+check('تابع repo_save_media / book', function_exists('repo_save_media') && function_exists('repo_save_book'));
+
+$crudHandlers = [
+    'course_save', 'course_delete', 'exercise_save', 'exercise_delete', 'exercise_move',
+    'book_save', 'book_delete', 'video_save', 'video_delete', 'audio_save', 'audio_delete',
+    'message_delete', 'comment_status', 'comment_delete', 'user_save', 'user_delete',
+];
+foreach ($crudHandlers as $h) {
+    $src = (string) @file_get_contents(HA_ROOT . '/pages/admin/' . $h . '.php');
+    check('handler ' . $h . ': POST+CSRF',
+        str_contains($src, 'csrf_verify') && str_contains($src, "'POST'"));
+}
+
+check('آپلود: بررسی magic bytes', function_exists('ha_upload_magic_ok'));
+$okMagic = sys_get_temp_dir() . '/ha-magic-ok-' . bin2hex(random_bytes(3)) . '.pdf';
+file_put_contents($okMagic, '%PDF-1.4 test');
+check('آپلود: PDF با امضای درست', function_exists('ha_upload_magic_ok') && ha_upload_magic_ok($okMagic, 'pdf'));
+@unlink($okMagic);
+$badMagic = sys_get_temp_dir() . '/ha-magic-bad-' . bin2hex(random_bytes(3)) . '.pdf';
+file_put_contents($badMagic, '<?php echo 1;');
+check('آپلود: PDF جعلی رد می‌شود', function_exists('ha_upload_magic_ok') && ha_upload_magic_ok($badMagic, 'pdf') === false);
+@unlink($badMagic);
+$uploadsSrc2 = (string) @file_get_contents(HA_ROOT . '/includes/uploads.php');
+check('آپلود: پسوند اصلی با فهرست سفید سنجیده می‌شود', str_contains($uploadsSrc2, 'pathinfo') && str_contains($uploadsSrc2, 'origExt'));
+check('آپلود: مسیر نهایی داخل uploads است', str_contains($uploadsSrc2, 'realpath($dest)'));
+
+check('نظرات بدون DB در فایل ذخیره می‌شوند', function_exists('comments_file_add') && function_exists('comment_add'));
+check('فرم دوره: نامک اجباری نیست', !preg_match('/name="slug"[^>]*required/', (string) @file_get_contents(HA_ROOT . '/pages/admin/course_edit.php')));
+check('فرم تمرین: فیلد ترتیب', str_contains((string) @file_get_contents(HA_ROOT . '/pages/admin/exercise_edit.php'), 'name="order"'));
+check('فهرست تمرین: دکمه‌ی جابه‌جایی', str_contains((string) @file_get_contents(HA_ROOT . '/pages/admin/exercises.php'), 'admin_exercise_move'));
+
 group('۷. آزمونِ دودِ مسیرها');
 
 $routes = [
