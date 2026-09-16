@@ -10,10 +10,31 @@ $listRoute = 'admin_exercises';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') redirect(url($listRoute));
 if (!csrf_verify()) { flash('error', 'نشست تمام شده.'); redirect(url($listRoute)); }
 
-$id    = slugify((string) ($_POST['id'] ?? ''));
 $title = trim((string) ($_POST['title'] ?? ''));
-if ($id === '' || $title === '') {
-    flash('error', 'شناسه و عنوان الزامی.');
+$orig  = slugify((string) ($_POST['original_id'] ?? ''));
+$id    = slugify((string) ($_POST['id_override'] ?? ($_POST['id'] ?? '')));
+if ($title === '') {
+    flash('error', 'نام تمرین الزامی است.');
+    redirect(url('admin_exercise_edit', $orig !== '' ? ['slug' => $orig] : []));
+}
+if ($id === '') {
+    $id = admin_post_slug($title, 'ex', static function (string $candidate) use ($orig): bool {
+        if ($candidate === $orig) {
+            return false;
+        }
+        foreach (exercises_all() as $ex) {
+            if (slugify((string) ($ex['id'] ?? '')) === $candidate) {
+                return true;
+            }
+        }
+        return false;
+    });
+}
+if ($id === '' && $orig !== '') {
+    $id = $orig;
+}
+if ($id === '') {
+    flash('error', 'شناسه تمرین ساخته نشد.');
     redirect(url('admin_exercise_edit'));
 }
 
@@ -51,7 +72,6 @@ $item = [
     'featured' => !empty($_POST['featured']),
 ];
 
-$orig = slugify((string) ($_POST['original_id'] ?? ''));
 if (!repo_save_exercise($item, $orig)) {
     flash('error', 'ذخیره‌سازی تمرین ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect(url('admin_exercises'));

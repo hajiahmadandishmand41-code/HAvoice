@@ -110,7 +110,7 @@ unset($_SESSION['ha_errors']);
 
 if ($result['ok']) {
     flash('success', 'نظر شما ثبت شد. پس از بازبینیِ مدیر (معمولاً ۱ تا ۲ روز کاری) همین‌جا نمایش داده می‌شود. سپاس!');
-} elseif (($result['error'] ?? '') === 'db') {
+} elseif (($result['error'] ?? '') === 'db' || ($result['error'] ?? '') === 'storage') {
     old_set(['name' => $name, 'email' => $email, 'message' => $body]);
     flash('error', 'در حالِ حاضر سامانه‌ی ثبتِ نظر در دسترس نیست. لطفاً بعداً تلاش کنید یا از صفحه‌ی «تماس با ما» بنویسید.');
 } else {

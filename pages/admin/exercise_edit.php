@@ -26,25 +26,30 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
 <div class="admin-card">
     <h2>مشخصاتِ تمرین</h2>
     <div class="admin-form-grid">
-        <div class="field"><label for="e-id">شناسه (id) *</label><input class="input" id="e-id" type="text" name="id" value="<?= e($item['id'] ?? ($id !== '' ? $id : 'ex-' . bin2hex(random_bytes(4)))) ?>" required dir="ltr" maxlength="60">
-            <p class="field__help">حروفِ لاتین و خطِ تیره؛ یکتا.</p></div>
-        <div class="field"><label for="e-title">عنوان *</label><input class="input" id="e-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="160"></div>
-        <div class="field"><label for="e-level">سطح</label><input class="input" id="e-level" type="text" name="level" value="<?= e($item['level'] ?? 'عمومی') ?>" maxlength="40"></div>
-        <div class="field"><label for="e-focus">تمرکز</label><input class="input" id="e-focus" type="text" name="focus" value="<?= e($item['focus'] ?? '') ?>" maxlength="60"></div>
+        <div class="field"><label for="e-title">نام *</label><input class="input" id="e-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="160"></div>
+        <div class="field" style="grid-column:1/-1"><label for="e-goal">توضیح</label><textarea class="input" id="e-goal" name="goal" rows="3" maxlength="300" placeholder="این تمرین چه مهارتی را می‌سازد؟"><?= e($item['goal'] ?? '') ?></textarea></div>
+        <div class="field"><label for="e-order">ترتیب</label>
+            <input class="input input--num" id="e-order" type="number" name="order" min="0" max="999"
+                   value="<?= e((string) (int) ($item['order'] ?? 0)) ?>">
+            <p class="field__help">عدد کوچک‌تر زودتر دیده می‌شود. از فهرست تمرین‌ها هم می‌توانید با دکمه‌های بالا/پایین جابه‌جا کنید.</p></div>
         <div class="field"><label for="e-seconds">مدت (ثانیه)</label><input class="input" id="e-seconds" type="number" name="seconds" value="<?= e((string)($item['seconds'] ?? 180)) ?>" min="0" max="36000"></div>
-        <div class="field"><label for="e-success">معیارِ موفقیت</label><input class="input" id="e-success" type="text" name="success" value="<?= e($item['success'] ?? '') ?>" maxlength="200"></div>
         <?= admin_status_field($item ?? []) ?>
-        <?= admin_featured_field($item ?? []) ?>
     </div>
+    <div class="field"><label for="e-steps">مراحل (هر خط یک مرحله)</label><textarea class="input" id="e-steps" name="steps_text" rows="5"><?= e(implode("\n", array_map('strval', (array) ($item['steps'] ?? [])))) ?></textarea></div>
+    <input type="hidden" name="id" value="<?= e($item['id'] ?? $id) ?>">
 </div>
 
-<div class="admin-card">
-    <h2>اتصال به ساختارِ آموزشی</h2>
-    <p class="muted-sm">تمرینِ متصل به درس، در انتهای صفحه‌ی همان درس به کاربر پیشنهاد می‌شود (حوزه → دوره → درس → تمرین).</p>
+<details class="admin-advanced admin-card">
+    <summary>تنظیمات بیشتر (اختیاری)</summary>
     <div class="admin-form-grid">
-        <div class="field"><label for="e-lesson">درسِ متصل (اختیاری)</label>
+        <div class="field"><label for="e-id">شناسه</label><input class="input" id="e-id" type="text" name="id_override" value="<?= e($item['id'] ?? '') ?>" dir="ltr" maxlength="60" placeholder="خودکار از نام"></div>
+        <div class="field"><label for="e-level">سطح</label><input class="input" id="e-level" type="text" name="level" value="<?= e($item['level'] ?? 'عمومی') ?>" maxlength="40"></div>
+        <div class="field"><label for="e-focus">تمرکز</label><input class="input" id="e-focus" type="text" name="focus" value="<?= e($item['focus'] ?? '') ?>" maxlength="60"></div>
+        <div class="field"><label for="e-success">معیارِ موفقیت</label><input class="input" id="e-success" type="text" name="success" value="<?= e($item['success'] ?? '') ?>" maxlength="200"></div>
+        <?= admin_featured_field($item ?? []) ?>
+        <div class="field"><label for="e-lesson">درسِ متصل</label>
             <select class="input" id="e-lesson" name="lesson">
-                <option value="">— بدونِ اتصال به درس —</option>
+                <option value="">— بدون اتصال —</option>
                 <?php foreach (courses_all() as $c): ?>
                     <optgroup label="<?= e($c['title'] ?? '') ?>">
                     <?php foreach ((array) ($c['stages'] ?? []) as $st): foreach ((array) ($st['lessons'] ?? []) as $l): $ls = slugify((string) ($l['slug'] ?? '')); ?>
@@ -53,27 +58,16 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
                     </optgroup>
                 <?php endforeach; ?>
             </select></div>
-        <div class="field"><label for="e-course">دوره‌ی متصل (اختیاری)</label>
+        <div class="field"><label for="e-course">دوره‌ی متصل</label>
             <select class="input" id="e-course" name="course">
-                <option value="">— بدونِ اتصال به دوره —</option>
+                <option value="">— بدون اتصال —</option>
                 <?php foreach (courses_all() as $c): $cs = slugify((string) ($c['slug'] ?? '')); ?>
                 <option value="<?= e($cs) ?>"<?= $cs === $curCourse ? ' selected' : '' ?>><?= e($c['title'] ?? $cs) ?></option>
                 <?php endforeach; ?>
-            </select>
-            <p class="field__help">اگر درس انتخاب شده باشد، دوره از همان درس هم استنباط می‌شود.</p></div>
-        <div class="field"><label for="e-order">ترتیب در دوره</label>
-            <input class="input input--num" id="e-order" type="number" name="order" min="0" max="999"
-                   value="<?= e((string) (int) ($item['order'] ?? 0)) ?>">
-            <p class="field__help">عددِ کوچک‌تر = زودتر. ترتیبِ «تمرینِ بعدی» در پنلِ مسیرِ یادگیری از همین عدد و از جایِ درس در دوره می‌آید: اول تمرین‌های درس‌ها به ترتیبِ خودِ درس‌ها، بعد تمرین‌های بدونِ درس. صفر یعنی «ترتیبِ پیش‌فرض».</p></div>
+            </select></div>
+        <div class="field" style="grid-column:1/-1"><label for="e-topics">موضوعات بداهه (هر خط یک موضوع)</label><textarea class="input" id="e-topics" name="topics_text" rows="3"><?= e(implode("\n", array_map('strval', (array) ($item['topics'] ?? [])))) ?></textarea></div>
     </div>
-</div>
-
-<div class="admin-card">
-    <h2>محتوای اجرا</h2>
-    <div class="field"><label for="e-goal">هدف</label><textarea class="input" id="e-goal" name="goal" rows="2" maxlength="300"><?= e($item['goal'] ?? '') ?></textarea></div>
-    <div class="field"><label for="e-steps">مراحل (هر خط یک مرحله)</label><textarea class="input" id="e-steps" name="steps_text" rows="5"><?= e(implode("\n", array_map('strval', (array) ($item['steps'] ?? [])))) ?></textarea></div>
-    <div class="field"><label for="e-topics">موضوعات بداهه (هر خط یک موضوع)</label><textarea class="input" id="e-topics" name="topics_text" rows="3"><?= e(implode("\n", array_map('strval', (array) ($item['topics'] ?? [])))) ?></textarea></div>
-</div>
+</details>
 
 <div class="admin-form-actions">
     <button class="btn btn--primary" type="submit"><?= ha_icon('check', 15) ?> ذخیره‌ی تمرین</button>

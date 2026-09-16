@@ -27,7 +27,10 @@ $allEx = exercises_all();
 <td class="muted-sm"><?php if ($courseRow !== null): ?><a href="<?= e(url('admin_course_edit', ['slug' => (string) ($courseRow['slug'] ?? '')])) ?>"><?= e($courseRow['title'] ?? $courseSlug) ?></a><?php else: ?>—<?php endif; ?></td>
 <td><?= admin_status_badge($ex) ?></td>
 <td><?= admin_source_badge($isPanel) ?></td>
-<td class="actions"><a class="btn btn--ghost btn--sm" href="<?= e(url('admin_exercise_edit', ['slug' => $id])) ?>"><?= ha_icon('edit', 14) ?> ویرایش</a>
+<td class="actions">
+<form method="post" action="<?= e(url('admin_exercise_move')) ?>" class="inline-form"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($id) ?>"><input type="hidden" name="dir" value="up"><button class="btn btn--ghost btn--sm" type="submit" title="یک پله بالاتر" aria-label="انتقال به بالا"><?= ha_icon('arrow-up', 13) ?></button></form>
+<form method="post" action="<?= e(url('admin_exercise_move')) ?>" class="inline-form"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($id) ?>"><input type="hidden" name="dir" value="down"><button class="btn btn--ghost btn--sm" type="submit" title="یک پله پایین‌تر" aria-label="انتقال به پایین"><?= ha_icon('chevron-down', 13) ?></button></form>
+<a class="btn btn--ghost btn--sm" href="<?= e(url('admin_exercise_edit', ['slug' => $id])) ?>"><?= ha_icon('edit', 14) ?> ویرایش</a>
 <?= admin_status_toggle('exercise', $id, $ex) ?>
 <?php if ($isPanel): ?><form method="post" action="<?= e(url('admin_exercise_delete')) ?>" class="inline-form" data-confirm="این مورد برای همیشه حذف شود؟"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($id) ?>"><button class="btn btn--ghost btn--sm btn--danger-text" type="submit"><?= ha_icon('trash', 14) ?> حذف</button></form><?php endif; ?></td></tr>
 <?php endforeach; ?>

@@ -35,13 +35,8 @@ $lessonIndex = course_lesson_index();
     <h2><?= $slug === '' ? 'صوت جدید' : 'ویرایش صوت' ?></h2>
     <div class="admin-form-grid">
         <div class="field">
-            <label for="a-title">عنوان *</label>
+            <label for="a-title">نام *</label>
             <input class="input" id="a-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200">
-        </div>
-        <div class="field">
-            <label for="a-slug">نامک (خودکار اگر خالی)</label>
-            <input class="input" id="a-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
-            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p>
         </div>
         <div class="field" style="grid-column:1/-1">
             <label for="a-excerpt">توضیح</label>
@@ -82,8 +77,12 @@ $lessonIndex = course_lesson_index();
         <?= admin_featured_field($item ?? []) ?>
     </div>
     <details class="admin-advanced">
-        <summary>پیشرفته</summary>
+        <summary>تنظیمات بیشتر (اختیاری)</summary>
         <div class="admin-form-grid">
+            <div class="field">
+                <label for="a-slug">نامک</label>
+                <input class="input" id="a-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی نام ساخته می‌شود">
+            </div>
             <div class="field">
                 <label for="a-seconds">مدت (ثانیه)</label>
                 <input class="input" id="a-seconds" type="number" name="seconds" value="<?= e((string) ($item['seconds'] ?? 0)) ?>" min="0" max="86400">

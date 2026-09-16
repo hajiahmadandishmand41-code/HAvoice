@@ -6,7 +6,7 @@
  *  • رمز عبور فقط با password_hash() ذخیره و با password_verify() بررسی می‌شود.
  *  • ایمیل lowercase + trim.
  *  • Session: regenerate_id روی login، httponly، samesite Lax، TTL عدم‌فعالیت.
- *  • نقش admin صریح (role=admin)؛ اولین کاربر فقط در JSON legacy مدیر است.
+ *  • نقش admin صریح (role=admin)؛ اولین کاربر فقط یک‌بار در نصب اولیه مدیر است.
  *  • CSRF روی همهٔ فرم‌های حساس (لایهٔ helpers).
  */
 
@@ -51,39 +51,55 @@ function auth_load_users(): array
 /**
  * نرمال‌سازیِ نقش‌ها در فهرستِ کاربران.
  *
- * نصب‌های قدیمی رکوردهای بدونِ کلیدِ role داشتند و «اولین کاربرِ فایل» مدیر
- * شمرده می‌شد. آن حدس از auth_is_admin() برداشته شد (ریسکِ ارتقای ناخواسته‌ی
- * دسترسی) و به‌جایش همان سازگاری اینجا، به‌صورتِ صریح و فقط در حافظه انجام
- * می‌شود: اگر هیچ مدیری وجود نداشته باشد و رکوردها role نداشته باشند، اولین
- * کاربر role='admin' می‌گیرد تا مدیرِ نصبِ قدیمی قفل نشود.
+ * نقش فقط از مقدارِ ذخیره‌شده می‌آید. رکوردِ بدونِ role همیشه «user» است —
+ * هرگز «اولین کاربرِ فایل» مدیر نمی‌شود. تنها استثنا: اگر bootstrap یک‌باره
+ * شناسه‌ی مدیرِ اولیه را ثبت کرده و همان رکورد role نداشته باشد، همان شناسه
+ * (نه جایگاهِ فهرست) مدیر می‌ماند تا نصبِ قدیمی قفل نشود.
  *
  * @param list<array<string,mixed>> $users
  * @return list<array<string,mixed>>
  */
 function auth_normalize_roles(array $users): array
 {
-    $hasRoleKey = false;
-    $hasAdmin   = false;
-    foreach ($users as $u) {
-        if (array_key_exists('role', $u)) {
-            $hasRoleKey = true;
-            if ((string) ($u['role'] ?? '') === 'admin') {
-                $hasAdmin = true;
-            }
-        }
+    $primaryId = '';
+    if (function_exists('auth_bootstrap_state')) {
+        $primaryId = (string) (auth_bootstrap_state()['admin_id'] ?? '');
     }
-
-    $promoteFirst = !$hasAdmin && (!$hasRoleKey || auth_bootstrap_state()['done'] === false);
-    $first = true;
     foreach ($users as $i => $u) {
         $role = (string) ($u['role'] ?? '');
         if ($role !== 'admin' && $role !== 'user') {
-            $role = ($promoteFirst && $first) ? 'admin' : 'user';
+            $id   = (string) ($u['id'] ?? '');
+            $role = ($primaryId !== '' && $id !== '' && $id === $primaryId) ? 'admin' : 'user';
         }
         $users[$i]['role'] = $role;
-        $first = false;
     }
     return $users;
+}
+
+/**
+ * تعدادِ کاربرانِ واقعی در منبعِ حقیقت.
+ * اگر DB آماده باشد همان جدول ملاک است؛ در غیر این صورت فایل JSON.
+ * اگر DB خالی باشد ولی JSON کاربر داشته باشد، همان JSON شمرده می‌شود تا
+ * bootstrap روی کاربرانِ موجودِ فایل دوباره مدیر نسازد.
+ */
+function auth_user_count(): int
+{
+    if (function_exists('db_ready') && db_ready() && function_exists('db_user_count')) {
+        $n = db_user_count();
+        if ($n > 0) {
+            return $n;
+        }
+    }
+    return count(auth_load_users_json_only());
+}
+
+/**
+ * آیا در این لحظه می‌توان نقشِ admin را به «اولین کاربر» داد؟
+ * فقط وقتی پرچم قفل نشده و هیچ کاربری در سیستم نیست.
+ */
+function auth_bootstrap_may_grant(bool $flagDone, int $existingUsers): bool
+{
+    return $flagDone === false && $existingUsers === 0;
 }
 
 /**
@@ -235,28 +251,54 @@ function auth_bootstrap_state(): array
         return $GLOBALS['HA_AUTH_BOOTSTRAP'];
     }
     $data = function_exists('admin_load') ? admin_load('auth_bootstrap') : [];
+    $done = !empty($data['done']);
+    $id   = (string) ($data['admin_id'] ?? '');
+    $at   = (string) ($data['admin_at'] ?? '');
+
+    /* منبعِ دوم: جدول تنظیمات DB — اگر فایل storage پاک شود قفل باقی بماند. */
+    if (function_exists('db_ready') && db_ready() && function_exists('db_setting_get')) {
+        $raw = db_setting_get('auth_bootstrap', '');
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && !empty($decoded['done'])) {
+                $done = true;
+                if ($id === '') {
+                    $id = (string) ($decoded['admin_id'] ?? '');
+                }
+                if ($at === '') {
+                    $at = (string) ($decoded['admin_at'] ?? '');
+                }
+            }
+        }
+    }
+
     $GLOBALS['HA_AUTH_BOOTSTRAP'] = [
-        'done'     => !empty($data['done']),
-        'admin_id' => (string) ($data['admin_id'] ?? ''),
-        'admin_at' => (string) ($data['admin_at'] ?? ''),
+        'done'     => $done,
+        'admin_id' => $id,
+        'admin_at' => $at,
     ];
     return $GLOBALS['HA_AUTH_BOOTSTRAP'];
 }
 
-/** ثبتِ پرچمِ bootstrap (یک‌بار). */
+/** ثبتِ پرچمِ bootstrap (یک‌بار). اگر از قبل قفل شده باشد false برمی‌گردد. */
 function auth_bootstrap_record(string $adminId): bool
 {
-    if (!function_exists('admin_store')) {
+    $state = auth_bootstrap_state();
+    if (!empty($state['done'])) {
         return false;
     }
-    $ok = admin_store('auth_bootstrap', [
+    $payload = [
         'done'     => true,
         'admin_id' => $adminId,
         'admin_at' => date('c'),
         'note'     => 'اولین کاربرِ سیستم به‌عنوان مدیرِ اولیه ثبت شد؛ از این پس هیچ کاربری خودکار مدیر نمی‌شود.',
-    ]);
+    ];
+    $ok = function_exists('admin_store') && admin_store('auth_bootstrap', $payload);
+    if (function_exists('db_ready') && db_ready() && function_exists('db_settings_set')) {
+        db_settings_set(['auth_bootstrap' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        $ok = true;
+    }
     if ($ok) {
-        /* کشِ همان درخواست تازه شود */
         auth_bootstrap_state_reset();
     }
     return $ok;
@@ -268,13 +310,41 @@ function auth_bootstrap_state_reset(): void
     unset($GLOBALS['HA_AUTH_BOOTSTRAP']);
 }
 
+/**
+ * اگر کاربر وجود دارد ولی پرچم قفل نشده، قفل را می‌زنیم تا کاربرِ بعدی
+ * خودکار مدیر نشود (نصبِ قدیمی / مهاجرت / پاک‌شدنِ فایلِ پرچم).
+ */
+function auth_bootstrap_heal_if_needed(): void
+{
+    if (!empty($authLock = $GLOBALS['HA_AUTH_BOOTSTRAP_HEALING'] ?? false)) {
+        return;
+    }
+    if (auth_bootstrap_state()['done']) {
+        return;
+    }
+    $GLOBALS['HA_AUTH_BOOTSTRAP_HEALING'] = true;
+    $count = auth_user_count();
+    if ($count > 0) {
+        $adminId = '';
+        foreach (auth_load_users() as $u) {
+            if ((string) ($u['role'] ?? '') === 'admin') {
+                $adminId = (string) ($u['id'] ?? '');
+                break;
+            }
+        }
+        auth_bootstrap_record($adminId !== '' ? $adminId : 'locked');
+    }
+    $GLOBALS['HA_AUTH_BOOTSTRAP_HEALING'] = false;
+}
+
 /** آیا هنوز مجاز به ساختِ مدیرِ اولیه هستیم؟ (فقط وقتی هیچ کاربری نیست) */
 function auth_bootstrap_available(): bool
 {
-    if (auth_bootstrap_state()['done']) {
-        return false;
-    }
-    return auth_load_users() === [];
+    auth_bootstrap_heal_if_needed();
+    return auth_bootstrap_may_grant(
+        (bool) auth_bootstrap_state()['done'],
+        auth_user_count()
+    );
 }
 
 /**
@@ -292,6 +362,24 @@ function auth_create_user(string $name, string $email, string $password): array
     $bootstrap  = auth_bootstrap_available();
     $role       = $bootstrap ? 'admin' : 'user';
 
+    $finish = static function (array $res) use ($bootstrap): array {
+        if (empty($res['ok']) || empty($res['user'])) {
+            return $res;
+        }
+        $user = $res['user'];
+        $bootstrapped = false;
+        if ($bootstrap && (string) ($user['role'] ?? '') === 'admin') {
+            $bootstrapped = auth_bootstrap_record((string) ($user['id'] ?? ''));
+            if (!$bootstrapped) {
+                auth_set_role((string) $user['id'], 'user');
+                $user['role'] = 'user';
+                $res['user'] = $user;
+            }
+        }
+        $res['bootstrapped'] = $bootstrapped;
+        return $res;
+    };
+
     if (function_exists('db_ready') && db_ready()) {
         $res = db_user_create(trim($name), $email, $password, $role);
         if (!empty($res['ok'])) {
@@ -301,10 +389,7 @@ function auth_create_user(string $name, string $email, string $password): array
             unset($u['_db']);
             $users[] = $u;
             auth_save_users($users);
-            if ($bootstrap) {
-                $res['bootstrapped'] = auth_bootstrap_record((string) ($u['id'] ?? ''));
-            }
-            return $res;
+            return $finish($res);
         }
         /* اگر DB fail شد، fallback JSON */
     }
@@ -323,10 +408,7 @@ function auth_create_user(string $name, string $email, string $password): array
     if (!auth_save_users($users)) {
         return ['ok' => false, 'user' => null, 'error' => 'storage'];
     }
-    if ($bootstrap) {
-        auth_bootstrap_record((string) $user['id']);
-    }
-    return ['ok' => true, 'user' => $user, 'error' => null, 'bootstrapped' => $bootstrap];
+    return $finish(['ok' => true, 'user' => $user, 'error' => null]);
 }
 
 /** فقط فایل JSON (بدون DB) — برای dual-write. */
@@ -519,16 +601,14 @@ function auth_initial(string $name): string
 /*  مدیر سایت (Admin)                                                 */
 /* ------------------------------------------------------------------ */
 
-/** آیا کاربر جاری مدیر است؟ فقط role=admin (یا legacy: اولین کاربر JSON). */
+/** آیا کاربر جاری مدیر است؟ فقط role=admin ذخیره‌شده در DB/فایل. */
 function auth_is_admin(): bool
 {
     $user = auth_current_user();
     if ($user === null) {
         return false;
     }
-    /* فقط نقشِ صریحِ ذخیره‌شده (DB یا JSON). حدسِ «اولین کاربرِ فایل مدیر است»
-       برداشته شد؛ سازگاریِ نصب‌های قدیمی در auth_normalize_roles() انجام
-       می‌شود تا نقش، صریح و قابلِ مدیریت از پنل باشد. */
+    /* دسترسی فقط با نقشِ واقعی. هیچ حدسِ «اولین کاربر» یا پرچمِ نشست. */
     return (string) ($user['role'] ?? '') === 'admin';
 }
 

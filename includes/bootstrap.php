@@ -35,7 +35,11 @@ if (function_exists('repo_maybe_auto_seed')) {
 
 error_reporting(E_ALL);
 ini_set('display_errors', HA_DEBUG ? '1' : '0');
+ini_set('display_startup_errors', HA_DEBUG ? '1' : '0');
 ini_set('log_errors', '1');
+if (!HA_DEBUG) {
+    ini_set('expose_php', '0');
+}
 
 /* ------------------------------------------------------------------ */
 /*  Routing                                                           */

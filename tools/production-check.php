@@ -102,6 +102,9 @@ pc('gitignore has users.json', str_contains((string) @file_get_contents($root . 
 /* 4. Auth admin gate */
 pc('auth_require_admin exists', function_exists('auth_require_admin'));
 pc('auth_is_admin exists', function_exists('auth_is_admin'));
+pc('bootstrap may_grant empty only', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(false, 0) && !auth_bootstrap_may_grant(true, 0) && !auth_bootstrap_may_grant(false, 1));
+pc('exercise_move route+file', route_exists('admin_exercise_move') && is_file($root . '/pages/admin/exercise_move.php'));
+pc('upload magic bytes', function_exists('ha_upload_magic_ok'));
 
 /* 5. Routes */
 $need = ['home','courses','course','lesson','exercises','articles','article','videos','audios','books','category','login','register','logout','admin','admin_videos','admin_courses'];
@@ -113,6 +116,10 @@ foreach ($need as $r) {
 pc('db.php loaded', function_exists('db') && function_exists('db_configured'));
 pc('repository loaded', function_exists('repo_courses') && function_exists('repo_seed'));
 pc('schema sql present', is_file($root . '/sql/002-schema.sql'));
+pc('database_import.sql present', is_file($root . '/database_import.sql'));
+pc('schema version 4', defined('HA_DB_SCHEMA_VERSION') && HA_DB_SCHEMA_VERSION === '4');
+pc('roles helper', str_contains((string) @file_get_contents($root . '/sql/002-schema.sql'), 'ha_roles'));
+pc('progress FK user', str_contains((string) @file_get_contents($root . '/sql/002-schema.sql'), 'fk_progress_user'));
 if (db_configured()) {
     $ready = db_ready();
     pc('db_ready', $ready);
@@ -135,7 +142,7 @@ if (db_configured()) {
 }
 
 /* 7. Admin dual-write functions */
-foreach (['repo_save_course','repo_save_media','repo_save_article','repo_set_status','repo_delete_course'] as $fn) {
+foreach (['repo_save_course','repo_save_media','repo_save_article','repo_set_status','repo_delete_course','repo_move_exercise'] as $fn) {
     pc("fn {$fn}", function_exists($fn));
 }
 

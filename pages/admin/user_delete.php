@@ -24,9 +24,8 @@ if ($target === null) {
 
 /* مدیرِ اصلی (bootstrap یک‌باره) حذف‌شدنی نیست — حتی اگر نقشش بعداً تغییر کند */
 $primaryId = (string) (auth_bootstrap_state()['admin_id'] ?? '');
-if ($primaryId === '') {
-    $json = auth_load_users_json_only();
-    $primaryId = (string) ($json[0]['id'] ?? '');
+if ($primaryId === 'locked') {
+    $primaryId = '';
 }
 if ($primaryId !== '' && $primaryId === $id) {
     flash('error','مدیرِ اصلیِ سایت حذف‌شدنی نیست. اگر لازم است، نقشِ او را از صفحه‌ی ویرایش تغییر دهید.');

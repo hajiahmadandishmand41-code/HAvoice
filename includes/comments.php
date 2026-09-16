@@ -78,16 +78,60 @@ function comments_table_sql(): string
 {
     return "CREATE TABLE IF NOT EXISTS ha_comments (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id VARCHAR(32) NULL DEFAULT NULL,
     name VARCHAR(60) NOT NULL,
     email VARCHAR(190) NOT NULL DEFAULT '',
     body TEXT NOT NULL,
+    kind ENUM('comment','experience') NOT NULL DEFAULT 'comment',
     status ENUM('pending','approved') NOT NULL DEFAULT 'pending',
     ip VARCHAR(45) NOT NULL DEFAULT '',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
     PRIMARY KEY (id),
-    KEY idx_status_created (status, created_at)
+    KEY idx_status_created (status, created_at),
+    KEY idx_comments_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Fallback فایل وقتی DB نیست — پنل همچنان نظرات را مدیریت می‌کند     */
+/* ------------------------------------------------------------------ */
+
+/** @return list<array<string,mixed>> */
+function comments_file_all(): array
+{
+    $rows = function_exists('admin_load') ? admin_load('comments') : [];
+    return is_array($rows) ? array_values($rows) : [];
+}
+
+function comments_file_save(array $rows): bool
+{
+    return function_exists('admin_store') && admin_store('comments', array_values($rows));
+}
+
+function comments_file_add(string $name, string $email, string $body, string $ip): array
+{
+    $rows = comments_file_all();
+    $max = 0;
+    foreach ($rows as $r) {
+        $max = max($max, (int) ($r['id'] ?? 0));
+    }
+    $id = $max + 1;
+    $rows[] = [
+        'id'         => $id,
+        'name'       => $name,
+        'email'      => $email,
+        'body'       => $body,
+        'status'     => 'pending',
+        'ip'         => $ip,
+        'created_at' => date('Y-m-d H:i:s'),
+        'updated_at' => null,
+        'source'     => 'file',
+    ];
+    if (!comments_file_save($rows)) {
+        return ['ok' => false, 'error' => 'storage'];
+    }
+    return ['ok' => true, 'id' => $id];
 }
 
 /** @return array{ok:bool, error?:string, id?:int} */
@@ -95,16 +139,28 @@ function comment_add(string $name, string $email, string $body, string $ip): arr
 {
     $db = comments_db();
     if ($db === null) {
-        return ['ok' => false, 'error' => 'db'];
+        return comments_file_add($name, $email, $body, $ip);
     }
     $created = date('Y-m-d H:i:s');
+    $userId = '';
+    if (function_exists('auth_current_user')) {
+        $cu = auth_current_user();
+        $userId = is_array($cu) ? (string) ($cu['id'] ?? '') : '';
+    }
+    $userId = $userId !== '' ? $userId : null;
     if ($db instanceof PDO) {
         try {
-            $st = $db->prepare("INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");
-            $ok = $st->execute([$name, $email, $body, $ip, $created]);
+            $st = $db->prepare("INSERT INTO ha_comments (user_id, name, email, body, kind, status, ip, created_at) VALUES (?,?,?,?,'comment','pending',?,?)");
+            $ok = $st->execute([$userId, $name, $email, $body, $ip, $created]);
             return $ok ? ['ok' => true, 'id' => (int) $db->lastInsertId()] : ['ok' => false, 'error' => 'db'];
         } catch (Throwable $e) {
-            return ['ok' => false, 'error' => 'db'];
+            try {
+                $st = $db->prepare("INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");
+                $ok = $st->execute([$name, $email, $body, $ip, $created]);
+                return $ok ? ['ok' => true, 'id' => (int) $db->lastInsertId()] : ['ok' => false, 'error' => 'db'];
+            } catch (Throwable $e2) {
+                return ['ok' => false, 'error' => 'db'];
+            }
         }
     }
     $st = @mysqli_prepare($db, "INSERT INTO ha_comments (name, email, body, status, ip, created_at) VALUES (?,?,?,'pending',?,?)");
@@ -122,7 +178,11 @@ function comments_approved(int $limit = 10, int $offset = 0): array
 {
     $db = comments_db();
     if ($db === null) {
-        return [];
+        $limit = max(1, min(50, $limit));
+        $offset = max(0, $offset);
+        $rows = array_values(array_filter(comments_file_all(), static fn($r) => ($r['status'] ?? '') === 'approved'));
+        usort($rows, static fn($a, $b) => strcmp((string) ($b['created_at'] ?? ''), (string) ($a['created_at'] ?? '')));
+        return array_slice($rows, $offset, $limit);
     }
     $limit = max(1, min(50, $limit));
     $offset = max(0, $offset);
@@ -162,7 +222,13 @@ function comments_count_approved(): int
 {
     $db = comments_db();
     if ($db === null) {
-        return 0;
+        $n = 0;
+        foreach (comments_file_all() as $r) {
+            if (($r['status'] ?? '') === 'approved') {
+                $n++;
+            }
+        }
+        return $n;
     }
     if ($db instanceof PDO) {
         try {
@@ -190,6 +256,13 @@ function comments_admin_counts(): array
     $db = comments_db();
     $out = ['pending' => 0, 'approved' => 0, 'all' => 0];
     if ($db === null) {
+        foreach (comments_file_all() as $r) {
+            $s = (string) ($r['status'] ?? '');
+            if (isset($out[$s])) {
+                $out[$s]++;
+            }
+        }
+        $out['all'] = $out['pending'] + $out['approved'];
         return $out;
     }
     if ($db instanceof PDO) {
@@ -229,7 +302,13 @@ function comments_admin_list(string $status = '', int $limit = 100): array
 {
     $db = comments_db();
     if ($db === null) {
-        return [];
+        $limit = max(1, min(300, $limit));
+        $rows = comments_file_all();
+        if ($status === 'pending' || $status === 'approved') {
+            $rows = array_values(array_filter($rows, static fn($r) => ($r['status'] ?? '') === $status));
+        }
+        usort($rows, static fn($a, $b) => strcmp((string) ($b['created_at'] ?? ''), (string) ($a['created_at'] ?? '')));
+        return array_slice($rows, 0, $limit);
     }
     $limit = max(1, min(300, $limit));
     if ($db instanceof PDO) {
@@ -286,7 +365,17 @@ function comment_set_status(int $id, string $status): bool
     }
     $db = comments_db();
     if ($db === null) {
-        return false;
+        $rows = comments_file_all();
+        $found = false;
+        foreach ($rows as $i => $r) {
+            if ((int) ($r['id'] ?? 0) === $id) {
+                $rows[$i]['status'] = $status;
+                $rows[$i]['updated_at'] = date('Y-m-d H:i:s');
+                $found = true;
+                break;
+            }
+        }
+        return $found && comments_file_save($rows);
     }
     if ($db instanceof PDO) {
         try {
@@ -310,7 +399,17 @@ function comment_delete(int $id): bool
 {
     $db = comments_db();
     if ($db === null) {
-        return false;
+        $rows = comments_file_all();
+        $kept = [];
+        $found = false;
+        foreach ($rows as $r) {
+            if ((int) ($r['id'] ?? 0) === $id) {
+                $found = true;
+                continue;
+            }
+            $kept[] = $r;
+        }
+        return $found && comments_file_save($kept);
     }
     if ($db instanceof PDO) {
         try {
@@ -334,6 +433,11 @@ function comment_find(int $id): ?array
 {
     $db = comments_db();
     if ($db === null) {
+        foreach (comments_file_all() as $r) {
+            if ((int) ($r['id'] ?? 0) === $id) {
+                return $r;
+            }
+        }
         return null;
     }
     if ($db instanceof PDO) {

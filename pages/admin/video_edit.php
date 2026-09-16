@@ -36,13 +36,8 @@ $lessonIndex = course_lesson_index();
     <h2><?= $slug === '' ? 'ویدیوی جدید' : 'ویرایش ویدیو' ?></h2>
     <div class="admin-form-grid">
         <div class="field">
-            <label for="v-title">عنوان *</label>
+            <label for="v-title">نام *</label>
             <input class="input" id="v-title" type="text" name="title" value="<?= e($item['title'] ?? '') ?>" required maxlength="200">
-        </div>
-        <div class="field">
-            <label for="v-slug">نامک (خودکار اگر خالی)</label>
-            <input class="input" id="v-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی عنوان ساخته می‌شود">
-            <p class="field__help">حروفِ لاتین، عدد و خطِ تیره؛ اگر خالی بگذارید به‌صورتِ خودکار از عنوان ساخته می‌شود (عنوانِ فارسی هم نویسه‌گردانی می‌شود).</p>
         </div>
         <div class="field" style="grid-column:1/-1">
             <label for="v-excerpt">توضیح</label>
@@ -93,8 +88,12 @@ $lessonIndex = course_lesson_index();
     </div>
 
     <details class="admin-advanced">
-        <summary>پیشرفته</summary>
+        <summary>تنظیمات بیشتر (اختیاری)</summary>
         <div class="admin-form-grid">
+            <div class="field">
+                <label for="v-slug">نامک</label>
+                <input class="input" id="v-slug" type="text" name="slug" value="<?= e($item['slug'] ?? '') ?>" dir="ltr" maxlength="100" placeholder="از روی نام ساخته می‌شود">
+            </div>
             <div class="field">
                 <label for="v-seconds">مدت (ثانیه)</label>
                 <input class="input" id="v-seconds" type="number" name="seconds" value="<?= e((string) ($item['seconds'] ?? 0)) ?>" min="0" max="86400">
