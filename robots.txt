@@ -1,11 +1,5 @@
-# ============================================================
-#  HAvoice — robots.txt (نسخه‌ی ثابتِ پشتیبان)
-#
-#  حالتِ اصلی: در .htaccess نگاشته شده  robots.txt → robots.php
-#  تا خطِ Sitemap با نشانیِ مطلقِ واقعیِ سایت ساخته شود.
-#  این فایل فقط وقتی سرو می‌شود که mod_rewrite فعال نباشد؛
-#  در آن صورت خطِ Sitemap را با دامنه‌ی واقعی خودتان کامل کنید.
-# ============================================================
+# HAvoice — robots.txt
+# نسخهٔ ثابت برای سازگاری با InfinityFree و جلوگیری از وابستگی به mod_rewrite.
 
 User-agent: *
 Allow: /
@@ -21,4 +15,4 @@ Disallow: /includes/
 Disallow: /data/
 Disallow: /pages/
 
-# Sitemap: https://YOUR-DOMAIN/sitemap.php
+Sitemap: https://hajivoice.kesug.com/sitemap.xml
