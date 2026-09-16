@@ -15,7 +15,7 @@ if (!defined('HA_ROOT')) {
 /*  پیکربندی محلی (Production) — secrets هرگز در Git                  */
 /*                                                                    */
 /*  فایل config/config.local.php را از روی مثال بسازید و فقط روی      */
-/*  سرور نگه دارید. مقادیر HA_DB_* و HA_SITE_URL آنجا تعریف می‌شوند.  */
+/*  سرور نگه دارید. مقادیر HA_DB_* در آنجا تعریف می‌شوند.            */
 /* ------------------------------------------------------------------ */
 
 $haLocal = HA_ROOT . '/config/config.local.php';
@@ -30,11 +30,7 @@ if (is_file($haLocal)) {
 /** زیرپوشه‌ی نصب نسبت به ریشه‌ی دامنه. برای نصب در ریشه: '' */
 if (!defined('HA_BASE_PATH')) { define('HA_BASE_PATH', ''); }
 
-/**
- * مسیرِ ذخیره‌سازی (پیام‌ها، نشست‌ها، کاربران، محدودیت نرخ).
- *
- * مقدار خالی '' ⇒ پیش‌فرض: HA_ROOT/storage
- */
+/** مسیرِ ذخیره‌سازی (پیام‌ها، نشست‌ها، کاربران، محدودیت نرخ). */
 if (!defined('HA_STORAGE_PATH')) { define('HA_STORAGE_PATH', ''); }
 
 /** آدرس‌های کوتاه (/courses) به‌جای (?p=courses). نیاز به mod_rewrite دارد. */
@@ -42,9 +38,9 @@ if (!defined('HA_PRETTY_URLS')) { define('HA_PRETTY_URLS', false); }
 
 /**
  * نشانی مطلق سایت، بدون اسلش انتهایی.
- * برای canonical، og:url، sitemap و robots لازم است.
+ * برای canonical، og:url، sitemap و robots در Production قطعی می‌شود.
  */
-if (!defined('HA_SITE_URL')) { define('HA_SITE_URL', ''); }
+if (!defined('HA_SITE_URL')) { define('HA_SITE_URL', 'https://hajivoice.kesug.com'); }
 
 /* ------------------------------------------------------------------ */
 /*  اطلاعات هویتی                                                     */
@@ -91,9 +87,7 @@ if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }
 if (!defined('HA_DB_USER')) { define('HA_DB_USER', ''); }
 if (!defined('HA_DB_PASS')) { define('HA_DB_PASS', ''); }
 
-/**
- * Seed خودکار از data/*.php هنگام نخستین اتصال موفق (جداول خالی).
- */
+/** Seed خودکار از data/*.php هنگام نخستین اتصال موفق (جداول خالی). */
 if (!defined('HA_DB_AUTO_SEED')) { define('HA_DB_AUTO_SEED', false); }
 
 /** ایمیل/رمز ادمین اولیه فقط برای seed (در config.local تعریف کنید). */
