@@ -1,14 +1,23 @@
 # HAvoice — robots.txt
 # نسخهٔ ثابت برای سازگاری با InfinityFree و جلوگیری از وابستگی به mod_rewrite.
+# این فایل مرجعِ اصلی است و مستقیم سرو می‌شود (بدون Rewrite به robots.php).
 
 User-agent: *
 Allow: /
 Disallow: /index.php?p=search
 Disallow: /search
 Disallow: /index.php?p=login
+Disallow: /login
 Disallow: /index.php?p=register
+Disallow: /register
 Disallow: /index.php?p=account
+Disallow: /account
 Disallow: /index.php?p=logout
+Disallow: /logout
+Disallow: /index.php?p=progress
+Disallow: /progress
+Disallow: /index.php?p=admin
+Disallow: /admin
 Disallow: /storage/
 Disallow: /config/
 Disallow: /includes/
