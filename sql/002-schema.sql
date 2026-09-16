@@ -309,10 +309,13 @@ CREATE TABLE IF NOT EXISTS ha_contact_messages (
     email         VARCHAR(190) NOT NULL DEFAULT '',
     subject       VARCHAR(200) NOT NULL DEFAULT '',
     message       TEXT NOT NULL,
+    status        ENUM('unread','read') NOT NULL DEFAULT 'unread',
+    read_at       DATETIME NULL DEFAULT NULL,
     ip            VARCHAR(45)  NOT NULL DEFAULT '',
     created_at    DATETIME NOT NULL,
     PRIMARY KEY (id),
-    KEY idx_messages_created (created_at)
+    KEY idx_messages_created (created_at),
+    KEY idx_messages_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS ha_progress (

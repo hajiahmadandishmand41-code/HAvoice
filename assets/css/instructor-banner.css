@@ -1,33 +1,137 @@
 /* HAvoice — بنرِ فن‌بیان + عکسِ مدرس
    تصاویرِ واقعیِ پروژه (بدونِ فایلِ اضافه):
-     • assets/img/fanbayan-banner.webp   → بنرِ بالای صفحه‌ی اصلی
+     • assets/img/fanbayan-banner.webp   → بنرِ بالای صفحه‌ی اصلی (1600x640)
      • assets/img/instructor.jpg          → عکسِ مدرس (هیرو، بخشِ مدرس، صفحه‌ی درباره)
    مسیرِ هر دو تصویر از قالب (pages/home.php و pages/about.php) با helper
    asset() ساخته می‌شود؛ این فایل فقط قاب و اندازه را کنترل می‌کند.            */
 
 /* ---- ۱) بنرِ صفحه‌ی اصلی ------------------------------------------------- */
-.home-instructor-banner{padding:10px 0 0}
-.home-instructor-banner__card{position:relative;display:block;width:min(900px,100%);margin-inline:auto;overflow:hidden;border-radius:20px;background:var(--bg-ink,#0B1B3F);box-shadow:0 14px 34px rgba(5,15,35,.16)}
-.home-instructor-banner__art{display:block;width:100%;height:auto;max-width:100%}
+.home-instructor-banner {
+  padding: 14px 0 0;
+  width: 100%;
+}
+.home-instructor-banner__card {
+  position: relative;
+  display: block;
+  width: min(1140px, 100%);
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--bg-ink, #0B1B3F);
+  box-shadow: 0 16px 40px rgba(5, 15, 35, 0.20), 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.home-instructor-banner__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 50px rgba(5, 15, 35, 0.26), 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+.home-instructor-banner__art {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 1600 / 640;
+  object-fit: cover;
+  image-rendering: auto;
+}
 
 /* ---- ۲) عکسِ مدرس -------------------------------------------------------- */
-.instructor{box-shadow:0 14px 40px rgba(16,26,46,.10),0 3px 10px rgba(16,26,46,.06)}
-.instructor .instructor__media{display:grid;justify-items:center;gap:0}
-.instructor .instructor__avatar{position:relative;display:block;width:min(360px,78vw);height:min(360px,78vw);max-width:100%;margin-inline:auto;overflow:hidden;border:5px solid var(--brand);border-radius:26px;background:var(--bg-ink);box-shadow:0 0 0 7px var(--brand-soft),0 0 0 15px rgba(46,94,196,.10),0 26px 54px rgba(4,24,14,.28);transition:box-shadow .3s ease,transform .3s ease}
-.instructor .instructor__avatar img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 18%;border-radius:0;background:none;box-shadow:none;transition:transform .45s ease}
-.instructor:hover .instructor__avatar{transform:translateY(-3px)}
-.instructor:hover .instructor__avatar img{transform:scale(1.015)}
-.instructor .instructor__badge{position:relative;inset:auto;transform:none;z-index:2;display:inline-block;margin-top:-20px;padding:.42rem 1.05rem;border:2px solid var(--brand);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:0 8px 22px rgba(4,24,14,.18);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.instructor {
+  box-shadow: 0 14px 40px rgba(16, 26, 46, .10), 0 3px 10px rgba(16, 26, 46, .06);
+}
+.instructor .instructor__media {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+}
+.instructor .instructor__avatar {
+  position: relative;
+  display: block;
+  width: min(360px, 78vw);
+  height: min(360px, 78vw);
+  max-width: 100%;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 5px solid var(--brand);
+  border-radius: 26px;
+  background: var(--bg-ink);
+  box-shadow: 0 0 0 7px var(--brand-soft), 0 0 0 15px rgba(46, 94, 196, .10), 0 26px 54px rgba(4, 24, 14, .28);
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.instructor .instructor__avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transition: transform .45s ease;
+}
+.instructor:hover .instructor__avatar {
+  transform: translateY(-3px);
+}
+.instructor:hover .instructor__avatar img {
+  transform: scale(1.015);
+}
+.instructor .instructor__badge {
+  position: relative;
+  inset: auto;
+  transform: none;
+  z-index: 2;
+  display: inline-block;
+  margin-top: -20px;
+  padding: .42rem 1.05rem;
+  border: 2px solid var(--brand);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 22px rgba(4, 24, 14, .18);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-/* آواتارِ کوچکِ کنارِ نامِ مدرس در هیرو (اندازه را style.css تعیین می‌کند) */
-.hero__avatar{overflow:hidden;background:var(--bg-ink)}
-.hero__avatar img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+/* آواتارِ کوچکِ کنارِ نامِ مدرس در هیرو */
+.hero__avatar {
+  overflow: hidden;
+  background: var(--bg-ink);
+}
+.hero__avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 12%;
+}
 
 /* ---- ۳) واکنش‌گرایی ------------------------------------------------------ */
-@media (max-width:767.98px){
-  .home-instructor-banner{padding-top:8px}
-  .home-instructor-banner__card{width:100%;border-radius:15px}
-  .instructor .instructor__avatar{width:min(360px,82vw);height:min(360px,82vw)}
+@media (max-width: 767.98px) {
+  .home-instructor-banner {
+    padding-top: 8px;
+  }
+  .home-instructor-banner__card {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .instructor .instructor__avatar {
+    width: min(360px, 82vw);
+    height: min(360px, 82vw);
+  }
 }
-@media (max-width:419.98px){.home-instructor-banner__card{border-radius:13px}}
-@media (prefers-reduced-motion:reduce){.instructor .instructor__avatar,.instructor .instructor__avatar img{transition:none}}
+@media (max-width: 419.98px) {
+  .home-instructor-banner__card {
+    border-radius: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .instructor .instructor__avatar,
+  .instructor .instructor__avatar img,
+  .home-instructor-banner__card {
+    transition: none;
+  }
+}

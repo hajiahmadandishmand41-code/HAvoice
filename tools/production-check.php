@@ -89,7 +89,8 @@ pc('ha_safe_next allows relative', ha_safe_next('/index.php?p=home') !== '' || h
 pc('e() escapes', e('<script>') === '&lt;script&gt;' || str_contains(e('<script>'), '&lt;'));
 pc('slugify strips junk', slugify('../etc/passwd') !== '../etc/passwd');
 
-/* 3. Upload guards */
+/* 3. Upload guards & files */
+pc('installer file present', is_file($root . '/install.php'));
 pc('upload kinds whitelist', isset(ha_upload_kinds()['image']['image/jpeg']));
 pc('uploads .htaccess exists', is_file($root . '/uploads/.htaccess'));
 pc('config .htaccess exists', is_file($root . '/config/.htaccess'));
@@ -97,6 +98,7 @@ pc('storage .htaccess exists', is_file($root . '/storage/.htaccess'));
 pc('config.local not in repo', !is_file($root . '/config/config.local.php') || true); // may exist locally
 pc('config.local.example exists', is_file($root . '/config/config.local.php.example'));
 pc('gitignore has config.local', str_contains((string) @file_get_contents($root . '/.gitignore'), 'config.local.php'));
+pc('gitignore has lock files', str_contains((string) @file_get_contents($root . '/.gitignore'), '*.lock'));
 pc('gitignore has users.json', str_contains((string) @file_get_contents($root . '/.gitignore'), 'users.json'));
 
 /* 4. Auth admin gate */
@@ -104,6 +106,8 @@ pc('auth_require_admin exists', function_exists('auth_require_admin'));
 pc('auth_is_admin exists', function_exists('auth_is_admin'));
 pc('bootstrap may_grant empty only', function_exists('auth_bootstrap_may_grant') && auth_bootstrap_may_grant(false, 0) && !auth_bootstrap_may_grant(true, 0) && !auth_bootstrap_may_grant(false, 1));
 pc('exercise_move route+file', route_exists('admin_exercise_move') && is_file($root . '/pages/admin/exercise_move.php'));
+pc('message_status route+file', route_exists('admin_message_status') && is_file($root . '/pages/admin/message_status.php'));
+pc('admin_message_unread_count exists', function_exists('admin_message_unread_count'));
 pc('upload magic bytes', function_exists('ha_upload_magic_ok'));
 
 /* 5. Routes */

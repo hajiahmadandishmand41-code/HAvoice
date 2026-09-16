@@ -107,6 +107,7 @@ $record = [
     'email'   => $clean(str_replace("\n", ' ', $email)),
     'subject' => $clean(str_replace("\n", ' ', $subject)),
     'message' => $clean($body),
+    'status'  => 'unread',
 ];
 
 /* ۷) ذخیره: اول دیتابیس (منبعِ حقیقتِ پنلِ مدیریت)، بعد فایلِ CSV

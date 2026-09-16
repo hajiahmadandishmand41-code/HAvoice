@@ -847,37 +847,89 @@ function contact_messages_read(): array
 }
 
 /**
- * همه‌ی پیام‌ها با شناسه‌ی پایدار.
+ * همه‌ی پیام‌ها با شناسه‌ی پایدار، وضعیت خوانده‌شده/خوانده‌نشده، فیلتر و جستجو.
  * ترتیب: تازه‌ترین اول (بر اساسِ time)، ولی ref به ترتیبِ ذخیره وابسته است
  * نه به ترتیبِ نمایش — پس جابه‌جاییِ نمایش، حذف را خراب نمی‌کند.
  *
  * @return array<int, array<string, mixed>>
  */
-function admin_messages_all(): array
+function admin_messages_all(?string $filterStatus = null, string $search = ''): array
 {
     $all = [];
-    /* دیتابیس منبعِ اصلی است؛ CSV و JSONِ پنل پشتیبان/میراثِ نصب‌های بدونِ DB. */
+    $seen = [];
+    $csvMeta = admin_load('messages_meta');
+
+    /* دیتابیس منبعِ اصلی حقیقت است */
     if (db_table_exists('ha_contact_messages')) {
-        foreach (db_messages_all(500) as $m) {
+        foreach (db_messages_all(1000, null, '') as $m) {
+            $key = ($m['time'] ?? '') . '|' . ($m['email'] ?? '');
+            $seen[$key] = true;
             $all[] = $m;
         }
     }
+
+    /* فایل CSV پشتیبان / نصب‌های بدون DB */
     foreach (contact_messages_read() as $i => $m) {
-        $m['ref'] = 'csv-' . $i;
+        $key = ($m['time'] ?? '') . '|' . ($m['email'] ?? '');
+        if (isset($seen[$key])) {
+            continue; // قبلاً از دیتابیس بارگذاری شده
+        }
+        $ref = 'csv-' . $i;
+        $m['ref']     = $ref;
+        $m['source']  = 'csv';
+        $m['status']  = $csvMeta[$ref]['status'] ?? 'unread';
+        $m['read_at'] = $csvMeta[$ref]['read_at'] ?? '';
+        $seen[$key]   = true;
         $all[] = $m;
     }
+
+    /* پیام‌های ثبت‌شده در JSON پنل */
     foreach (admin_load('messages') as $i => $m) {
         if (!is_array($m)) {
             continue;
         }
-        $m['ref']    = 'pan-' . $i;
-        $m['source'] = 'panel';
+        $key = ($m['time'] ?? '') . '|' . ($m['email'] ?? '');
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $ref = 'pan-' . $i;
+        $m['ref']     = $ref;
+        $m['source']  = 'panel';
+        $m['status']  = $m['status'] ?? ($csvMeta[$ref]['status'] ?? 'unread');
+        $m['read_at'] = $m['read_at'] ?? ($csvMeta[$ref]['read_at'] ?? '');
         $all[] = $m;
     }
+
+    /* فیلتر وضعیت */
+    if ($filterStatus === 'unread' || $filterStatus === 'read') {
+        $all = array_filter($all, static function ($item) use ($filterStatus) {
+            return ($item['status'] ?? 'unread') === $filterStatus;
+        });
+    }
+
+    /* جستجو */
+    $search = trim($search);
+    if ($search !== '') {
+        $all = array_filter($all, static function ($item) use ($search) {
+            $blob = ($item['name'] ?? '') . ' ' . ($item['email'] ?? '') . ' ' . ($item['subject'] ?? '') . ' ' . ($item['message'] ?? '');
+            return mb_stripos($blob, $search, 0, 'UTF-8') !== false;
+        });
+    }
+
     usort($all, static function (array $a, array $b): int {
         return strcmp((string) ($b['time'] ?? ''), (string) ($a['time'] ?? ''));
     });
-    return $all;
+    return array_values($all);
+}
+
+/** تعداد پیام‌های خوانده‌نشده (جدید) */
+function admin_message_unread_count(): int
+{
+    if (db_table_exists('ha_contact_messages')) {
+        return db_message_count('unread');
+    }
+    $all = admin_messages_all('unread');
+    return count($all);
 }
 
 /** اعتبارسنجیِ ref — فقط سه قالبِ csv-N، pan-N و db-N (شناسه‌ی ردیف) پذیرفته می‌شود. */
@@ -911,9 +963,33 @@ function admin_message_find(string $ref): ?array
     if (!is_array($item)) {
         return null;
     }
-    $item['ref']    = $ref;
-    $item['source'] = $parsed['source'] === 'csv' ? 'csv' : 'panel';
+    $csvMeta = admin_load('messages_meta');
+    $item['ref']     = $ref;
+    $item['source']  = $parsed['source'] === 'csv' ? 'csv' : 'panel';
+    $item['status']  = $item['status'] ?? ($csvMeta[$ref]['status'] ?? 'unread');
+    $item['read_at'] = $item['read_at'] ?? ($csvMeta[$ref]['read_at'] ?? '');
     return $item;
+}
+
+/** تغییر وضعیتِ خوانده‌شده/خوانده‌نشده پیام */
+function admin_message_set_status(string $ref, string $status): bool
+{
+    $parsed = admin_message_parse_ref($ref);
+    if ($parsed === null) {
+        return false;
+    }
+    $status = $status === 'read' ? 'read' : 'unread';
+
+    if ($parsed['source'] === 'db') {
+        return db_table_exists('ha_contact_messages') && db_message_set_status($parsed['index'], $status);
+    }
+
+    $meta = admin_load('messages_meta');
+    $meta[$ref] = [
+        'status'  => $status,
+        'read_at' => $status === 'read' ? date('Y-m-d H:i:s') : null,
+    ];
+    return admin_store('messages_meta', $meta);
 }
 
 /**

@@ -16,10 +16,12 @@ $totalAudios = count(array_filter(media_all(), static fn($m) => ($m['type'] ?? '
 $totalExercises = count(exercises_all());
 $totalTips = count(tips_all());
 $totalCategories = count(categories());
-/* همه‌ی پیام‌ها با ref پایدار — نه فقط JSON پنل و نه اندیس reverse */
-$allMessages = admin_messages_all();
-$totalMessages = count($allMessages);
-$commentCounts = comments_admin_counts();
+
+/* پیام‌های تماس و شمارنده‌ی خوانده‌نشده */
+$allMessages    = admin_messages_all();
+$totalMessages  = count($allMessages);
+$unreadMessages = admin_message_unread_count();
+$commentCounts  = comments_admin_counts();
 ?>
 
 <div class="admin-stats">
@@ -32,10 +34,13 @@ $commentCounts = comments_admin_counts();
     <div class="admin-stat"><strong><?= fa_num($totalVideos + $totalAudios) ?></strong><span>ویدیو/صوت</span></div>
     <div class="admin-stat"><strong><?= fa_num($totalExercises) ?></strong><span>تمرین</span></div>
     <div class="admin-stat"><strong><?= fa_num($totalTips) ?></strong><span>نکته</span></div>
-    <div class="admin-stat"><strong><?= fa_num($totalMessages) ?></strong><span>پیام</span></div>
+    <div class="admin-stat"><strong><?= fa_num($totalMessages) ?></strong><span>پیام تماس</span></div>
+    <?php if ($unreadMessages > 0): ?>
+        <div class="admin-stat admin-stat--warn"><strong><?= fa_num($unreadMessages) ?></strong><span>پیامِ جدید</span></div>
+    <?php endif; ?>
     <div class="admin-stat"><strong><?= fa_num($commentCounts['approved']) ?></strong><span>نظرِ منتشرشده</span></div>
     <?php if ($commentCounts['pending'] > 0): ?>
-    <div class="admin-stat admin-stat--warn"><strong><?= fa_num($commentCounts['pending']) ?></strong><span>نظرِ در انتظارِ تأیید</span></div>
+        <div class="admin-stat admin-stat--warn"><strong><?= fa_num($commentCounts['pending']) ?></strong><span>نظرِ در انتظار</span></div>
     <?php endif; ?>
 </div>
 
@@ -47,7 +52,12 @@ $commentCounts = comments_admin_counts();
         <a href="<?= e(url('admin_videos')) ?>"><?= ha_icon('play',18) ?> مدیریت ویدیوها</a>
         <a href="<?= e(url('admin_books')) ?>"><?= ha_icon('book',18) ?> مدیریت کتاب‌ها</a>
         <a href="<?= e(url('admin_users')) ?>"><?= ha_icon('user',18) ?> مدیریت کاربران</a>
-        <a href="<?= e(url('admin_messages')) ?>"><?= ha_icon('chat',18) ?> پیام‌های تماس</a>
+        <a href="<?= e(url('admin_messages')) ?>">
+            <?= ha_icon('chat',18) ?> پیام‌های تماس
+            <?php if ($unreadMessages > 0): ?>
+                <span class="admin-badge admin-badge--warn" style="margin-inline-start: 0.35rem;"><?= fa_num($unreadMessages) ?> جدید</span>
+            <?php endif; ?>
+        </a>
         <a href="<?= e(url('admin_comments')) ?>"><?= ha_icon('comment',18) ?> نظرات سایت</a>
         <a href="<?= e(url('admin_categories')) ?>"><?= ha_icon('compass',18) ?> مدیریت حوزه‌ها</a>
         <a href="<?= e(url('admin_settings')) ?>"><?= ha_icon('target',18) ?> تنظیمات سایت</a>
@@ -61,23 +71,39 @@ $commentCounts = comments_admin_counts();
     <?php else: ?>
         <div class="admin-table-wrap">
             <table class="admin-table">
-                <thead><tr><th>تاریخ</th><th>نام</th><th>موضوع</th><th>عملیات</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>وضعیت</th>
+                        <th>تاریخ</th>
+                        <th>نام فرستنده</th>
+                        <th>موضوع</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
                 <tbody>
                 <?php foreach (array_slice($allMessages, 0, 5) as $msg):
                     $ref = (string) ($msg['ref'] ?? '');
                     if ($ref === '') { continue; }
+                    $isUnread = ($msg['status'] ?? 'unread') === 'unread';
                 ?>
-                    <tr>
+                    <tr class="<?= $isUnread ? 'is-highlight' : '' ?>">
+                        <td>
+                            <?php if ($isUnread): ?>
+                                <span class="admin-badge admin-badge--warn">جدید</span>
+                            <?php else: ?>
+                                <span class="admin-badge admin-badge--ghost">خوانده‌شده</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="muted-sm"><?= e($msg['time'] ?? '') ?></td>
-                        <td><?= e($msg['name'] ?? '') ?></td>
-                        <td><?= e($msg['subject'] ?? '') ?></td>
+                        <td><strong><?= e($msg['name'] ?? '—') ?></strong></td>
+                        <td><?= e($msg['subject'] ?: 'بدونِ موضوع') ?></td>
                         <td><a class="btn btn--ghost btn--sm" href="<?= e(url('admin_message_view', ['slug' => $ref])) ?>">مشاهده</a></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-        <div class="admin-card__more"><a class="link-arrow" href="<?= e(url('admin_messages')) ?>">همه‌ی پیام‌ها</a></div>
+        <div class="admin-card__more"><a class="link-arrow" href="<?= e(url('admin_messages')) ?>">همه‌ی پیام‌ها (<?= fa_num($totalMessages) ?>)</a></div>
     <?php endif; ?>
 </div>
 
