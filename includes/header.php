@@ -56,7 +56,11 @@ $themeDark = '#0B1B3F';
 <?php endforeach; ?>
 
     <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
-    <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+    <?php /* پیش‌بارگذاریِ فونت: نشانی باید «بایت‌به‌بایت» با src در @font-face
+             (assets/css/style.css: url("../fonts/vazirmatn-var.woff2")) یکی باشد؛
+             وگرنه مرورگر آن را «استفاده‌نشده» گزارش می‌دهد (هشدارِ Search Console:
+             «was preloaded but not used»). پس عمداً بدونِ ?v= است. */ ?>
+    <link rel="preload" href="<?= e(asset('assets/fonts/vazirmatn-var.woff2', false)) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/learning.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/mobile-layout.css')) ?>">

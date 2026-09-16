@@ -24,7 +24,10 @@
 
 /* ===== ۰) فونت — self-hosted، بدونِ وابستگی به CDN =====================
    Vazirmatn (SIL Open Font License 1.1 — متنِ مجوز: assets/fonts/OFL.txt)
-   یک فایلِ متغیر همه‌ی وزن‌های ۱۰۰ تا ۹۰۰ را پوشش می‌دهد. */
+   یک فایلِ متغیر همه‌ی وزن‌های ۱۰۰ تا ۹۰۰ را پوشش می‌دهد.
+   توجه (کوپلینگ با preload): نشانیِ src در @font-face باید دقیقاً همان
+   فایلی باشد که در includes/header.php با rel="preload" می‌آید (بدونِ
+   ?v=)؛ در غیر این صورت مرورگر preload را «استفاده‌نشده» هشدار می‌دهد. */
 
 @font-face {
     font-family: "Vazirmatn";

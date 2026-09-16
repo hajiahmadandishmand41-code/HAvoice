@@ -3,15 +3,25 @@
    بخش‌ها: ابزارها | تم | منو | هدر | reveal | جستجوی زنده | پیشرفت دوره
           | تمرین‌ها (تایمر/مودال/تولیدگر موضوع) | نکته‌ها | فرم تماس | toast
    ========================================================================== */
+
+/* ---------------- ابزارهای خردِ مشترک (Global) ----------------
+   این کمک‌تابع‌ها عمداً در سطحِ بالای فایل (بیرون از IIFE) تعریف
+   شده‌اند تا هر دو IIFE این فایل — بدنه‌ی اصلی و adminBuilderModule —
+   به یک نمونه دسترسی داشته باشند. در اسکریپتِ کلاسیک، «var» در سطحِ
+   بالا روی window می‌نشیند؛ پس $/$$/fa عملاً گلوبال‌اند و خطای
+   «Uncaught ReferenceError: $ is not defined at adminBuilderModule»
+   (گزارشِ Google Search Console از main.js:975) رخ نمی‌دهد.
+   توجه: این پروژه jQuery ندارد و $ یعنی querySelector. */
+var $ = function (sel, root) { return (root || document).querySelector(sel); };
+var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+var FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+var fa = function (value) { return String(value).replace(/[0-9]/g, function (d) { return FA_DIGITS[+d]; }); };
+var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+
 (function () {
     'use strict';
 
-    /* ---------------- ابزارهای خرد ---------------- */
-    var $ = function (sel, root) { return (root || document).querySelector(sel); };
-    var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
-    var FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-    var fa = function (value) { return String(value).replace(/[0-9]/g, function (d) { return FA_DIGITS[+d]; }); };
-    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    /* ابزارهای خرد ($/$$/fa/pad) در سطحِ گلوبالِ همین فایل‌اند (بالا). */
 
     /* آیکون‌ها در PHP از یک sprite یکتا می‌آیند (includes/icons.php).
        در JS هم به‌جایِ گلیفِ یونیکدِ «✓» — که در برخی فونت‌ها/سیستم‌ها
