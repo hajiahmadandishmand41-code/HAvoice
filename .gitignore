@@ -14,8 +14,11 @@ storage/admin/*
 storage/users.json
 storage/users.json.tmp-*
 
-# Production secrets — هرگز commit نشود
+# Production secrets & locks — هرگز commit نشود
 config/config.local.php
+config/installed.lock
+storage/installed.lock
+*.lock
 .env
 .env.*
 !.env.example

@@ -28,86 +28,71 @@ if (is_file($haLocal)) {
 /* ------------------------------------------------------------------ */
 
 /** زیرپوشه‌ی نصب نسبت به ریشه‌ی دامنه. برای نصب در ریشه: '' */
-define('HA_BASE_PATH', '');
+if (!defined('HA_BASE_PATH')) { define('HA_BASE_PATH', ''); }
 
 /**
  * مسیرِ ذخیره‌سازی (پیام‌ها، نشست‌ها، کاربران، محدودیت نرخ).
  *
  * مقدار خالی '' ⇒ پیش‌فرض: HA_ROOT/storage
- * روی پلتفرم‌های read-only مثل Vercel، اگر storage موجود اما نوشتنی نباشد،
- * به‌صورت خودکار از پوشه‌ی موقتِ سیستم استفاده می‌شود (به storage_dir() مراجعه کنید).
- * می‌توانید با تنظیمِ این ثابت، مسیرِ دلخواه بدهید؛ مثلاً روی Vercel:
- *   define('HA_STORAGE_PATH', '/tmp/havoice-storage');
  */
-define('HA_STORAGE_PATH', '');
+if (!defined('HA_STORAGE_PATH')) { define('HA_STORAGE_PATH', ''); }
 
 /** آدرس‌های کوتاه (/courses) به‌جای (?p=courses). نیاز به mod_rewrite دارد. */
-define('HA_PRETTY_URLS', false);
+if (!defined('HA_PRETTY_URLS')) { define('HA_PRETTY_URLS', false); }
 
 /**
  * نشانی مطلق سایت، بدون اسلش انتهایی.
  * برای canonical، og:url، sitemap و robots لازم است.
- *
- * مقدار خالی ''  ⇒ تشخیص خودکار از HTTP_HOST (با اعتبارسنجی).
- * در Production بهتر است مقدار قطعی بگذارید، مثلاً:
- *   define('HA_SITE_URL', 'https://havoice.ir');
  */
-define('HA_SITE_URL', '');
+if (!defined('HA_SITE_URL')) { define('HA_SITE_URL', ''); }
 
 /* ------------------------------------------------------------------ */
 /*  اطلاعات هویتی                                                     */
 /* ------------------------------------------------------------------ */
 
-define('HA_NAME',  'حاجی احمد صالحی');
-define('HA_LEGAL', 'HAvoice');
-define('HA_TAGLINE', 'مدرس و پژوهشگر');
-define('HA_BRAND_FULL', 'حاجی احمد صالحی | مدرس و پژوهشگر');
-define('HA_EMAIL', 'hajiahmads299@gmail.com');
-define('HA_PHONE', '۰۷۶ ۶۴۸ ۶۲۹۹');
-define('HA_HOTLINE', '+98766486299');
+if (!defined('HA_NAME')) { define('HA_NAME', 'حاجی احمد صالحی'); }
+if (!defined('HA_LEGAL')) { define('HA_LEGAL', 'HAvoice'); }
+if (!defined('HA_TAGLINE')) { define('HA_TAGLINE', 'مدرس و پژوهشگر'); }
+if (!defined('HA_BRAND_FULL')) { define('HA_BRAND_FULL', 'حاجی احمد صالحی | مدرس و پژوهشگر'); }
+if (!defined('HA_EMAIL')) { define('HA_EMAIL', 'hajiahmads299@gmail.com'); }
+if (!defined('HA_PHONE')) { define('HA_PHONE', '۰۷۶ ۶۴۸ ۶۲۹۹'); }
+if (!defined('HA_HOTLINE')) { define('HA_HOTLINE', '+98766486299'); }
 
 /* ------------------------------------------------------------------ */
 /*  فرم تماس                                                          */
 /* ------------------------------------------------------------------ */
 
 /** ذخیره‌ی پیام‌ها در storage/messages/messages.csv */
-define('HA_STORE_MESSAGES', true);
+if (!defined('HA_STORE_MESSAGES')) { define('HA_STORE_MESSAGES', true); }
 
 /** ارسال ایمیل — روی InfinityFree معمولاً mail() مسدود است؛ پیش‌فرض خاموش. */
-define('HA_SEND_MAIL', false);
+if (!defined('HA_SEND_MAIL')) { define('HA_SEND_MAIL', false); }
 
 /* ------------------------------------------------------------------ */
 /*  امنیت و اشکال‌زدایی                                               */
 /* ------------------------------------------------------------------ */
 
 /** نمایش خطاها در خروجی. در Production حتماً false بماند. */
-define('HA_DEBUG', false);
+if (!defined('HA_DEBUG')) { define('HA_DEBUG', false); }
 
 /** انتقال اجباری به HTTPS (پس از فعال‌سازی SSL روی هاست). */
-define('HA_FORCE_HTTPS', false);
+if (!defined('HA_FORCE_HTTPS')) { define('HA_FORCE_HTTPS', false); }
 
 /** ارسال سرصفحه‌های امنیتی (CSP و…) از سمت PHP. */
-define('HA_SECURITY_HEADERS', true);
+if (!defined('HA_SECURITY_HEADERS')) { define('HA_SECURITY_HEADERS', true); }
 
 /* ------------------------------------------------------------------ */
-/*  دیتابیس «نظرات عمومی» (MySQL/MariaDB — InfinityFree)             */
-/*                                                                    */
-/*  در پنلِ هاست (InfinityFree → MySQL Databases) یک دیتابیس بسازید  */
-/*  و مقادیر زیر را با همان مشخصات پر کنید. تا وقتی خالی باشند،      */
-/*  صفحه‌ی نظرات پیامِ «در حالِ راه‌اندازی» می‌دهد و بقیه‌ی سایت      */
-/*  سالم می‌ماند. جدول در نخستین اتصالِ موفق خودکار ساخته می‌شود؛    */
-/*  نسخه‌ی دستی: sql/001-create-comments.sql (درون‌ریزی در phpMyAdmin). */
+/*  دیتابیس (MySQL/MariaDB — InfinityFree)                           */
 /* ------------------------------------------------------------------ */
 
-if (!defined('HA_DB_HOST')) { define('HA_DB_HOST', ''); }  // مثلاً sql123.epizy.com
+if (!defined('HA_DB_HOST')) { define('HA_DB_HOST', ''); }
 if (!defined('HA_DB_PORT')) { define('HA_DB_PORT', 3306); }
-if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }  // معمولاً همان نامِ کاربری
+if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }
 if (!defined('HA_DB_USER')) { define('HA_DB_USER', ''); }
 if (!defined('HA_DB_PASS')) { define('HA_DB_PASS', ''); }
 
 /**
  * Seed خودکار از data/*.php هنگام نخستین اتصال موفق (جداول خالی).
- * در Production پس از migrate دستی می‌توانید false بگذارید.
  */
 if (!defined('HA_DB_AUTO_SEED')) { define('HA_DB_AUTO_SEED', false); }
 
@@ -118,94 +103,38 @@ if (!defined('HA_SEED_ADMIN_NAME')) { define('HA_SEED_ADMIN_NAME', 'مدیر'); 
 
 /* ------------------------------------------------------------------ */
 /*  محدودیت نرخ (Rate Limit) فرم تماس                                 */
-/*                                                                    */
-/*  سیاست واقعی: حداکثر HA_RATE_LIMIT_MAX پیام موفق/ناموفق            */
-/*  در هر HA_RATE_LIMIT_WINDOW ثانیه، برای هر IP.                     */
-/*  پس از انقضای پنجره، شمارنده از صفر شروع می‌شود.                   */
 /* ------------------------------------------------------------------ */
 
-define('HA_RATE_LIMIT_MAX', 3);
-define('HA_RATE_LIMIT_WINDOW', 600);
-
-/**
- * فاصله‌ی زمانی بین دو ارسال از یک IP (ثانیه).
- * جلوی burst را حتی پیش از رسیدن به سقف می‌گیرد. ۰ ⇒ غیرفعال.
- */
-define('HA_RATE_LIMIT_MIN_INTERVAL', 20);
-
-/**
- * حداکثر تعداد فایلِ باقی‌مانده در storage/rate-limit.
- * اگر از این عدد بیشتر شود، قدیمی‌ترین‌ها پاک می‌شوند (جلوگیری از
- * پر شدن inode روی هاست اشتراکی).
- */
-define('HA_RATE_LIMIT_MAX_FILES', 400);
-
-/** عمر توکن CSRF (ثانیه). پس از انقضا، توکن تازه ساخته می‌شود. */
-define('HA_CSRF_TTL', 28800);
+if (!defined('HA_RATE_LIMIT_MAX')) { define('HA_RATE_LIMIT_MAX', 3); }
+if (!defined('HA_RATE_LIMIT_WINDOW')) { define('HA_RATE_LIMIT_WINDOW', 600); }
+if (!defined('HA_RATE_LIMIT_MIN_INTERVAL')) { define('HA_RATE_LIMIT_MIN_INTERVAL', 20); }
+if (!defined('HA_RATE_LIMIT_MAX_FILES')) { define('HA_RATE_LIMIT_MAX_FILES', 400); }
+if (!defined('HA_CSRF_TTL')) { define('HA_CSRF_TTL', 28800); }
 
 /* ------------------------------------------------------------------ */
 /*  فرم «نظرات عمومی»                                                 */
 /* ------------------------------------------------------------------ */
 
-/** حداکثر ارسالِ نظر از یک IP در هر پنجره (پنجره: همین ثابتِ زیر). */
 if (!defined('HA_COMMENTS_RATE_LIMIT_MAX')) { define('HA_COMMENTS_RATE_LIMIT_MAX', 3); }
-
-/** طولِ پنجره‌ی محدودیتِ نرخِ نظرات (ثانیه). */
 if (!defined('HA_COMMENTS_RATE_LIMIT_WINDOW')) { define('HA_COMMENTS_RATE_LIMIT_WINDOW', 900); }
-
-/** فاصله‌ی حداقلی بین دو ارسالِ نظر از یک IP (ثانیه). */
 if (!defined('HA_COMMENTS_RATE_LIMIT_MIN_INTERVAL')) { define('HA_COMMENTS_RATE_LIMIT_MIN_INTERVAL', 30); }
-
-/** تعدادِ نظراتِ تأییدشده در هر صفحه‌ی فهرست. */
 if (!defined('HA_COMMENTS_PER_PAGE')) { define('HA_COMMENTS_PER_PAGE', 10); }
 
 /* ------------------------------------------------------------------ */
 /*  حساب کاربری (ورود / ثبت‌نام)                                      */
-/*                                                                    */
-/*  کاربران در storage/users.json به‌صورت file-based ذخیره می‌شوند    */
-/*  (بدون دیتابیس). رمز عبور فقط به‌صورت هش password_hash() نگهداری   */
-/*  می‌شود و هرگز plaintext ذخیره نمی‌شود.                            */
 /* ------------------------------------------------------------------ */
 
-/** کمینه‌ی طول رمز عبور (نویسه). */
-define('HA_AUTH_MIN_PASSWORD', 8);
-
-/** حداکثر تلاشِ ورود از یک IP در هر HA_AUTH_RATE_LIMIT_WINDOW ثانیه. */
-define('HA_AUTH_LOGIN_RATE_LIMIT_MAX', 8);
-
-/** حداکثر ثبت‌نام از یک IP در هر پنجره (ضد ساختِ انبوهِ حساب). */
-define('HA_AUTH_REGISTER_RATE_LIMIT_MAX', 5);
-
-/** طول پنجره‌ی محدودیتِ نرخِ ورود/ثبت‌نام (ثانیه). */
-define('HA_AUTH_RATE_LIMIT_WINDOW', 600);
-
-/**
- * بیشینه‌ی زمانِ عدم‌فعالیتِ نشستِ کاربر (ثانیه).
- * پس از این مدت بدونِ هیچ درخواستی، نشست به‌صورتِ خودکار باطل می‌شود و
- * کاربر باید دوباره وارد شود (اثرِ لغزان است: با هر درخواست تمدید می‌شود).
- * ۰ ⇒ بدونِ انقضای زمانی.
- */
+if (!defined('HA_AUTH_MIN_PASSWORD')) { define('HA_AUTH_MIN_PASSWORD', 8); }
+if (!defined('HA_AUTH_LOGIN_RATE_LIMIT_MAX')) { define('HA_AUTH_LOGIN_RATE_LIMIT_MAX', 8); }
+if (!defined('HA_AUTH_REGISTER_RATE_LIMIT_MAX')) { define('HA_AUTH_REGISTER_RATE_LIMIT_MAX', 5); }
+if (!defined('HA_AUTH_RATE_LIMIT_WINDOW')) { define('HA_AUTH_RATE_LIMIT_WINDOW', 600); }
 if (!defined('HA_AUTH_SESSION_TTL')) { define('HA_AUTH_SESSION_TTL', 43200); }
 
 /* ------------------------------------------------------------------ */
-/*  آپلودِ فایل توسط مدیر (فایلِ کتاب/مقاله و تصویرِ جلد)              */
-/*                                                                    */
-/*  فایل‌ها در uploads/ (ریشه‌ی وب) با نامِ تصادفی و پسوندِ تأییدشده    */
-/*  ذخیره می‌شوند؛ اجرای اسکریپت در آن پوشه با .htaccess مسدود است.    */
+/*  آپلودِ فایل توسط مدیر                                             */
 /* ------------------------------------------------------------------ */
 
-/** سقفِ حجمِ هر فایلِ آپلودی (بایت). پیش‌فرض: ۸ مگابایت. */
 if (!defined('HA_UPLOAD_MAX_BYTES')) { define('HA_UPLOAD_MAX_BYTES', 8388608); }
-
-/**
- * سقفِ جداگانه برای ویدیو/پادکست (بایت). ۰ ⇒ همان سقفِ عمومی.
- *
- * توجه: هیچ‌گاه از سقفِ واقعیِ PHP (upload_max_filesize / post_max_size)
- * بیشتر اثر نمی‌کند — تابعِ ha_upload_max_bytes() کوچک‌ترینِ این‌ها را
- * برمی‌گرداند تا به مدیر قولِ بی‌جا ندهیم. روی میزبانیِ اشتراکی مثلِ
- * InfinityFree معمولاً آپلودِ ویدیوی بزرگ ممکن نیست؛ در آن حالت پیوندِ
- * آپارات/یوتیوب (امبدِ مجاز) مسیرِ پیشنهادی است.
- */
 if (!defined('HA_UPLOAD_MAX_MEDIA_BYTES')) { define('HA_UPLOAD_MAX_MEDIA_BYTES', 0); }
 
-define('HA_VERSION', '3.5.0');
+if (!defined('HA_VERSION')) { define('HA_VERSION', '3.5.0'); }

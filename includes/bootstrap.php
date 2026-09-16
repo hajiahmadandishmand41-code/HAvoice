@@ -103,6 +103,10 @@ if ($route === '') {
     http_response_code(404);
 }
 
+if ($route === 'install') {
+    redirect('install.php');
+}
+
 /* ۴۰۴ برای slug نامعتبر — بدون soft-404 */
 if ($route === 'article' && find_by_slug(all_articles_sorted(), $slug)[1] === null) {
     $route = '404'; http_response_code(404);
@@ -264,6 +268,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_tip_delete':
         case 'admin_category_delete':
         case 'admin_user_delete':
+        case 'admin_message_status':
         case 'admin_message_delete':
         case 'admin_comment_status':
         case 'admin_comment_delete':

@@ -82,8 +82,8 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
             <img class="home-instructor-banner__art"
                  src="<?= e($bannerArtwork) ?>"
                  alt="<?= e($bannerAlt) ?>"
-                 width="640"
-                 height="233"
+                 width="1600"
+                 height="640"
                  decoding="async"
                  fetchpriority="high">
         </div>

@@ -187,6 +187,9 @@ function db_schema_upgrade(PDO $pdo): void
     $try("ALTER TABLE ha_comments ADD COLUMN kind ENUM('comment','experience') NOT NULL DEFAULT 'comment'");
     $try("ALTER TABLE ha_comments ADD CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE SET NULL");
     $try("ALTER TABLE ha_progress ADD CONSTRAINT fk_progress_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE");
+    $try("ALTER TABLE ha_contact_messages ADD COLUMN status ENUM('unread','read') NOT NULL DEFAULT 'unread'");
+    $try("ALTER TABLE ha_contact_messages ADD COLUMN read_at DATETIME NULL DEFAULT NULL");
+    $try("ALTER TABLE ha_contact_messages ADD KEY idx_messages_status (status)");
 }
 
 function db_id_by_slug(string $table, string $slug): ?int
@@ -233,7 +236,7 @@ function db_table_exists(string $table): bool
         return $cache[$table];
     }
     $allowed = [
-        'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons', 'ha_articles',
+        'ha_schema_meta', 'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons', 'ha_articles',
         'ha_books', 'ha_media', 'ha_exercises', 'ha_tips', 'ha_research',
         'ha_users', 'ha_roles', 'ha_progress', 'ha_comments', 'ha_settings', 'ha_contact_messages',
     ];
@@ -1243,12 +1246,29 @@ function db_progress_set(string $userId, string $type, string $key, string $stat
 /* ------------------------------------------------------------------ */
 
 /** @return list<array<string,mixed>> */
-function db_messages_all(int $limit = 500): array
+function db_messages_all(int $limit = 500, ?string $status = null, string $search = ''): array
 {
-    $rows = db_all(
-        'SELECT id, name, email, subject, message, ip, created_at FROM ha_contact_messages
-         ORDER BY created_at DESC, id DESC LIMIT ' . max(1, min(2000, $limit))
-    );
+    $sql = 'SELECT id, name, email, subject, message, status, read_at, ip, created_at FROM ha_contact_messages';
+    $where = [];
+    $params = [];
+    if ($status === 'read' || $status === 'unread') {
+        $where[] = 'status = ?';
+        $params[] = $status;
+    }
+    $search = trim($search);
+    if ($search !== '') {
+        $where[] = '(name LIKE ? OR email LIKE ? OR subject LIKE ? OR message LIKE ?)';
+        $like = '%' . $search . '%';
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+    }
+    if ($where !== []) {
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+    }
+    $sql .= ' ORDER BY created_at DESC, id DESC LIMIT ' . max(1, min(2000, $limit));
+    $rows = db_all($sql, $params);
     $out = [];
     foreach ($rows as $r) {
         $out[] = [
@@ -1258,6 +1278,8 @@ function db_messages_all(int $limit = 500): array
             'email'   => (string) ($r['email'] ?? ''),
             'subject' => (string) ($r['subject'] ?? ''),
             'message' => (string) ($r['message'] ?? ''),
+            'status'  => ((string) ($r['status'] ?? 'unread')) === 'read' ? 'read' : 'unread',
+            'read_at' => (string) ($r['read_at'] ?? ''),
             'ip'      => (string) ($r['ip'] ?? ''),
             'source'  => 'db',
             'ref'     => 'db-' . (int) $r['id'],
@@ -1268,13 +1290,15 @@ function db_messages_all(int $limit = 500): array
 
 function db_message_save(array $record): bool
 {
+    $status = ($record['status'] ?? 'unread') === 'read' ? 'read' : 'unread';
     return db_exec(
-        'INSERT INTO ha_contact_messages (name, email, subject, message, ip, created_at) VALUES (?,?,?,?,?,?)',
+        'INSERT INTO ha_contact_messages (name, email, subject, message, status, ip, created_at) VALUES (?,?,?,?,?,?,?)',
         [
             (string) ($record['name'] ?? ''),
             (string) ($record['email'] ?? ''),
             (string) ($record['subject'] ?? ''),
             (string) ($record['message'] ?? ''),
+            $status,
             (string) ($record['ip'] ?? ''),
             (string) ($record['time'] ?? db_now()),
         ]
@@ -1283,13 +1307,36 @@ function db_message_save(array $record): bool
 
 function db_message_find(int $id): ?array
 {
-    $rows = db_messages_all(2000);
-    foreach ($rows as $m) {
-        if ((int) ($m['id'] ?? 0) === $id) {
-            return $m;
-        }
+    if ($id <= 0) {
+        return null;
     }
-    return null;
+    $r = db_one('SELECT id, name, email, subject, message, status, read_at, ip, created_at FROM ha_contact_messages WHERE id = ? LIMIT 1', [$id]);
+    if (!$r) {
+        return null;
+    }
+    return [
+        'id'      => (int) $r['id'],
+        'time'    => (string) ($r['created_at'] ?? ''),
+        'name'    => (string) ($r['name'] ?? ''),
+        'email'   => (string) ($r['email'] ?? ''),
+        'subject' => (string) ($r['subject'] ?? ''),
+        'message' => (string) ($r['message'] ?? ''),
+        'status'  => ((string) ($r['status'] ?? 'unread')) === 'read' ? 'read' : 'unread',
+        'read_at' => (string) ($r['read_at'] ?? ''),
+        'ip'      => (string) ($r['ip'] ?? ''),
+        'source'  => 'db',
+        'ref'     => 'db-' . (int) $r['id'],
+    ];
+}
+
+function db_message_set_status(int $id, string $status): bool
+{
+    if ($id <= 0) {
+        return false;
+    }
+    $status = $status === 'read' ? 'read' : 'unread';
+    $readAt = $status === 'read' ? db_now() : null;
+    return db_exec('UPDATE ha_contact_messages SET status = ?, read_at = ? WHERE id = ?', [$status, $readAt, $id]);
 }
 
 function db_message_delete(int $id): bool
@@ -1297,9 +1344,13 @@ function db_message_delete(int $id): bool
     return $id > 0 && db_exec('DELETE FROM ha_contact_messages WHERE id = ?', [$id]);
 }
 
-function db_message_count(): int
+function db_message_count(?string $status = null): int
 {
-    $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages');
+    if ($status === 'unread' || $status === 'read') {
+        $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages WHERE status = ?', [$status]);
+    } else {
+        $r = db_one('SELECT COUNT(*) AS c FROM ha_contact_messages');
+    }
     return (int) ($r['c'] ?? 0);
 }
 
