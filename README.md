@@ -39,10 +39,11 @@
 ```
 HAvoice/
 ├── index.php                  نقطه‌ی ورود (هاست همین فایل را در ریشه باز می‌کند)
-├── sitemap.php                نقشه‌ی سایت XML با نشانی مطلق + lastmod
-├── robots.php                 robots.txt پویا (خط Sitemap با دامنه‌ی واقعی)
-├── robots.txt                 نسخه‌ی ثابتِ پشتیبان (وقتی mod_rewrite نباشد)
-├── .htaccess                  امنیت + فشرده‌سازی + 404 + نگاشت robots/sitemap + URL کوتاه (اختیاری)
+├── sitemap.xml                نقشه‌ی سایتِ ثابت و مرجعِ اصلی (Google Search Console همین را می‌خواند)
+├── sitemap.php                نسخه‌ی پویایِ پشتیبان با نشانی مطلق + lastmod (خروجیِ تمیزِ XML)
+├── robots.txt                 نسخه‌ی ثابت و مرجعِ اصلی (شامل خطِ Sitemap مطلق)
+├── robots.php                 robots.txt پویایِ پشتیبان (خط Sitemap با دامنه‌ی واقعی)
+├── .htaccess                  امنیت + فشرده‌سازی + 404 + سروِ مستقیمِ sitemap.xml/robots.txt + URL کوتاه (اختیاری)
 ├── vercel.json                استقرارِ بدونِ سرورِ ثابت (Vercel) — storage به مسیرِ موقت برمی‌گردد
 ├── config/
 │   ├── config.php             تنظیماتِ پیش‌فرض: نام، ایمیل، سقف آپلود، محدودیت فرم، نسخه

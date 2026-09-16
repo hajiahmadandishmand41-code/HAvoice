@@ -26,6 +26,11 @@ DirectoryIndex index.php index.html
     # RewriteCond %{HTTPS} !=on
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+    # Sitemap/Robots — نسخه‌های ثابت (sitemap.xml و robots.txt) مرجعِ اصلی‌اند
+    # و همیشه مستقیم سرو می‌شوند؛ هیچ Rewriteای به نسخه‌های PHP نباید اعمال شود
+    # (جلوگیری از خروجیِ دوگانه، تداخل و حلقه‌ی بازنویسی روی InfinityFree).
+    RewriteRule ^(sitemap\.xml|robots\.txt)$ - [L]
+
     # فایل/پوشه‌ی واقعی مستقیم سرو شود
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
@@ -33,12 +38,12 @@ DirectoryIndex index.php index.html
 
     # URL کوتاه ==> index.php?r=… (فقط وقتی HA_PRETTY_URLS = true)
     # RewriteRule ^([a-z0-9_\-/]+)/?$ index.php?r=$1 [QSA,L]
+</IfModule>
 
-    # sitemap.xml -> sitemap.php
-    RewriteRule ^sitemap\.xml$ sitemap.php [L]
-
-    # robots.txt -> robots.php (نسخه‌ی پویا با نشانیِ مطلقِ Sitemap)
-    RewriteRule ^robots\.txt$ robots.php [L]
+<IfModule mod_mime.c>
+    # Content-Type قطعی برای خزنده‌ها، مستقل از پیکربندیِ پیش‌فرضِ میزبان
+    AddType application/xml .xml
+    AddType text/plain .txt
 </IfModule>
 
 <IfModule mod_headers.c>
@@ -57,6 +62,9 @@ DirectoryIndex index.php index.html
     </FilesMatch>
     <FilesMatch "\.(html|php)$">
         Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "^(sitemap\.xml|robots\.txt)$">
+        Header set Cache-Control "public, max-age=3600"
     </FilesMatch>
 </IfModule>
 

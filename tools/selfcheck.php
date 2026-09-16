@@ -883,18 +883,32 @@ if (!$wantHttp) {
         }
         check('سرصفحه‌ی X-Powered-By حذف/پنهان است', stripos($h, 'x-powered-by') === false, 'در سطحِ PHP نیز خاموش شده');
 
-        /* robots و sitemap */
-        $rb = http_get($baseUrl . '/robots.php');
-        check('robots.php در دسترس', $rb !== null && $rb['status'] === 200);
+        /* robots و sitemap — نسخه‌های ثابت مرجعِ اصلی‌اند، نسخه‌های PHP پشتیبان */
+        $rb = http_get($baseUrl . '/robots.txt');
+        check('robots.txt در دسترس', $rb !== null && $rb['status'] === 200);
         if ($rb !== null) {
-            check('robots.php: خطِ Sitemap مطلق', (bool) preg_match('#Sitemap: https?://#', $rb['body']));
+            check('robots.txt: خطِ Sitemap مطلق', (bool) preg_match('#Sitemap: https?://\S+/sitemap\.xml#', $rb['body']));
         }
-        $sm = http_get($baseUrl . '/sitemap.php');
-        check('sitemap.php در دسترس', $sm !== null && $sm['status'] === 200);
+        $rbDyn = http_get($baseUrl . '/robots.php');
+        check('robots.php در دسترس', $rbDyn !== null && $rbDyn['status'] === 200);
+        if ($rbDyn !== null) {
+            check('robots.php: خطِ Sitemap مطلق', (bool) preg_match('#Sitemap: https?://#', $rbDyn['body']));
+        }
+        $sm = http_get($baseUrl . '/sitemap.xml');
+        check('sitemap.xml در دسترس', $sm !== null && $sm['status'] === 200);
         if ($sm !== null) {
             $locs = preg_match_all('/<loc>/', $sm['body']);
-            check('sitemap: همه‌ی loc مطلق', !preg_match('/<loc>\/|<loc>index\.php/', $sm['body']), "{$locs} نشانی");
-            check('sitemap: XML معتبر', @simplexml_load_string($sm['body']) !== false || !function_exists('simplexml_load_string'),
+            check('sitemap.xml: همه‌ی loc مطلق', !preg_match('/<loc>\/|<loc>index\.php/', $sm['body']), "{$locs} نشانی");
+            check('sitemap.xml: تک urlset', substr_count($sm['body'], '<urlset') === 1 && substr_count($sm['body'], '</urlset>') === 1);
+            check('sitemap.xml: XML معتبر', @simplexml_load_string($sm['body']) !== false || !function_exists('simplexml_load_string'),
+                function_exists('simplexml_load_string') ? '' : 'simplexml نصب نیست', !function_exists('simplexml_load_string'));
+        }
+        $smDyn = http_get($baseUrl . '/sitemap.php');
+        check('sitemap.php در دسترس', $smDyn !== null && $smDyn['status'] === 200);
+        if ($smDyn !== null) {
+            $locsDyn = preg_match_all('/<loc>/', $smDyn['body']);
+            check('sitemap.php: همه‌ی loc مطلق', !preg_match('/<loc>\/|<loc>index\.php/', $smDyn['body']), "{$locsDyn} نشانی");
+            check('sitemap.php: XML معتبر', @simplexml_load_string($smDyn['body']) !== false || !function_exists('simplexml_load_string'),
                 function_exists('simplexml_load_string') ? '' : 'simplexml نصب نیست', !function_exists('simplexml_load_string'));
         }
     }
