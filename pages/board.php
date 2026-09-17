@@ -86,9 +86,9 @@ $flash = flash();
                 <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
                 <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
                 <div class="field">
-                    <label for="b-body">متن پست <span class="req">*</span></label>
-                    <textarea id="b-body" name="body" class="input" required minlength="3" maxlength="5000" rows="4" placeholder="چی تو ذهنت هست؟ تجربه، سوال، انگیزه..."></textarea>
-                    <p class="field__help">۳ تا ۵۰۰۰ نویسه. لینک زیاد نه.</p>
+                    <label for="b-body">متن پست <span class="muted-sm">(اختیاری)</span></label>
+                    <textarea id="b-body" name="body" class="input" maxlength="5000" rows="4" placeholder="چی تو ذهنت هست؟ تجربه، سوال، انگیزه..."></textarea>
+                    <p class="field__help">متن اختیاری است؛ می‌توانید متن، تصویر یا رسانه منتشر کنید. حداکثر ۵۰۰۰ نویسه.</p>
                 </div>
                 <div class="grid grid--2">
                     <div class="field">
