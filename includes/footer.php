@@ -98,6 +98,15 @@ $js_config = [
 ];
 ?>
 <script id="ha-config" type="application/json"><?= json_encode($js_config, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<script>
+/* Shared DOM helpers: main.js has a legacy admin module outside its IIFE. */
+window.$ = window.$ || function (selector, root) {
+    return (root || document).querySelector(selector);
+};
+window.$$ = window.$$ || function (selector, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(selector));
+};
+</script>
 <script src="<?= e(asset('assets/js/main.js')) ?>" defer></script>
 <script src="<?= e(asset('assets/js/interactions.js')) ?>" defer></script>
 <script src="<?= e(asset('assets/js/board.js')) ?>" defer></script>
