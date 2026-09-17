@@ -63,6 +63,7 @@ $themeDark = '#0B1B3F';
     <link rel="stylesheet" href="<?= e(asset('assets/css/instructor-banner.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/media.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/interactions.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/board.css')) ?>">
     <script src="<?= e(asset('assets/js/theme.js')) ?>"></script>
 </head>
 <body class="route-<?= e($route) ?>">

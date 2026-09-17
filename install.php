@@ -100,6 +100,8 @@ $dirsToCheck = [
     'storage/messages'     => HA_ROOT . '/storage/messages',
     'storage/rate-limit'   => HA_ROOT . '/storage/rate-limit',
     'storage/admin'        => HA_ROOT . '/storage/admin',
+    'storage/board'        => HA_ROOT . '/storage/board',
+    'storage/interactions' => HA_ROOT . '/storage/interactions',
     'uploads'              => HA_ROOT . '/uploads',
 ];
 
@@ -214,8 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
                             KEY idx_messages_status (status)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
 
-                        // تضمین ثبت Schema Version 4
-                        $pdo->prepare("INSERT INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '4')
+                        // تضمین ثبت Schema Version 6
+                        $pdo->prepare("INSERT INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '6')
                                        ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)")
                             ->execute();
 
@@ -293,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
                         // ایجاد قفل نصب
                         $lockData = [
                             'installed_at'   => date('c'),
-                            'schema_version' => '4',
+                            'schema_version' => '6',
                             'app_version'    => HA_INSTALLER_VERSION,
                             'db_host'        => $dbHost,
                             'db_name'        => $dbName,
@@ -839,7 +841,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
                         </tr>
                         <tr>
                             <td>ساختار جداول (Schema v4)</td>
-                            <td><span class="badge badge--ok">۱۷ جدول با قیدهای کلید خارجی ساخته شد</span></td>
+                            <td><span class="badge badge--ok">۲۳ جدول با قیدهای کلید خارجی ساخته شد</span></td>
                         </tr>
                         <tr>
                             <td>حوزه‌های آموزشی و محتوای پایه</td>

@@ -34,6 +34,7 @@ function nav_items(): array
 {
     $routes = [
         'home'      => 'خانه',
+        'board'     => 'تابلوی مجازی',
         'courses'   => 'دوره‌ها',
         'articles'  => 'مقالات',
         'videos'    => 'ویدیو',
@@ -351,6 +352,13 @@ function routes(): array
         'reaction'        => ['file' => 'home.php', 'pretty' => 'reaction', 'title' => 'واکنش', 'session' => true, 'banner' => false],
         'content_comment' => ['file' => 'home.php', 'pretty' => 'content-comment', 'title' => 'نظر محتوا', 'session' => true, 'banner' => false],
         'comment_like'    => ['file' => 'home.php', 'pretty' => 'comment-like', 'title' => 'پسند نظر', 'session' => true, 'banner' => false],
+        // Virtual Board v6
+        'board'             => ['file' => 'board.php', 'pretty' => 'board', 'title' => 'تابلوی مجازی', 'auth' => true, 'session' => true],
+        'board_post'        => ['file' => 'home.php', 'pretty' => 'board-post', 'title' => 'پست تابلو', 'session' => true, 'banner' => false],
+        'board_reaction'    => ['file' => 'home.php', 'pretty' => 'board-reaction', 'title' => 'واکنش تابلو', 'session' => true, 'banner' => false],
+        'board_comment'     => ['file' => 'home.php', 'pretty' => 'board-comment', 'title' => 'نظر تابلو', 'session' => true, 'banner' => false],
+        'board_comment_like'=> ['file' => 'home.php', 'pretty' => 'board-comment-like', 'title' => 'پسند نظر تابلو', 'session' => true, 'banner' => false],
+        'profile'           => ['file' => 'profile.php', 'pretty' => 'profile', 'title' => 'پروفایل', 'auth' => true, 'session' => true],
         // Admin routes
         'admin'                 => ['file' => 'admin/dashboard.php',      'pretty' => 'admin',         'title' => 'پنل مدیریت',      'admin' => true],
         'admin_courses'         => ['file' => 'admin/courses.php',        'pretty' => 'admin/courses', 'title' => 'مدیریت دوره‌ها',   'admin' => true],
@@ -404,6 +412,20 @@ function routes(): array
         'admin_settings'        => ['file' => 'admin/settings.php',       'pretty' => 'admin/settings','title' => 'تنظیمات سایت',      'admin' => true],
         'admin_settings_save'   => ['file' => 'admin/settings_save.php',  'pretty' => 'admin/settings-save','title' => 'ذخیره تنظیمات','admin' => true],
         'admin_content_status'  => ['file' => 'admin/content_status.php', 'pretty' => 'admin/content-status','title' => 'تغییر وضعیت انتشار','admin' => true],
+        // Board admin
+        'admin_board'           => ['file' => 'admin/board.php', 'pretty' => 'admin/board','title' => 'مدیریت تابلوی مجازی','admin' => true],
+        'admin_board_status'    => ['file' => 'admin/board_status.php', 'pretty' => 'admin/board-status','title' => 'وضعیت پست تابلو','admin' => true],
+        'admin_board_delete'    => ['file' => 'admin/board_delete.php', 'pretty' => 'admin/board-del','title' => 'حذف پست تابلو','admin' => true],
+        'admin_board_comments'  => ['file' => 'admin/board_comments.php', 'pretty' => 'admin/board-comments','title' => 'نظرات تابلو','admin' => true],
+        'admin_board_comment_status' => ['file' => 'admin/board_comment_status.php', 'pretty' => 'admin/board-comment-status','title' => 'وضعیت نظر تابلو','admin' => true],
+        'admin_board_comment_delete' => ['file' => 'admin/board_comment_delete.php', 'pretty' => 'admin/board-comment-del','title' => 'حذف نظر تابلو','admin' => true],
+        'admin_board_reactions' => ['file' => 'admin/board_reactions.php', 'pretty' => 'admin/board-reactions','title' => 'واکنش‌های تابلو','admin' => true],
+        'admin_board_reaction_delete' => ['file' => 'admin/board_reaction_delete.php', 'pretty' => 'admin/board-reaction-del','title' => 'حذف واکنش تابلو','admin' => true],
+        'admin_content_comments' => ['file' => 'admin/content_comments.php', 'pretty' => 'admin/content-comments','title' => 'نظرات محتوا','admin' => true],
+        'admin_content_comment_status' => ['file' => 'admin/content_comment_status.php', 'pretty' => 'admin/content-comment-status','title' => 'وضعیت نظر محتوا','admin' => true],
+        'admin_content_comment_delete' => ['file' => 'admin/content_comment_delete.php', 'pretty' => 'admin/content-comment-del','title' => 'حذف نظر محتوا','admin' => true],
+        'admin_content_reactions' => ['file' => 'admin/content_reactions.php', 'pretty' => 'admin/content-reactions','title' => 'واکنش‌های محتوا','admin' => true],
+        'admin_content_reaction_delete' => ['file' => 'admin/content_reaction_delete.php', 'pretty' => 'admin/content-reaction-del','title' => 'حذف واکنش محتوا','admin' => true],
     ];
     return $table;
 }
