@@ -19,7 +19,7 @@ $mediaUrl = trim((string)($_POST['media_url'] ?? ''));
 $mediaType = trim((string)($_POST['media_type'] ?? '')) ?: null;
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 
-// handle image upload (optional)
+// Handle image upload (optional).
 $imagePath = '';
 if (isset($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
     $kindMap = ha_upload_kinds()['image'] ?? ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
@@ -31,12 +31,68 @@ if (isset($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE)
     $imagePath = $up['path'] ?? '';
 }
 
+// A post may contain text, an uploaded image, an external media URL, or any combination.
 if ($body === '' && $imagePath === '' && $mediaUrl === '') {
-    flash('error','متن یا تصویر یا رسانه الزامی است.');
+    flash('error','حداقل یکی از متن، تصویر یا رسانه را اضافه کنید.');
     redirect($backUrl.'#new-post');
 }
 
-$res = ha_board_post_add($userId, $body, $imagePath, $mediaUrl, $mediaType, $ip);
+// Strengthen media validation for media-only posts because the legacy board validator
+// still expects at least three body characters. Text-bearing posts continue through it.
+if ($body === '' && ($imagePath !== '' || $mediaUrl !== '')) {
+    if ($imagePath !== '' && ha_safe_file_url($imagePath) === '') {
+        flash('error','تصویر نامعتبر.');
+        redirect($backUrl.'#new-post');
+    }
+    if ($mediaUrl !== '') {
+        if (strlen($mediaUrl) > 500 || ha_safe_media_url($mediaUrl) === '') {
+            flash('error','لینک رسانه نامعتبر یا غیرمجاز است.');
+            redirect($backUrl.'#new-post');
+        }
+    }
+
+    // Reuse the same DB/fallback shape as the normal board writer without inserting
+    // a fake visible body merely to satisfy the older text-minimum validation.
+    if (db_ready() && db_table_exists('ha_board_posts')) {
+        $id = db_board_post_add($userId, '', $imagePath, $mediaUrl, $mediaType, $ip);
+        $res = $id ? ['ok'=>true,'id'=>$id] : ['ok'=>false,'error'=>'db'];
+    } else {
+        $file = ha_board_posts_file();
+        $data = [];
+        if (is_file($file)) {
+            $raw = @file_get_contents($file);
+            $d = json_decode((string)$raw, true);
+            if (is_array($d)) $data = $d;
+        }
+        $max = 0;
+        foreach ($data as $r) $max = max($max, (int)($r['id'] ?? 0));
+        $id = $max + 1;
+        $now = date('c');
+        $data[] = [
+            'id'=>$id,
+            'user_id'=>$userId,
+            'body'=>'',
+            'image'=>$imagePath,
+            'media_url'=>$mediaUrl,
+            'media_type'=>$mediaType,
+            'status'=>'approved',
+            'likes_count'=>0,
+            'reactions_count'=>0,
+            'comments_count'=>0,
+            'views_count'=>0,
+            'ip'=>$ip,
+            'created_at'=>$now,
+            'updated_at'=>$now,
+        ];
+        $tmp = $file.'.tmp-'.bin2hex(random_bytes(4));
+        $ok = @file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX) !== false && @rename($tmp,$file);
+        if (!$ok && is_file($tmp)) @unlink($tmp);
+        $res = $ok ? ['ok'=>true,'id'=>$id] : ['ok'=>false,'error'=>'storage'];
+    }
+} else {
+    $res = ha_board_post_add($userId, $body, $imagePath, $mediaUrl, $mediaType, $ip);
+}
+
 if (!$res['ok']) {
     $msg = 'خطا در ثبت پست.';
     if (($res['error'] ?? '') === 'validation') $msg = implode(' ', (array)($res['messages'] ?? []));
