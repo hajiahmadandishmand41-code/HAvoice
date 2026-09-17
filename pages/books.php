@@ -116,6 +116,8 @@ if ($slug!=='') {
                 </section>
             <?php endif; ?>
 
+            <?= ha_interaction_block('book', (string)($book['slug'] ?? $slug)) ?>
+
             <?php if($related): ?>
                 <section class="sub-section">
                     <div class="sub-section__head">

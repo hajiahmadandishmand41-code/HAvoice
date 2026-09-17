@@ -55,6 +55,9 @@ if ($cat !== '' && isset($categories[$cat])) {
         </nav>
 <?php endif; ?>
 
+        <?php foreach ($tipsToShow as $tip): $tslug = slugify((string)($tip['id'] ?? $tip['tip_key'] ?? '')); if($tslug!==''): ?>
+            <div id="ha-tip-<?= e($tslug) ?>" style="margin-bottom:1rem"><?= ha_interaction_block('tip', $tslug) ?></div>
+        <?php endif; endforeach; ?>
         <div class="grid grid--3">
 <?php foreach ($tipsToShow as $tip): ?>
             <div class="reveal"><?= tip_card($tip) ?></div>

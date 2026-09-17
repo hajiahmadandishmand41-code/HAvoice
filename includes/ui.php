@@ -1,20 +1,7 @@
 <?php
 /**
- * HAvoice — اجزای UI (Design System v4)
- *
- * هر نوع محتوا کارتِ مخصوصِ خودش را دارد و هیچ‌کدام اطلاعاتِ اضافی
- * نشان نمی‌دهند:
- *
- *   دوره      → کاور + عنوان + توضیحِ کوتاه + تعدادِ درس + زمان + دکمه
- *   درس       → شماره + عنوان + هدف + زمان + وضعیتِ «انجام شد»
- *   مقاله    → کاور + عنوان + خلاصه + تاریخ/دسته
- *   ویدیو     → بندانگشتی + عنوان + مدت + دکمه‌ی پخش
- *   صوت       → کاور + عنوان + مدت + پخش‌کننده
- *   کتاب       → جلد + عنوان + نویسنده + خلاصه
- *   تمرین      → سطح + تمرکز + عنوان + هدف + گام‌ها + دکمه‌ی شروع
- *
- * کاورها گرادیانی‌اند و رنگشان از رنگِ همان «حوزه» می‌آید (بدونِ عکسِ
- * جعلی و بدونِ درخواستِ شبکه).
+ * HAvoice — اجزای UI (Design System v4 + Media Pro)
+ * کارت‌های حرفه‌ای با Progressive Loading/Streaming
  */
 
 if (!defined('HA_ROOT')) {
@@ -25,10 +12,6 @@ if (!defined('HA_ROOT')) {
 /*  کمکی: رنگِ حوزه → متغیرهای گرادیانِ کاور                           */
 /* ------------------------------------------------------------------ */
 
-/**
- * style مربوط به کاورِ کارت را از رنگِ حوزه می‌سازد.
- * اگر حوزه پیدا نشود، از رنگِ پیش‌فرضِ برند استفاده می‌شود.
- */
 function card_style(?array $cat, array $extra = []): string
 {
     $vars = [];
@@ -46,7 +29,6 @@ function card_style(?array $cat, array $extra = []): string
     return implode(';', $vars) . ';';
 }
 
-/** برچسبِ کوتاهِ حوزه برای نمایش روی کارت. */
 function cat_label(?array $cat, string $fallback = ''): string
 {
     if ($cat === null) {
@@ -59,14 +41,6 @@ function cat_label(?array $cat, string $fallback = ''): string
 /*  سرصفحه‌ی بخش                                                       */
 /* ------------------------------------------------------------------ */
 
-/**
- * سرصفحه‌ی یک بخش.
- *
- * کلیدها: eyebrow, title, lead, action{label,url,type}, row(bool)
- *   action.type = 'button' ⇒ دکمه‌ی «مشاهده همه» (الگوی صفحه‌ی اصلی)
- *   در غیر این صورت        ⇒ پیوندِ متنی با فلش
- *   row = true             ⇒ عنوان راست، دکمه چپ، در یک ردیف
- */
 function section_head(array $s, string $class = ''): string
 {
     $isRow   = !empty($s['row']);
@@ -119,15 +93,6 @@ function section_head(array $s, string $class = ''): string
 /*  کاورِ مشترکِ کارت‌ها                                               */
 /* ------------------------------------------------------------------ */
 
-/**
- * پنلِ گرادیانیِ بالای کارت.
- *
- * @param string $icon   نامِ آیکونِ حوزه
- * @param string $tag    برچسبِ کوتاهِ روی کاور (دسته/نوع)
- * @param string $badge  برچسبِ گوشه (مثلاً مدتِ زمان)
- * @param string $style  متغیرهای رنگ
- * @param string $mod    کلاسِ افزوده (card-media--audio و…)
- */
 function card_media(string $icon, string $tag = '', string $badge = '', string $style = '', string $mod = ''): string
 {
     $cls = 'card-media' . ($mod !== '' ? ' ' . $mod : '');
@@ -145,7 +110,7 @@ function card_media(string $icon, string $tag = '', string $badge = '', string $
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ مقاله — کاور + عنوان + خلاصه + تاریخ/دسته                   */
+/*  کارتِ مقاله                                                        */
 /* ------------------------------------------------------------------ */
 
 function article_card(array $article, bool $featured = false): string
@@ -160,7 +125,7 @@ function article_card(array $article, bool $featured = false): string
     $image = ha_safe_file_url((string) ($article['image'] ?? ''));
 
     ob_start(); ?>
-    <article class="card article-card<?= $featured ? ' article-card--featured' : '' ?>" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
+    <article class="card article-card<?= $featured ? ' article-card--featured' : '' ?> reveal" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
         <?php if ($image !== ''): ?>
             <div class="card-media card-media--img">
                 <img src="<?= e($image) ?>" alt="<?= e($article['title'] ?? '') ?>" loading="lazy" decoding="async">
@@ -197,7 +162,7 @@ function article_card(array $article, bool $featured = false): string
 function tip_card(array $tip): string
 {
     ob_start(); ?>
-    <article class="card tip-card" data-tip-id="<?= e($tip['id'] ?? '') ?>">
+    <article class="card tip-card reveal" data-tip-id="<?= e($tip['id'] ?? '') ?>">
         <span class="tip-card__mark" aria-hidden="true"><?= ha_icon('sparkle', 20) ?></span>
         <p class="tip-card__text"><?= e($tip['text'] ?? '') ?></p>
         <?php if (!empty($tip['try'])): ?>
@@ -209,18 +174,9 @@ function tip_card(array $tip): string
 }
 
 /* ------------------------------------------------------------------ */
-/*  ردیفِ درس — شماره + عنوان + هدف + زمان + «انجام شد»               */
+/*  ردیفِ درس                                                          */
 /* ------------------------------------------------------------------ */
 
-/**
- * ردیفِ درس در فهرستِ دوره.
- *
- * وضعیتِ درس (انجام‌نشده / در حالِ مطالعه / تکمیل‌شده) از پیشرفتِ
- * ذخیره‌شده‌ی کاربر می‌آید و سمتِ سرور رندر می‌شود؛ پس بدونِ JS هم درست
- * است و «درسِ فعلی» و «درسِ بعدی» با پرچمِ روشن مشخص‌اند.
- *
- * @param string $highlight '' | 'current' | 'next'
- */
 function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $stage, string $highlight = ''): string
 {
     $slug   = slugify((string) ($lesson['slug'] ?? ''));
@@ -235,7 +191,7 @@ function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $sta
         $classes[] = 'is-next';
     }
     ob_start(); ?>
-    <li class="<?= e(implode(' ', $classes)) ?>" data-lesson-row="<?= e($slug) ?>" data-lesson-state="<?= e((string) $meta['key']) ?>">
+    <li class="<?= e(implode(' ', $classes)) ?> reveal" data-lesson-row="<?= e($slug) ?>" data-lesson-state="<?= e((string) $meta['key']) ?>">
         <a class="lesson-item__link" href="<?= e($href) ?>"<?= $highlight === 'current' ? ' aria-current="true"' : '' ?>>
             <span class="lesson-item__num" aria-hidden="true">
                 <?php if ($state === 'done'): ?><?= ha_icon('check', 15) ?><?php else: ?><?= e($number) ?><?php endif; ?>
@@ -259,7 +215,7 @@ function lesson_row(array $lesson, int $stageIndex, int $lessonIndex, array $sta
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ تمرین — سطح + تمرکز + عنوان + هدف + گام‌ها + دکمه           */
+/*  کارتِ تمرین                                                        */
 /* ------------------------------------------------------------------ */
 
 function exercise_card(array $ex, string $detailUrl = ''): string
@@ -269,7 +225,7 @@ function exercise_card(array $ex, string $detailUrl = ''): string
     $lessonTitle = $lessonInfo !== null ? (string) ($lessonInfo['lesson']['title'] ?? '') : '';
     ob_start(); ?>
     <?php $exStateClass = function_exists('progress_state_meta') ? progress_state_meta(function_exists('progress_exercise_state') ? progress_exercise_state((string) ($ex['id'] ?? '')) : '')['class'] : ''; ?>
-    <article class="card exercise-card <?= e((string) $exStateClass) ?>" id="ex-<?= e($ex['id'] ?? '') ?>" data-exercise="<?= e($ex['id'] ?? '') ?>">
+    <article class="card exercise-card <?= e((string) $exStateClass) ?> reveal" id="ex-<?= e($ex['id'] ?? '') ?>" data-exercise="<?= e($ex['id'] ?? '') ?>">
         <header class="exercise-card__head">
             <span class="badge badge--level"><?= ha_icon('target', 12) ?> <?= e($ex['level'] ?? 'عمومی') ?></span>
             <?php if (!empty($ex['focus'])): ?>
@@ -307,9 +263,9 @@ function exercise_card(array $ex, string $detailUrl = ''): string
             </span>
             <?= function_exists('exercise_complete_form') ? exercise_complete_form((string) ($ex['id'] ?? ''), function_exists('progress_exercise_state') ? progress_exercise_state((string) ($ex['id'] ?? '')) : '') : '' ?>
             <?php if ($detailUrl !== ''): ?>
-                <a class="btn btn--sm btn--primary" href="<?= e($detailUrl) ?>">شروع تمرین</a>
+                <a class="btn btn--sm btn--primary btn--cta" href="<?= e($detailUrl) ?>">شروع تمرین</a>
             <?php else: ?>
-                <button class="btn btn--sm btn--primary" type="button"
+                <button class="btn btn--sm btn--primary btn--cta" type="button"
                         data-run-exercise="<?= e($ex['id'] ?? '') ?>"
                         data-exercise-payload="<?= e(json_encode([
                             'id'      => (string) ($ex['id'] ?? ''),
@@ -329,7 +285,7 @@ function exercise_card(array $ex, string $detailUrl = ''): string
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ دوره — کاور + عنوان + توضیح + تعدادِ درس + دکمه              */
+/*  کارتِ دوره — CTA واضح «شروع» و «ادامه یادگیری»                    */
 /* ------------------------------------------------------------------ */
 
 function course_card(array $course): string
@@ -346,15 +302,25 @@ function course_card(array $course): string
         }
     }
     $icon = $cat !== null ? (string) ($cat['icon'] ?? 'steps') : 'steps';
+    $isStarted = false;
+    $progressPercent = 0;
+    if (function_exists('course_learning_path')) {
+        $lp = course_learning_path($course);
+        $progressPercent = (int) ($lp['summary']['percent'] ?? 0);
+        $isStarted = $progressPercent > 0;
+    }
 
     ob_start(); ?>
-    <article class="card course-card course-card--grid">
+    <article class="card course-card course-card--grid reveal">
         <?= card_media($icon, cat_label($cat, (string) ($course['category'] ?? '')), fa_num($lessons) . ' درس', card_style($cat)) ?>
         <div class="card__body">
             <div class="course-card__top">
                 <span class="badge badge--soft"><?= ha_icon('steps', 12) ?> <?= e($course['level'] ?? 'همه‌ی سطوح') ?></span>
                 <?php if (!empty($course['featured'])): ?>
                     <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
+                <?php endif; ?>
+                <?php if ($isStarted): ?>
+                    <span class="pill pill--started"><?= ha_icon('growth', 12) ?><span><?= fa_num($progressPercent) ?>٪</span></span>
                 <?php endif; ?>
             </div>
             <h3 class="course-card__title"><a href="<?= e($href) ?>"><?= e($course['title'] ?? '') ?></a></h3>
@@ -364,9 +330,16 @@ function course_card(array $course): string
                 <span class="meta-dot" aria-hidden="true"></span>
                 <span><?= ha_icon('clock', 12) ?> <?= minutes_label($minutes) ?></span>
             </div>
+            <?php if ($isStarted): ?>
+                <div class="course-card__progress" style="margin-top:.6rem"><?= progress_bar($progressPercent, fa_num($progressPercent).'٪ پیشرفت', 'پیشرفت دوره') ?></div>
+            <?php endif; ?>
         </div>
         <div class="course-card__foot">
-            <a class="btn btn--primary btn--sm" href="<?= e($href) ?>">مشاهده دوره</a>
+            <?php if ($isStarted): ?>
+                <a class="btn btn--primary btn--sm btn--cta" href="<?= e($href) ?>"><?= ha_icon('play', 12) ?> ادامه یادگیری</a>
+            <?php else: ?>
+                <a class="btn btn--primary btn--sm btn--cta" href="<?= e($href) ?>"><?= ha_icon('play', 12) ?> شروع یادگیری</a>
+            <?php endif; ?>
             <span class="muted-sm"><?= e($cat['title'] ?? '') ?></span>
         </div>
     </article>
@@ -374,51 +347,79 @@ function course_card(array $course): string
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ ویدیو — بندانگشتی + عنوان + مدت + دکمه‌ی پخش                */
+/*  کارتِ ویدیو — Progressive + Streaming + Error State زیبا           */
 /* ------------------------------------------------------------------ */
 
 function video_card(array $item): string
 {
     $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
     $hasUrl = $url !== '';
-    $href   = $hasUrl ? $url : url('videos');
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
     $thumb  = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $title  = (string) ($item['title'] ?? 'ویدیو');
+    $excerpt = (string) ($item['excerpt'] ?? '');
+    $isEmbed = ha_embed_url($url) !== '';
+    $style  = $cat !== null ? card_style($cat) : '';
+
     $lessonSlug = slugify((string) ($item['lesson'] ?? ''));
     $courseSlug = slugify((string) ($item['course'] ?? ''));
     $relatedLabel = '';
     if ($lessonSlug !== '') {
         $li = course_find_lesson($lessonSlug);
-        if ($li !== null) {
-            $relatedLabel = (string) ($li['lesson']['title'] ?? '');
-        }
+        if ($li !== null) $relatedLabel = (string) ($li['lesson']['title'] ?? '');
     } elseif ($courseSlug !== '') {
         $c = find_course($courseSlug);
-        if ($c !== null) {
-            $relatedLabel = (string) ($c['title'] ?? '');
-        }
+        if ($c !== null) $relatedLabel = (string) ($c['title'] ?? '');
     }
 
     ob_start(); ?>
-    <article class="card media-card media-card--video">
-        <div class="media-card__thumb<?= $thumb !== '' ? ' media-card__thumb--img' : '' ?>"<?= $cat !== null ? ' style="' . e(card_style($cat)) . '"' : '' ?>>
-            <?php if ($thumb !== ''): ?>
-                <img src="<?= e($thumb) ?>" alt="" loading="lazy" decoding="async" width="640" height="360">
-            <?php endif; ?>
-            <?php if ($dur !== '' && (int) ($item['seconds'] ?? 0) > 0): ?>
-                <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
-            <?php endif; ?>
-            <?php if ($hasUrl): ?>
-                <?php /* پیوندِ واقعی + data-media-open: با JS داخلِ سایت پخش می‌شود،
-                         بدونِ JS همان فایل/منبع در تبِ جدید باز می‌شود (بدونِ بن‌بست). */ ?>
-                <a class="media-card__play media-card__play--link" href="<?= e($href) ?>" target="_blank" rel="noopener noreferrer"
+    <article class="card media-card media-card--video reveal" data-ha-card="video">
+        <?php if ($isEmbed): ?>
+            <div class="media-card__thumb<?= $thumb !== '' ? ' media-card__thumb--img' : '' ?>" style="<?= e($style) ?>">
+                <?php if ($thumb !== ''): ?>
+                    <img src="<?= e($thumb) ?>" alt="" loading="lazy" decoding="async" width="640" height="360">
+                <?php endif; ?>
+                <span class="media-card__thumb-overlay" aria-hidden="true"></span>
+                <?php if ($dur !== '' && (int) ($item['seconds'] ?? 0) > 0): ?>
+                    <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
+                <?php endif; ?>
+                <button class="media-card__play media-card__play--link" type="button"
                    data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"
-                   aria-label="پخش ویدیو: <?= e($item['title'] ?? '') ?>"><?= ha_icon('play', 22) ?></a>
-            <?php else: ?>
-                <span class="media-card__play" aria-hidden="true"><?= ha_icon('play', 22) ?></span>
-            <?php endif; ?>
-        </div>
+                   aria-label="پخش ویدیو: <?= e($title) ?>"><?= ha_icon('play', 22) ?></button>
+            </div>
+        <?php else: ?>
+            <div class="ha-player ha-player--video" data-ha-player data-ha-type="video" data-ha-src="<?= e($url) ?>" data-ha-title="<?= e($title) ?>" style="<?= e($style) ?>">
+                <div class="ha-player__stage">
+                    <?php if ($thumb !== ''): ?>
+                        <div class="ha-player__poster"><img src="<?= e($thumb) ?>" alt="" loading="lazy" decoding="async"></div>
+                    <?php else: ?>
+                        <div class="ha-player__poster"><span class="ha-player__glyph"><?= ha_icon('play', 28) ?></span></div>
+                    <?php endif; ?>
+                    <button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش ویدیو: <?= e($title) ?>"><?= ha_icon('play', 22) ?></button>
+                    <div class="ha-player__status ha-player__status--loading" data-ha-status="loading">
+                        <div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری…</p><p class="ha-player__status-text">اتصال سریع برای شروع فوری</p></div>
+                    </div>
+                    <div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering">
+                        <div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بافر…</p><p class="ha-player__status-text">اینترنت ضعیف؟ صبور باشید، به‌زودی ادامه می‌دهد</p></div>
+                    </div>
+                    <div class="ha-player__status ha-player__status--error" data-ha-status="error">
+                        <div><div class="ha-error__icon" style="margin:0 auto .6rem;background:rgba(255,255,255,.18)"><?= ha_icon('alert', 20) ?></div><p class="ha-player__status-title">خطا در پخش</p><p class="ha-player__status-text" data-ha-error-text>ویدیو بارگذاری نشد. اتصال را بررسی کنید.</p><button class="ha-player__retry" type="button" data-ha-retry><?= ha_icon('rotate', 14) ?> تلاش مجدد</button></div>
+                    </div>
+                    <video class="ha-player__media" data-ha-media preload="metadata" playsinline controlsList="nodownload" data-src="<?= e($url) ?>" poster="<?= e($thumb) ?>" aria-label="<?= e($title) ?>"></video>
+                </div>
+                <div class="ha-player__controls" data-ha-controls>
+                    <div class="ha-player__top"><span class="ha-player__title"><?= e($title) ?></span><span class="ha-player__time" data-ha-time>۰۰:۰۰ / <?= e($dur !== '' ? $dur : '۰۰:۰۰') ?></span></div>
+                    <div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>
+                    <div class="ha-player__actions">
+                        <button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف"><?= ha_icon('play', 16) ?></button>
+                        <div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا"><?= ha_icon('volume', 16) ?></button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>
+                        <div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><a class="ha-player__chip" href="<?= e($url) ?>" download><?= ha_icon('download', 12) ?> دریافت</a></div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="media-card__body">
             <div class="media-card__top">
                 <span class="badge badge--soft"><?= e(cat_label($cat, (string) ($item['category'] ?? ''))) ?></span>
@@ -426,33 +427,43 @@ function video_card(array $item): string
                     <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
                 <?php endif; ?>
             </div>
-            <h3 class="media-card__title"><?php if ($hasUrl): ?><a href="<?= e($href) ?>" data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= e($item['title'] ?? '') ?></a><?php else: ?><?= e($item['title'] ?? '') ?><?php endif; ?></h3>
-            <?php if (!empty($item['excerpt'])): ?>
-                <p class="media-card__excerpt"><?= e($item['excerpt']) ?></p>
-            <?php endif; ?>
-            <?php if ($relatedLabel !== ''): ?>
-                <p class="media-card__related muted-sm"><?= ha_icon('steps', 12) ?> <?= e($relatedLabel) ?></p>
-            <?php endif; ?>
+            <h3 class="media-card__title">
+                <?php if ($isEmbed): ?><a href="<?= e($url) ?>" data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= e($title) ?></a><?php else: ?><?= e($title) ?><?php endif; ?>
+            </h3>
+            <?php if ($excerpt !== ''): ?><p class="media-card__excerpt"><?= e($excerpt) ?></p><?php endif; ?>
+            <?php if ($relatedLabel !== ''): ?><p class="media-card__related muted-sm"><?= ha_icon('steps', 12) ?> <?= e($relatedLabel) ?></p><?php endif; ?>
         </div>
         <footer class="media-card__foot">
             <?php if ($hasUrl): ?>
-                <a class="btn btn--sm btn--primary" href="<?= e($href) ?>" target="_blank" rel="noopener noreferrer"
-                   data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= ha_icon('play', 12) ?> پخش در سایت</a>
-                <?php if (preg_match('#^https?://#i', $href)): ?>
-                <a class="btn btn--sm btn--ghost" href="<?= e($href) ?>" rel="noopener noreferrer" target="_blank"
-                   title="باز کردن در تبِ جدید"><?= ha_icon('external', 12) ?> منبع</a>
+                <?php if ($isEmbed): ?>
+                    <button class="btn btn--sm btn--primary btn--cta" type="button" data-media-open data-media-payload="<?= e(media_player_payload($item)) ?>"><?= ha_icon('play', 12) ?> پخش سریع در سایت</button>
+                    <span class="ha-buffering" style="display:none" data-ha-net-hint><?= ha_icon('clock', 11) ?> بهینه برای اینترنت ضعیف</span>
+                <?php else: ?>
+                    <span class="muted-sm"><?= ha_icon('play', 12) ?> پخش آنی • استریم پیشرونده</span>
+                    <span class="muted-sm"><?= e($dur) ?></span>
                 <?php endif; ?>
             <?php else: ?>
                 <span class="badge badge--outline"><?= ha_icon('info', 12) ?> در دسترس نیست</span>
             <?php endif; ?>
-            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="muted-sm"><?= e($dur) ?></span><?php endif; ?>
         </footer>
+        <?php
+        $vSlug = slugify((string)($item['slug'] ?? ''));
+        if ($vSlug !== ''):
+            $vCounts = function_exists('ha_reaction_counts') ? ha_reaction_counts('video', $vSlug) : ['total'=>0];
+            $vCom = function_exists('ha_comment_counts') ? ha_comment_counts('video', $vSlug) : ['total'=>0];
+        ?>
+        <div class="media-card__interactions">
+            <span class="ha-mini-stat">❤️ <?= fa_num((int)($vCounts['total'] ?? 0)) ?></span>
+            <span class="ha-mini-stat">💬 <?= fa_num((int)($vCom['total'] ?? 0)) ?></span>
+            <a class="btn btn--ghost btn--xs" href="#ha-video-<?= e($vSlug) ?>">تعامل</a>
+        </div>
+        <?php endif; ?>
     </article>
     <?php return (string) ob_get_clean();
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ صوت — کاور + عنوان + مدت + پخش‌کننده                        */
+/*  کارتِ صوت — Progressive Audio با شروع سریع                         */
 /* ------------------------------------------------------------------ */
 
 function audio_card(array $item): string
@@ -461,43 +472,67 @@ function audio_card(array $item): string
     $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
+    $title  = (string) ($item['title'] ?? 'صوت');
+    $excerpt = (string) ($item['excerpt'] ?? '');
+    $style  = $cat !== null ? card_style($cat) : '';
 
     ob_start(); ?>
-    <article class="card media-card media-card--audio">
-        <div class="media-card__thumb media-card__thumb--audio"<?= $cat !== null ? ' style="' . e(card_style($cat)) . '"' : '' ?>>
-            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?>
-                <span class="media-card__duration"><?= ha_icon('clock', 11) ?> <?= e($dur) ?></span>
-            <?php endif; ?>
-            <span class="media-card__play" aria-hidden="true"><?= ha_icon('headphones', 22) ?></span>
+    <article class="card media-card media-card--audio reveal" data-ha-card="audio">
+        <div class="ha-player ha-player--audio" data-ha-player data-ha-type="audio" data-ha-src="<?= e($url) ?>" data-ha-title="<?= e($title) ?>" style="<?= e($style) ?>">
+            <div class="ha-player__stage">
+                <div class="ha-player__poster">
+                    <span class="ha-player__glyph"><?= ha_icon('headphones', 28) ?></span>
+                    <span class="ha-player__wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+                </div>
+                <button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش صوت: <?= e($title) ?>"><?= ha_icon('play', 20) ?></button>
+                <div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری صوت…</p><p class="ha-player__status-text">شروع سریع حتی با اینترنت ضعیف</p></div></div>
+                <div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اتصال کند؟ ادامه به‌زودی</p></div></div>
+                <div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش صوت</p><p class="ha-player__status-text" data-ha-error-text>فایل بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry><?= ha_icon('rotate', 14) ?> تلاش مجدد</button></div></div>
+                <audio class="ha-player__media" data-ha-media preload="none" data-src="<?= e($url) ?>" aria-label="<?= e($title) ?>"></audio>
+            </div>
+            <div class="ha-player__controls" data-ha-controls>
+                <div class="ha-player__top">
+                    <span class="ha-player__title"><?= e($title) ?></span>
+                    <span class="ha-player__time" data-ha-time>۰۰:۰۰ / <?= e($dur !== '' ? $dur : '۰۰:۰۰') ?></span>
+                </div>
+                <div class="ha-player__progress-wrap" data-ha-seek>
+                    <div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div>
+                </div>
+                <div class="ha-player__actions">
+                    <button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف"><?= ha_icon('play', 16) ?></button>
+                    <div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا"><?= ha_icon('volume', 16) ?></button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>
+                    <div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><?php if ($hasUrl): ?><a class="ha-player__chip" href="<?= e($url) ?>" download><?= ha_icon('download', 12) ?> دریافت</a><?php endif; ?></div>
+                </div>
+            </div>
         </div>
-        <div class="media-card__body">
+
+        <div class="media-card__body" style="padding-top:1rem">
             <div class="media-card__top">
                 <span class="badge badge--soft"><?= e(cat_label($cat, (string) ($item['category'] ?? ''))) ?></span>
-                <?php if (!empty($item['featured'])): ?>
-                    <span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span>
-                <?php endif; ?>
+                <?php if (!empty($item['featured'])): ?><span class="badge badge--level"><?= ha_icon('star', 12) ?> منتخب</span><?php endif; ?>
+                <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="chip chip--ghost"><?= ha_icon('clock', 12) ?> <?= e($dur) ?></span><?php endif; ?>
             </div>
-            <h3 class="media-card__title"><?= e($item['title'] ?? '') ?></h3>
-            <?php if (!empty($item['excerpt'])): ?>
-                <p class="media-card__excerpt"><?= e($item['excerpt']) ?></p>
-            <?php endif; ?>
-            <?php if ($hasUrl): ?>
-                <audio controls preload="none" src="<?= e($url) ?>" class="audio-player" aria-label="پخش صوت: <?= e($item['title'] ?? '') ?>"></audio>
-            <?php endif; ?>
+            <?php if ($excerpt !== ''): ?><p class="media-card__excerpt"><?= e($excerpt) ?></p><?php endif; ?>
         </div>
-        <footer class="media-card__foot">
-            <span class="muted-sm"><?= ha_icon('headphones', 12) ?> پادکست/صوت</span>
-            <?php if ((int) ($item['seconds'] ?? 0) > 0): ?><span class="muted-sm"><?= e($dur) ?></span><?php endif; ?>
-            <?php if ($hasUrl): ?>
-                <a class="btn btn--xs btn--ghost" href="<?= e($url) ?>" download rel="noopener"><?= ha_icon('download', 12) ?> دریافت</a>
-            <?php endif; ?>
-        </footer>
+        <footer class="media-card__foot"><span class="muted-sm"><?= ha_icon('headphones', 12) ?> پادکست • استریم پیشرونده • فقط هنگام پخش دانلود می‌شود</span></footer>
+        <?php
+        $aSlug = slugify((string)($item['slug'] ?? ''));
+        if ($aSlug !== ''):
+            $aCounts = function_exists('ha_reaction_counts') ? ha_reaction_counts('audio', $aSlug) : ['total'=>0];
+            $aCom = function_exists('ha_comment_counts') ? ha_comment_counts('audio', $aSlug) : ['total'=>0];
+        ?>
+        <div class="media-card__interactions">
+            <span class="ha-mini-stat">❤️ <?= fa_num((int)($aCounts['total'] ?? 0)) ?></span>
+            <span class="ha-mini-stat">💬 <?= fa_num((int)($aCom['total'] ?? 0)) ?></span>
+            <a class="btn btn--ghost btn--xs" href="#ha-audio-<?= e($aSlug) ?>">تعامل</a>
+        </div>
+        <?php endif; ?>
     </article>
     <?php return (string) ob_get_clean();
 }
 
 /* ------------------------------------------------------------------ */
-/*  کارتِ کتاب — جلد + عنوان + نویسنده + خلاصه                        */
+/*  کارتِ کتاب                                                         */
 /* ------------------------------------------------------------------ */
 
 function book_card(array $book): string
@@ -508,7 +543,7 @@ function book_card(array $book): string
     $hasOnlineRead = !empty($book['blocks']);
 
     ob_start(); ?>
-    <article class="card book-card">
+    <article class="card book-card reveal">
         <div class="book-card__cover<?= $image !== '' ? ' book-card__cover--img' : '' ?>" style="<?= e(card_style($cat)) ?>" role="img" aria-label="جلدِ <?= e($book['title'] ?? '') ?>">
             <?php if ($image !== ''): ?>
                 <img src="<?= e($image) ?>" alt="" loading="lazy" decoding="async">
@@ -552,7 +587,7 @@ function research_card(array $item): string
     $cat  = find_category(ha_item_field_slug($item));
 
     ob_start(); ?>
-    <article class="card research-card">
+    <article class="card research-card reveal">
         <div class="research-card__top">
             <span class="badge"><?= ha_icon('research', 12) ?> <?= e(cat_label($cat, (string) ($item['category'] ?? ''))) ?></span>
             <?php if (!empty($item['date_fa'])): ?>
@@ -584,7 +619,7 @@ function category_card(array $cat): string
 {
     $href = url('category', ['slug' => (string) ($cat['slug'] ?? '')]);
     ob_start(); ?>
-    <a class="card category-card" href="<?= e($href) ?>" style="<?= e(card_style($cat)) ?>">
+    <a class="card category-card reveal" href="<?= e($href) ?>" style="<?= e(card_style($cat)) ?>">
         <span class="category-card__icon" aria-hidden="true"><?= ha_icon((string) ($cat['icon'] ?? 'compass'), 22) ?></span>
         <h3 class="category-card__title"><?= e($cat['title'] ?? '') ?></h3>
         <p class="category-card__desc"><?= e($cat['description'] ?? '') ?></p>
@@ -597,13 +632,6 @@ function category_card(array $cat): string
 /*  نوارِ پیشرفت / حالت‌ها / ناوبری                                    */
 /* ------------------------------------------------------------------ */
 
-/**
- * نوارِ پیشرفت.
- *
- * دسترس‌پذیری: role="progressbar" بدونِ نامِ دسترس‌پذیر از نظرِ WCAG 4.1.2
- * ناقص است؛ بنابراین aria-label اجباری است و اگر داده نشود مقدارِ
- * پیش‌فرضِ معنادار می‌گیرد.
- */
 function progress_bar(int $percent, string $label = '', string $ariaLabel = 'پیشرفت'): string
 {
     $percent = max(0, min(100, $percent));
@@ -618,7 +646,6 @@ function progress_bar(int $percent, string $label = '', string $ariaLabel = 'پ�
     <?php return (string) ob_get_clean();
 }
 
-/** حالتِ خالی — وقتی فهرستی نتیجه‌ای ندارد. */
 function empty_state(string $title, string $text, string $url = '', string $label = '', string $icon = 'search'): string
 {
     ob_start(); ?>
@@ -627,13 +654,12 @@ function empty_state(string $title, string $text, string $url = '', string $labe
         <p class="empty-state__title"><?= e($title) ?></p>
         <p class="empty-state__text"><?= e($text) ?></p>
         <?php if ($url !== ''): ?>
-            <a class="btn btn--ghost btn--sm" href="<?= e($url) ?>"><?= e($label !== '' ? $label : 'بازگشت') ?></a>
+            <a class="btn btn--ghost btn--sm btn--cta" href="<?= e($url) ?>"><?= e($label !== '' ? $label : 'بازگشت') ?></a>
         <?php endif; ?>
     </div>
     <?php return (string) ob_get_clean();
 }
 
-/** حالتِ خطا — محتوای درخواستی پیدا نشد. */
 function not_found(string $label): string
 {
     ob_start(); ?>
@@ -643,7 +669,7 @@ function not_found(string $label): string
             <h1>«<?= e($label) ?>» پیدا نشد</h1>
             <p>ممکن است نشانی را اشتباه وارد کرده باشید یا این محتوا جابه‌جا شده باشد.</p>
             <div class="btn-row">
-                <a class="btn btn--primary" href="<?= e(url('home')) ?>"><?= ha_icon('home', 15) ?> صفحه‌ی اصلی</a>
+                <a class="btn btn--primary btn--cta" href="<?= e(url('home')) ?>"><?= ha_icon('home', 15) ?> صفحه‌ی اصلی</a>
                 <a class="btn btn--ghost" href="<?= e(url('courses')) ?>">دیدن دوره‌ها</a>
             </div>
             <div class="not-found__latest">

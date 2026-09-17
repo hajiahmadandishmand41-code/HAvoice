@@ -1077,6 +1077,423 @@ var pad = function (n) { return (n < 10 ? '0' : '') + n; };
         renumber(builder);
     })();
 
+
+/* ==========================================================================
+   HAvoice — Media Player حرفه‌ای: Progressive Streaming + Lazy Load
+   - فقط وقتی دیده شد یا کلیک شد، src واقعی از data-src لود می‌شود
+   - IntersectionObserver برای جلوگیری از دانلود اضافی
+   - Loading / Buffering / Error استیت‌های زیبا
+   - سرعت، ولوم، seek، بافر، mute، fullscreen
+   - سازگار با اینترنت ضعیف، شروع سریع، بدون شکستن روت‌ها
+   ========================================================================== */
+(function haMediaModule() {
+    'use strict';
+    var SELECTOR = '[data-ha-player]';
+    var players = [];
+    var current = null; // تنها یک پلیر همزمان پخش شود (اختیاری UX)
+
+    var faDigits = function(s){ try{ return window.fa ? window.fa(s) : s; } catch(e){ return s; } };
+
+    function fmtTime(sec){
+        if (!isFinite(sec) || sec < 0) sec = 0;
+        sec = Math.floor(sec);
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        var pad = function(n){ return n<10?'0'+n:''+n; };
+        var txt = pad(m)+':'+pad(s);
+        return typeof faDigits === 'function' ? faDigits(txt) : txt;
+    }
+
+    function ensureSrc(media){
+        if (!media) return false;
+        if (media.src && media.src !== '' && !media.src.endsWith('about:blank')) return true;
+        var ds = media.getAttribute('data-src');
+        if (!ds) return false;
+        media.src = ds;
+        // keep data-src for retry
+        return true;
+    }
+
+    function setState(root, state){
+        if (!root) return;
+        root.setAttribute('data-ha-state', state || '');
+        // for CSS compat: also add class is-*
+        root.classList.remove('is-loading','is-buffering','is-error','is-playing','is-paused');
+        if (state) root.classList.add('is-'+state);
+    }
+
+    function createPlayer(root){
+        if (root.__haBound) return root.__haBound;
+        var media = root.querySelector('[data-ha-media]');
+        var type = root.getAttribute('data-ha-type') || (media ? media.tagName.toLowerCase() : 'audio');
+        if (root.classList.contains('is-embed')) {
+            // embed already handled by modal; still lazy maybe
+            return null;
+        }
+        if (!media) return null;
+
+        var bigPlay = root.querySelector('[data-ha-bigplay]');
+        var playPause = root.querySelector('[data-ha-playpause]');
+        var seekWrap = root.querySelector('[data-ha-seek]');
+        var fill = root.querySelector('[data-ha-fill]');
+        var bufferedEl = root.querySelector('[data-ha-buffered]');
+        var thumb = root.querySelector('[data-ha-thumb]');
+        var timeEl = root.querySelector('[data-ha-time]');
+        var muteBtn = root.querySelector('[data-ha-mute]');
+        var volTrack = root.querySelector('[data-ha-vol-track]');
+        var volFill = root.querySelector('[data-ha-vol-fill]');
+        var speedBtn = root.querySelector('[data-ha-speed]');
+        var retryBtn = root.querySelector('[data-ha-retry]');
+        var fullscreenBtn = root.querySelector('[data-ha-fullscreen]');
+        var errorText = root.querySelector('[data-ha-error-text]');
+
+        var state = {
+            root: root,
+            media: media,
+            loaded: false,
+            seeking: false,
+            speeds: [1, 1.25, 1.5, 1.75, 2],
+            speedIdx: 0
+        };
+
+        function loadIfNeeded(){
+            if (state.loaded) return;
+            if (!ensureSrc(media)){
+                return;
+            }
+            state.loaded = true;
+            setState(root, 'loading');
+            // start loading metadata only; browser will progressive stream
+            media.load();
+        }
+
+        function updateBuffered(){
+            if (!media.buffered || !media.duration) return;
+            try{
+                var dur = media.duration;
+                if (!isFinite(dur) || dur===0) return;
+                var end = 0;
+                for (var i=0;i<media.buffered.length;i++){
+                    if (media.buffered.start(i) <= media.currentTime){
+                        end = Math.max(end, media.buffered.end(i));
+                    }
+                }
+                // also take last buffered end for overall
+                if (media.buffered.length){
+                    var lastEnd = media.buffered.end(media.buffered.length-1);
+                    end = Math.max(end, lastEnd);
+                }
+                var pct = Math.min(100, (end / dur)*100);
+                if (bufferedEl) bufferedEl.style.width = pct + '%';
+                try{ root.style.setProperty('--hp-buffered', pct + '%'); }catch(e){}
+            }catch(e){}
+        }
+
+        function updateProgress(){
+            var dur = media.duration;
+            var cur = media.currentTime || 0;
+            if (!isFinite(dur) || dur===0) {
+                if (fill) fill.style.width = '0%';
+                if (thumb) thumb.style.left = '0%';
+                try{ root.style.setProperty('--hp-progress','0%'); }catch(e){}
+                if (timeEl) timeEl.textContent = fmtTime(cur) + ' / --:--';
+                return;
+            }
+            var pct = (cur / dur)*100;
+            if (fill) fill.style.width = pct + '%';
+            if (thumb) thumb.style.left = pct + '%';
+            try{ root.style.setProperty('--hp-progress', pct + '%'); }catch(e){}
+            if (timeEl) timeEl.textContent = fmtTime(cur) + ' / ' + fmtTime(dur);
+            updateBuffered();
+        }
+
+        function play(){
+            loadIfNeeded();
+            // pause other
+            if (current && current !== state && current.media && !current.media.paused){
+                try{ current.media.pause(); }catch(e){}
+            }
+            var p = media.play();
+            if (p && p.catch){
+                p.catch(function(err){
+                    // maybe autoplay blocked; show paused state
+                    setState(root, 'paused');
+                });
+            }
+        }
+        function pause(){
+            try{ media.pause(); }catch(e){}
+        }
+
+        // events
+        if (bigPlay){
+            bigPlay.addEventListener('click', function(){
+                loadIfNeeded();
+                if (media.paused) play(); else pause();
+            });
+        }
+        if (playPause){
+            playPause.addEventListener('click', function(){
+                loadIfNeeded();
+                if (media.paused) play(); else pause();
+            });
+        }
+
+        // retry
+        if (retryBtn){
+            retryBtn.addEventListener('click', function(){
+                setState(root, 'loading');
+                state.loaded = false;
+                // keep data-src
+                media.removeAttribute('src');
+                try{ media.load(); }catch(e){}
+                loadIfNeeded();
+                setTimeout(function(){ play(); }, 120);
+            });
+        }
+
+        // speed
+        if (speedBtn){
+            speedBtn.addEventListener('click', function(){
+                state.speedIdx = (state.speedIdx + 1) % state.speeds.length;
+                var sp = state.speeds[state.speedIdx];
+                media.playbackRate = sp;
+                speedBtn.textContent = (sp===1?'۱×': (String(sp).replace('.', '٫') + '×'));
+                // convert to fa if possible
+                try{ if (window.fa) speedBtn.textContent = window.fa(speedBtn.textContent); }catch(e){}
+            });
+        }
+
+        // mute
+        if (muteBtn){
+            muteBtn.addEventListener('click', function(){
+                media.muted = !media.muted;
+                root.classList.toggle('is-muted', media.muted);
+                if (volFill){
+                    volFill.style.width = media.muted ? '0%' : ((media.volume*100)+'%');
+                }
+            });
+        }
+
+        // volume track
+        if (volTrack){
+            var setVolFromEvent = function(e){
+                var rect = volTrack.getBoundingClientRect();
+                var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                var pct = Math.max(0, Math.min(1, x / rect.width));
+                media.volume = pct;
+                media.muted = pct===0 ? false : media.muted; // keep muted false if >0
+                if (volFill) volFill.style.width = (pct*100)+'%';
+                if (pct>0) media.muted = false;
+                root.classList.toggle('is-muted', media.muted);
+            };
+            volTrack.addEventListener('click', setVolFromEvent);
+            volTrack.addEventListener('touchstart', function(e){ setVolFromEvent(e); }, {passive:true});
+        }
+
+        // seek
+        if (seekWrap){
+            var seekFromEvent = function(e){
+                var rect = seekWrap.getBoundingClientRect();
+                var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                var pct = Math.max(0, Math.min(1, x / rect.width));
+                var dur = media.duration;
+                if (!isFinite(dur) || dur===0) return;
+                media.currentTime = pct * dur;
+                updateProgress();
+            };
+            var onMove = function(e){ if (state.seeking) seekFromEvent(e); };
+            var onUp = function(){ state.seeking = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); };
+
+            seekWrap.addEventListener('mousedown', function(e){
+                state.seeking = true;
+                seekFromEvent(e);
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+            seekWrap.addEventListener('touchstart', function(e){
+                state.seeking = true;
+                seekFromEvent(e);
+                document.addEventListener('touchmove', onMove, {passive:true});
+                document.addEventListener('touchend', onUp);
+            }, {passive:true});
+            seekWrap.addEventListener('click', function(e){
+                // if not dragging
+                if (!state.seeking) seekFromEvent(e);
+            });
+        }
+
+        // fullscreen for video
+        if (fullscreenBtn && media.tagName.toLowerCase()==='video'){
+            fullscreenBtn.addEventListener('click', function(){
+                try{
+                    if (document.fullscreenElement) { document.exitFullscreen(); }
+                    else {
+                        if (root.requestFullscreen) root.requestFullscreen();
+                        else if (media.requestFullscreen) media.requestFullscreen();
+                        else if (media.webkitEnterFullscreen) media.webkitEnterFullscreen();
+                    }
+                }catch(e){}
+            });
+        }
+
+        // media events -> states
+        media.addEventListener('loadstart', function(){ setState(root, 'loading'); });
+        media.addEventListener('loadedmetadata', function(){
+            setState(root, media.paused ? 'paused' : 'playing');
+            updateProgress();
+        });
+        media.addEventListener('canplay', function(){
+            if (root.getAttribute('data-ha-state')==='loading') setState(root, 'paused');
+            updateBuffered();
+        });
+        media.addEventListener('canplaythrough', function(){ updateBuffered(); });
+        media.addEventListener('progress', updateBuffered);
+        media.addEventListener('timeupdate', updateProgress);
+        media.addEventListener('waiting', function(){ setState(root, 'buffering'); });
+        media.addEventListener('playing', function(){
+            setState(root, 'playing');
+            current = state;
+            root.classList.add('is-playing');
+        });
+        media.addEventListener('pause', function(){
+            if (media.ended) return;
+            setState(root, 'paused');
+            root.classList.remove('is-playing');
+        });
+        media.addEventListener('ended', function(){
+            setState(root, 'paused');
+            root.classList.remove('is-playing');
+            if (fill) fill.style.width = '100%';
+        });
+        media.addEventListener('error', function(){
+            var msg = 'فایل بارگذاری نشد. اینترنت را بررسی کنید.';
+            try{
+                var err = media.error;
+                if (err){
+                    if (err.code===2) msg='خطای شبکه. دوباره تلاش کنید.';
+                    else if (err.code===3) msg='فایل خراب است یا فرمت پشتیبانی نمی‌شود.';
+                    else if (err.code===4) msg='فرمت پشتیبانی نمی‌شود.';
+                }
+            }catch(e){}
+            if (errorText) errorText.textContent = msg;
+            setState(root, 'error');
+        });
+        media.addEventListener('stalled', function(){ setState(root, 'buffering'); });
+
+        // initial volume fill
+        if (volFill){
+            volFill.style.width = (media.volume*100)+'%';
+        }
+
+        root.__haBound = state;
+        players.push(state);
+        return state;
+    }
+
+    function initAll(){
+        var nodes = document.querySelectorAll(SELECTOR);
+        nodes.forEach(function(n){ createPlayer(n); });
+    }
+
+    // Lazy: only load when visible or interacted
+    function initLazy(){
+        var nodes = document.querySelectorAll(SELECTOR + ':not(.is-embed)');
+        if (!('IntersectionObserver' in window) || !nodes.length){
+            // fallback: init all but not load src
+            nodes.forEach(function(n){
+                createPlayer(n);
+                // do not load yet; only on click will load
+            });
+            return;
+        }
+        var io = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (!entry.isIntersecting) return;
+                var root = entry.target;
+                var st = createPlayer(root);
+                // do NOT auto-load src; just bind. But for video we want metadata for fast start? We'll preload metadata only if near viewport and connection good
+                if (st && !st.loaded){
+                    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                    var saveData = conn && conn.saveData;
+                    var effective = conn && conn.effectiveType;
+                    var isSlow = saveData || (effective && /2g|slow/.test(effective));
+                    if (!isSlow){
+                        // load metadata only to get duration quickly, not full file
+                        var media = st.media;
+                        if (media && media.preload!=='none'){
+                            // for audio we keep none until play to avoid extra download
+                        }
+                        // For video, allow metadata preload if browser wants
+                        if (root.getAttribute('data-ha-type')==='video' && media){
+                            if (!media.getAttribute('data-src')) return;
+                            // set src only for metadata if not yet
+                            // Actually we defer full load until play, but metadata is cheap via preload=metadata
+                            // So we ensure src now for video to get quick poster->first frame
+                            // To respect "load only required", we only set src when user is likely to play: when intersecting 50%
+                            if (entry.intersectionRatio > 0.5){
+                                // still don't auto play, just prepare metadata
+                                if (!st.loaded){
+                                    ensureSrc(media);
+                                    st.loaded = true;
+                                    try{ media.load(); }catch(e){}
+                                }
+                            }
+                        }
+                    }
+                }
+                // once bound, unobserve
+                io.unobserve(root);
+            });
+        }, { rootMargin: '200px 0px', threshold: [0, 0.25, 0.5] });
+
+        nodes.forEach(function(n){ io.observe(n); });
+
+        // Also: click anywhere on player before bound should bind immediately
+        document.addEventListener('click', function(e){
+            var root = e.target.closest ? e.target.closest(SELECTOR) : null;
+            if (!root) return;
+            var st = root.__haBound || createPlayer(root);
+            if (st && !st.loaded){
+                // if user clicked, load now
+                st.loaded = false; // force load
+                // createPlayer's loadIfNeeded will be triggered by play handler, but ensure
+            }
+        }, true);
+    }
+
+    // Enhance modal players as well (when modal opens)
+    document.addEventListener('click', function(e){
+        var trigger = e.target.closest ? e.target.closest('[data-media-open]') : null;
+        if (!trigger) return;
+        // modal will be built by learningModule; we need to enhance its inner media after a tick
+        setTimeout(function(){
+            var modalBody = document.querySelector('[data-media-modal-body]');
+            if (!modalBody) return;
+            var m = modalBody.querySelector('video, audio');
+            if (!m) return;
+            // if modal media has no ha-player wrapper, wrap behavior
+            // Add basic controls already exist, but add buffering detection
+            m.addEventListener('waiting', function(){ m.setAttribute('data-state','buffering'); });
+            m.addEventListener('playing', function(){ m.removeAttribute('data-state'); });
+        }, 200);
+    });
+
+    // Boot
+    if (document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', function(){ initAll(); initLazy(); });
+    } else {
+        initAll(); initLazy();
+    }
+
+    // expose for debugging / console test
+    window.HAMedia = {
+        players: players,
+        fmtTime: fmtTime
+    };
+})();
+
+
 /* ----------------------------------------------------------------------
    الحاقاتِ سبک — فقط رفتارهایی که به CSS/دسترس‌پذیری مربوط می‌شوند.
    ---------------------------------------------------------------------- */

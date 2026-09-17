@@ -95,6 +95,7 @@ $attachFile = ha_safe_file_url((string) ($article['file'] ?? ''));
             <?php endif; ?>
 
             <?= tag_list((array)($article['tags']??[])) ?>
+            <?= ha_interaction_block('article', (string)($article['slug'] ?? $slug)) ?>
         </div>
         <aside class="article__side">
             <div class="card side-card">

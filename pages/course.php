@@ -302,6 +302,8 @@ if (count($relatedArticles) < 3) {
                     </div>
                 </div>
 
+                <?= ha_interaction_block('course', $courseSlug) ?>
+
                 <?php if($relatedArticles): ?>
                 <section class="sub-section">
                     <div class="sub-section__head"><h2 class="sub-section__title">مقاله‌های مرتبط</h2></div>

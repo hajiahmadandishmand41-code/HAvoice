@@ -1,5 +1,5 @@
 -- =====================================================================
---  HAvoice — schema v4 (MySQL 5.6+ / MariaDB — InfinityFree)
+--  HAvoice — schema v6 (MySQL 5.6+ / MariaDB — InfinityFree)
 --
 --  نصب:
 --   1) phpMyAdmin → Import فایل database_import.sql (ریشه‌ی پروژه)
@@ -332,9 +332,157 @@ CREATE TABLE IF NOT EXISTS ha_progress (
     CONSTRAINT fk_progress_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== NEW: Interactions v5 ==========
+
+CREATE TABLE IF NOT EXISTS ha_content_reactions (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    content_type  ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+    content_slug  VARCHAR(120) NOT NULL,
+    reaction_type ENUM('like','love','laugh','wow','sad') NOT NULL DEFAULT 'like',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_reaction_user_content (user_id, content_type, content_slug),
+    KEY idx_reaction_content (content_type, content_slug),
+    KEY idx_reaction_type (reaction_type),
+    CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_content_comments (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    content_type  ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+    content_slug  VARCHAR(120) NOT NULL,
+    parent_id     INT UNSIGNED NULL DEFAULT NULL,
+    body          TEXT NOT NULL,
+    status        ENUM('pending','approved') NOT NULL DEFAULT 'approved',
+    likes_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    ip            VARCHAR(45) NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_cc_content (content_type, content_slug, status, created_at),
+    KEY idx_cc_parent (parent_id),
+    KEY idx_cc_user (user_id),
+    CONSTRAINT fk_cc_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cc_parent FOREIGN KEY (parent_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_comment_likes (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    comment_id    INT UNSIGNED NOT NULL,
+    created_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_comment_like (user_id, comment_id),
+    KEY idx_cl_comment (comment_id),
+    CONSTRAINT fk_cl_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cl_comment FOREIGN KEY (comment_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ========== NEW: Virtual Board v6 ==========
+
+CREATE TABLE IF NOT EXISTS ha_board_posts (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    body          TEXT NOT NULL,
+    image         VARCHAR(500) NOT NULL DEFAULT '',
+    media_url     VARCHAR(500) NOT NULL DEFAULT '',
+    media_type    ENUM('image','video','audio','link') NULL DEFAULT NULL,
+    status        ENUM('pending','approved','hidden') NOT NULL DEFAULT 'approved',
+    likes_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    reactions_count INT UNSIGNED NOT NULL DEFAULT 0,
+    comments_count INT UNSIGNED NOT NULL DEFAULT 0,
+    views_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    ip            VARCHAR(45) NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_board_status_created (status, created_at DESC),
+    KEY idx_board_user (user_id, created_at DESC),
+    KEY idx_board_created (created_at DESC),
+    CONSTRAINT fk_board_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_board_reactions (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    post_id       INT UNSIGNED NOT NULL,
+    reaction_type ENUM('like','love','laugh','wow','sad') NOT NULL DEFAULT 'like',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_board_reaction_user_post (user_id, post_id),
+    KEY idx_board_reaction_post (post_id),
+    KEY idx_board_reaction_type (reaction_type),
+    CONSTRAINT fk_board_reaction_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_board_reaction_post FOREIGN KEY (post_id) REFERENCES ha_board_posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_board_comments (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    post_id       INT UNSIGNED NOT NULL,
+    parent_id     INT UNSIGNED NULL DEFAULT NULL,
+    body          TEXT NOT NULL,
+    status        ENUM('pending','approved') NOT NULL DEFAULT 'approved',
+    likes_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    ip            VARCHAR(45) NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_bc_post_status (post_id, status, created_at),
+    KEY idx_bc_parent (parent_id),
+    KEY idx_bc_user (user_id),
+    CONSTRAINT fk_bc_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bc_post FOREIGN KEY (post_id) REFERENCES ha_board_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bc_parent FOREIGN KEY (parent_id) REFERENCES ha_board_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_board_comment_likes (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    comment_id    INT UNSIGNED NOT NULL,
+    created_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_board_comment_like (user_id, comment_id),
+    KEY idx_bcl_comment (comment_id),
+    CONSTRAINT fk_bcl_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_bcl_comment FOREIGN KEY (comment_id) REFERENCES ha_board_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_site_visits (
+    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NULL DEFAULT NULL,
+    ip            VARCHAR(45) NOT NULL DEFAULT '',
+    route         VARCHAR(80) NOT NULL DEFAULT '',
+    slug          VARCHAR(120) NOT NULL DEFAULT '',
+    user_agent    VARCHAR(500) NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_visit_route (route, created_at),
+    KEY idx_visit_created (created_at),
+    KEY idx_visit_ip (ip, created_at),
+    KEY idx_visit_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_content_views (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    content_type  VARCHAR(40) NOT NULL,
+    content_slug  VARCHAR(120) NOT NULL,
+    views_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_content_view (content_type, content_slug),
+    KEY idx_cv_type (content_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '4');
+INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '6');
 
 INSERT IGNORE INTO ha_roles (role_key, label, created_at) VALUES
     ('user',  'کاربر', NOW()),

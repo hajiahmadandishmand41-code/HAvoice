@@ -32,9 +32,9 @@ $errText = static function (string $f) use ($errors): string {
         <div class="auth-card">
             <div class="auth-card__brand">
                 <span class="auth-card__mark" aria-hidden="true"><?= ha_icon('user', 20) ?></span>
-                <p class="eyebrow">حساب کاربری</p>
+                <p class="eyebrow">ورود — فقط برای دارندگان حساب</p>
                 <h1>ورود به HAvoice</h1>
-                <p class="auth-card__lead">برای پیگیریِ مسیر یادگیری و همگام‌سازیِ پیشرفت وارد شوید.</p>
+                <p class="auth-card__lead">این صفحه فقط برای کاربرانی است که قبلاً ثبت‌نام کرده‌اند. اگر حساب ندارید، اول ثبت‌نام کنید — رایگان و ۳۰ ثانیه‌ای.</p>
             </div>
 
             <?php if ($flash !== [] && !empty($flash['message'])): ?>
@@ -68,7 +68,11 @@ $errText = static function (string $f) use ($errors): string {
                 <button class="btn btn--primary btn--lg btn--block" type="submit"><?= ha_icon('arrow-left', 16) ?> ورود</button>
             </form>
 
-            <p class="auth-card__alt">هنوز حساب ندارید؟ <a href="<?= e(url('register', $next !== '' ? ['next' => $next] : [])) ?>">ثبت‌نام کنید</a></p>
+                        <div class="auth-card__cta-box card" style="margin-top:1.2rem">
+                <p class="auth-card__cta-title">حساب ندارید؟</p>
+                <p class="muted-sm" style="margin:.3rem 0 .7rem">ثبت‌نام ساده، رایگان و بدون مزاحمت — فقط ایمیل و نام.</p>
+                <a class="btn btn--primary btn--cta btn--sm" href="<?= e(url('register', $next !== '' ? ['next' => $next] : [])) ?>"><?= ha_icon('plus', 14) ?> ثبت‌نام رایگان</a>
+            </div>
         </div>
     </div>
 </section>

@@ -27,6 +27,8 @@ require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/learning_ui.php';
 require HA_ROOT . '/includes/meta.php';
 require HA_ROOT . '/includes/comments.php';
+require HA_ROOT . '/includes/interactions.php';
+require HA_ROOT . '/includes/board.php';
 
 /* Seed خودکار فقط وقتی صریحاً فعال و جداول خالی باشند. */
 if (function_exists('repo_maybe_auto_seed')) {
@@ -189,7 +191,13 @@ if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
 /* ------------------------------------------------------------------ */
 
 if (route_meta($route, 'auth', false) === true && !auth_is_logged_in()) {
-    auth_require_guest();
+    if ($route === 'board') {
+        auth_require_guest('برای انتشار و دیدن تابلوی مجازی ثبت‌نام کنید — رایگان و کمتر از ۳۰ ثانیه. پس از ثبت‌نام به تابلو برمی‌گردید.');
+    } elseif ($route === 'profile') {
+        auth_require_guest('برای دیدن پروفایل‌ها ثبت‌نام کنید.');
+    } else {
+        auth_require_guest();
+    }
 }
 
 /*
@@ -245,6 +253,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'progress':
             require HA_ROOT . '/includes/handlers/progress.php';
             break;
+        case 'reaction':
+            require HA_ROOT . '/includes/handlers/reaction.php';
+            break;
+        case 'content_comment':
+            require HA_ROOT . '/includes/handlers/content_comment.php';
+            break;
+        case 'comment_like':
+            require HA_ROOT . '/includes/handlers/comment_like.php';
+            break;
+        case 'board_post':
+            require HA_ROOT . '/includes/handlers/board_post.php';
+            break;
+        case 'board_reaction':
+            require HA_ROOT . '/includes/handlers/board_reaction.php';
+            break;
+        case 'board_comment':
+            require HA_ROOT . '/includes/handlers/board_comment.php';
+            break;
+        case 'board_comment_like':
+            require HA_ROOT . '/includes/handlers/board_comment_like.php';
+            break;
         // Admin POST handlers
         case 'admin_course_save':
         case 'admin_article_save':
@@ -273,6 +302,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         case 'admin_comment_status':
         case 'admin_comment_delete':
         case 'admin_content_status':
+        case 'admin_board':
+        case 'admin_board_status':
+        case 'admin_board_delete':
+        case 'admin_board_comments':
+        case 'admin_board_comment_status':
+        case 'admin_board_comment_delete':
+        case 'admin_board_reactions':
+        case 'admin_board_reaction_delete':
+        case 'admin_content_comments':
+        case 'admin_content_comment_status':
+        case 'admin_content_comment_delete':
+        case 'admin_content_reactions':
+        case 'admin_content_reaction_delete':
             // Map route to file: admin_article_save → article_save.php
             $handlerFile = HA_ROOT . '/pages/admin/' . str_replace('admin_', '', $route) . '.php';
             if (is_file($handlerFile)) {
@@ -287,6 +329,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 /* ------------------------------------------------------------------ */
 
 $GLOBALS['HA_META'] = ha_page_meta($route);
+
+/* Visit tracking for admin stats — lightweight, after auth, before render */
+if (function_exists('ha_track_visit') && $route !== '404' && !str_starts_with($route,'admin_') && $route !== 'admin') {
+    ha_track_visit($route, $slug);
+}
 
 /*
  * بافر کردنِ کلِ خروجی.

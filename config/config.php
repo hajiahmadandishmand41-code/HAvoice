@@ -12,6 +12,41 @@ if (!defined('HA_ROOT')) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  PHP compatibility                                                 */
+/* ------------------------------------------------------------------ */
+/*
+ * Installer حداقل PHP 7.4 را قبول می‌کند، در حالی‌که توابع
+ * str_starts_with / str_contains / str_ends_with از PHP 8.0 هستند.
+ * این polyfillها پیش از بارگذاری بقیه‌ی کد تعریف می‌شوند تا روی
+ * PHP 7.4/7.x خطای Fatal Error رخ ندهد و روی PHP 8+ نیز مزاحم نشوند.
+ */
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) === 0;
+    }
+}
+
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool
+    {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        if ($needle === '') {
+            return true;
+        }
+        $length = strlen($needle);
+        return $length <= strlen($haystack)
+            && substr($haystack, -$length) === $needle;
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /*  پیکربندی محلی (Production) — secrets هرگز در Git                  */
 /*                                                                    */
 /*  فایل config/config.local.php را از روی مثال بسازید و فقط روی      */
@@ -38,7 +73,7 @@ if (!defined('HA_PRETTY_URLS')) { define('HA_PRETTY_URLS', false); }
 
 /**
  * نشانی مطلق سایت، بدون اسلش انتهایی.
- * برای canonical، og:url، sitemap و robots در Production قطعی می‌شود.
+ * برای canonical، OG:url، sitemap و robots در Production قطعی می‌شود.
  */
 if (!defined('HA_SITE_URL')) { define('HA_SITE_URL', 'https://hajivoice.kesug.com'); }
 

@@ -40,6 +40,15 @@ $admin_is = static function (string $prefix) use ($adminRoute): bool {
             <a href="<?= e(url('admin_tips')) ?>"<?= $admin_is('admin_tip') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('sparkle', 16) ?> نکته‌ها</a>
             <a href="<?= e(url('admin_categories')) ?>"<?= $admin_is('admin_categor') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('compass', 16) ?> حوزه‌ها</a>
 
+            <p class="admin-nav__section">تابلوی مجازی</p>
+            <a href="<?= e(url('admin_board')) ?>"<?= $admin_is('admin_board') && !str_contains($adminRoute,'comment') && !str_contains($adminRoute,'reaction') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('sparkle', 16) ?> پست‌های تابلو</a>
+            <a href="<?= e(url('admin_board_comments')) ?>"<?= $admin_is('admin_board_comment') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('comment', 16) ?> نظرات تابلو</a>
+            <a href="<?= e(url('admin_board_reactions')) ?>"<?= $admin_is('admin_board_reaction') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('heart', 16) ?> واکنش‌های تابلو</a>
+
+            <p class="admin-nav__section">تعاملات محتوا</p>
+            <a href="<?= e(url('admin_content_comments')) ?>"<?= $admin_is('admin_content_comment') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('comment', 16) ?> نظرات محتوا</a>
+            <a href="<?= e(url('admin_content_reactions')) ?>"<?= $admin_is('admin_content_reaction') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('heart', 16) ?> واکنش‌های محتوا</a>
+
             <p class="admin-nav__section">سیستم</p>
             <a href="<?= e(url('admin_users')) ?>"<?= $admin_is('admin_user') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('user', 16) ?> کاربران</a>
             <a href="<?= e(url('admin_messages')) ?>"<?= $admin_is('admin_message') ? ' class="is-active" aria-current="page"' : '' ?>><?= ha_icon('chat', 16) ?> پیام‌ها<?= $unreadMessages > 0 ? ' <span class="admin-nav__badge admin-nav__badge--warn">' . fa_num($unreadMessages) . '</span>' : '' ?></a>
