@@ -18,30 +18,32 @@ if ($postId > 0) {
     $post = ha_board_post_find($postId);
     if (!$post || ($post['status'] ?? 'approved') !== 'approved') {
         http_response_code(404);
-        $post = null;
-    }
-    if ($post) {
-        ha_board_post_inc_view($postId);
-        ha_track_visit('board_post',(string)$postId);
-        $myReactions = $myId !== '' ? ha_board_reactions_for_user($myId,[$postId]) : [];
-        $comments = ha_board_comments_get($postId,'approved');
-        $commentIds = array_map(static fn($c)=>(int)($c['id']??0), $comments);
-        $likedComments = $myId !== '' ? ha_board_comment_likes_for_user($myId,$commentIds) : [];
-        $back = url('board');
         ?>
         <section class="section section--tight board-page board-post-page">
             <div class="container board-container">
-                <a class="board-back" href="<?= e($back) ?>">← بازگشت به تابلو</a>
-                <?php if ($post): ?>
-                    <?= ha_board_render_post($post,$myId,$myReactions,$likedComments) ?>
-                <?php else: ?>
-                    <div class="card board-empty"><h1>پست پیدا نشد</h1><p class="muted-sm">این پست وجود ندارد یا دیگر قابل نمایش نیست.</p></div>
-                <?php endif; ?>
+                <a class="board-back" href="<?= e(url('board')) ?>">← بازگشت به تابلو</a>
+                <div class="card board-empty"><h1>پست پیدا نشد</h1><p class="muted-sm">این پست وجود ندارد یا دیگر قابل نمایش نیست.</p></div>
             </div>
         </section>
         <?php
         return;
     }
+
+    ha_board_post_inc_view($postId);
+    ha_track_visit('board_post',(string)$postId);
+    $myReactions = $myId !== '' ? ha_board_reactions_for_user($myId,[$postId]) : [];
+    $comments = ha_board_comments_get($postId,'approved');
+    $commentIds = array_map(static fn($c)=>(int)($c['id']??0),$comments);
+    $likedComments = $myId !== '' ? ha_board_comment_likes_for_user($myId,$commentIds) : [];
+    ?>
+    <section class="section section--tight board-page board-post-page">
+        <div class="container board-container">
+            <a class="board-back" href="<?= e(url('board')) ?>">← بازگشت به تابلو</a>
+            <?= ha_board_render_post($post,$myId,$myReactions,$likedComments) ?>
+        </div>
+    </section>
+    <?php
+    return;
 }
 
 ha_track_visit('board','');
@@ -53,7 +55,6 @@ $nextProbe = ha_board_posts_get($perPage+1,$offset,'approved','');
 $hasNext = count($nextProbe) > $perPage;
 $postIds = array_map(static fn($p)=>(int)($p['id']??0),$posts);
 $myReactions = $myId !== '' ? ha_board_reactions_for_user($myId,$postIds) : [];
-$likedComments = [];
 $flash = flash();
 ?>
 <section class="section section--tight board-page">
