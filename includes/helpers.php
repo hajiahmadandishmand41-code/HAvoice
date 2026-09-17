@@ -346,8 +346,11 @@ function routes(): array
         'account'   => ['file' => 'account.php',   'pretty' => 'account',   'title' => 'حساب کاربری', 'session' => true],
         /* ثبتِ وضعیتِ درس/تمرین (تکمیل شد، در حالِ مطالعه، پاک‌کردن).
            فقط POST معنا دارد؛ GET کاربر را به همان صفحه‌ای که بود برمی‌گرداند. */
-        'progress'  => ['file' => 'progress.php',  'pretty' => 'progress',  'title' => 'پیشرفت یادگیری', 'auth' => true, 'banner' => false],
-
+                'progress'  => ['file' => 'progress.php',  'pretty' => 'progress',  'title' => 'پیشرفت یادگیری', 'auth' => true, 'banner' => false],
+        // Interactions — POST only (PRG)
+        'reaction'        => ['file' => 'home.php', 'pretty' => 'reaction', 'title' => 'واکنش', 'session' => true, 'banner' => false],
+        'content_comment' => ['file' => 'home.php', 'pretty' => 'content-comment', 'title' => 'نظر محتوا', 'session' => true, 'banner' => false],
+        'comment_like'    => ['file' => 'home.php', 'pretty' => 'comment-like', 'title' => 'پسند نظر', 'session' => true, 'banner' => false],
         // Admin routes
         'admin'                 => ['file' => 'admin/dashboard.php',      'pretty' => 'admin',         'title' => 'پنل مدیریت',      'admin' => true],
         'admin_courses'         => ['file' => 'admin/courses.php',        'pretty' => 'admin/courses', 'title' => 'مدیریت دوره‌ها',   'admin' => true],

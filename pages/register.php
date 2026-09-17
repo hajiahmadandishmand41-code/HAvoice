@@ -32,9 +32,9 @@ $errText = static function (string $f) use ($errors): string {
         <div class="auth-card">
             <div class="auth-card__brand">
                 <span class="auth-card__mark" aria-hidden="true"><?= ha_icon('sparkle', 20) ?></span>
-                <p class="eyebrow">شروع رایگان</p>
-                <h1>ساخت حساب کاربری</h1>
-                <p class="auth-card__lead">با یک حساب، پیشرفتِ درس‌ها و تمرین‌هایتان را دنبال کنید. ثبت‌نام رایگان است.</p>
+                <p class="eyebrow">شروع رایگان — کمتر از ۳۰ ثانیه</p>
+                <h1>ثبت‌نام در HAvoice</h1>
+                <p class="auth-card__lead">برای تعامل با محتوا (واکنش، نظر، پسند) ثبت‌نام کنید. رایگان است و پس از ثبت‌نام به همان صفحه‌ای که بودید برمی‌گردید.</p>
             </div>
 
             <?php if ($flash !== [] && !empty($flash['message'])): ?>
@@ -78,7 +78,7 @@ $errText = static function (string $f) use ($errors): string {
                 <p class="auth-form__note">با ثبت‌نام، ایمیل شما فقط برای ورود و اطلاع‌رسانیِ خودِ سایت نگه داشته می‌شود.</p>
             </form>
 
-            <p class="auth-card__alt">از قبل حساب دارید؟ <a href="<?= e(url('login', $next !== '' ? ['next' => $next] : [])) ?>">وارد شوید</a></p>
+            <p class="auth-card__alt">قبلاً حساب ساخته‌اید؟ <a href="<?= e(url('login', $next !== '' ? ['next' => $next] : [])) ?>">ورود — فقط برای دارندگان حساب</a></p>
         </div>
     </div>
 </section>

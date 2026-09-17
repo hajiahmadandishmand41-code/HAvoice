@@ -114,6 +114,9 @@ function ha_icon_paths(): array
         'instagram'  => '<rect x="3.5" y="3.5" width="17" height="17" rx="5.2"/><circle cx="12" cy="12" r="3.8"/><circle cx="16.9" cy="7.1" r="1" fill="currentColor" stroke="none"/>',
         'facebook'   => '<path d="M15.6 4.5h-2.1a3.3 3.3 0 0 0-3.3 3.3v2H8v2.9h2.2v6.8h2.9v-6.8h2.3l.5-2.9h-2.8V8.1a1 1 0 0 1 1-1h1.5Z"/>',
         'whatsapp'   => '<path d="M12 3.8a8.2 8.2 0 0 1 7.1 12.3l1.1 4-4.1-1.1A8.2 8.2 0 1 1 12 3.8Z"/><path d="M9.4 8.7c-.6.2-.9 1-.7 1.7.4 1.6 2.3 3.6 4 4.1.7.2 1.5-.2 1.7-.9l.06-.3-1.8-.8-.6.6a5.4 5.4 0 0 1-2-2l.6-.6-.75-1.8Z"/>',
+        'heart'      => '<path d="M12 20.2s-7.2-4.2-7.2-9a4 4 0 0 1 7.2-2.4A4 4 0 0 1 19.2 11.2c0 4.8-7.2 9-7.2 9Z"/>',
+        'heart-filled'=> '<path d="M12 20.2s-7.2-4.2-7.2-9a4 4 0 0 1 7.2-2.4A4 4 0 0 1 19.2 11.2c0 4.8-7.2 9-7.2 9Z" fill="currentColor" stroke="none"/>',
+        'reply'      => '<path d="M9 8.2H5.6a1.8 1.8 0 0 0-1.8 1.8v5.4a1.8 1.8 0 0 0 1.8 1.8H8"/><path d="M9 8.2c0 3.2 2.6 5.8 5.8 5.8H19"/><path d="m15 5.2 4 3-4 3"/>',
         'comment'    => '<path d="M20.2 11.6c0 3.7-3.7 6.7-8.2 6.7a9.7 9.7 0 0 1-2.6-.35L4.6 20.4l1.3-3.3a6.4 6.4 0 0 1-2.1-4.7c0-3.7 3.7-6.7 8.2-6.7s8.2 3 8.2 6.7Z"/><circle cx="8.4" cy="11.6" r=".5" fill="currentColor" stroke="none"/><circle cx="12" cy="11.6" r=".5" fill="currentColor" stroke="none"/><circle cx="15.6" cy="11.6" r=".5" fill="currentColor" stroke="none"/>',
     ];
 

@@ -182,6 +182,8 @@ $style = card_style($cat);
             </section>
         <?php endif; ?>
 
+        <?= ha_interaction_block('category', $catSlug) ?>
+
         <?php
         $hasAny = $coursesInCat || $lessonsInCat || $articlesInCat || $videosInCat || $audiosInCat || $booksInCat || $researchInCat;
         if (!$hasAny): ?>

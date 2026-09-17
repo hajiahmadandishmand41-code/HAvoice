@@ -46,6 +46,14 @@ $list = $filter
                 <div class="grid grid--3">
                     <?php foreach ($list as $item): ?><div class="reveal"><?= video_card($item) ?></div><?php endforeach; ?>
                 </div>
+                <div class="ha-interactions-list" style="margin-top:2rem">
+                <?php foreach ($list as $item): 
+                    $s = slugify((string)($item['slug'] ?? ''));
+                    if ($s === '') continue;
+                ?>
+                    <div id="ha-video-<?= e($s) ?>" style="margin-top:1.5rem"><?= ha_interaction_block('video', $s) ?></div>
+                <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         <?php endif; ?>
     </div>

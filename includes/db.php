@@ -17,7 +17,7 @@ if (!defined('HA_ROOT')) {
 }
 
 /** نسخهٔ schema که ensure_schema می‌سازد. */
-define('HA_DB_SCHEMA_VERSION', '4');
+define('HA_DB_SCHEMA_VERSION', '5');
 
 /* ------------------------------------------------------------------ */
 /*  پیکربندی و اتصال                                                  */
@@ -190,6 +190,54 @@ function db_schema_upgrade(PDO $pdo): void
     $try("ALTER TABLE ha_contact_messages ADD COLUMN status ENUM('unread','read') NOT NULL DEFAULT 'unread'");
     $try("ALTER TABLE ha_contact_messages ADD COLUMN read_at DATETIME NULL DEFAULT NULL");
     $try("ALTER TABLE ha_contact_messages ADD KEY idx_messages_status (status)");
+
+    // v5: interactions
+    $try("CREATE TABLE IF NOT EXISTS ha_content_reactions (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id VARCHAR(32) NOT NULL,
+        content_type ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+        content_slug VARCHAR(120) NOT NULL,
+        reaction_type ENUM('like','love','laugh','wow','sad') NOT NULL DEFAULT 'like',
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_reaction_user_content (user_id, content_type, content_slug),
+        KEY idx_reaction_content (content_type, content_slug),
+        KEY idx_reaction_type (reaction_type),
+        CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $try("CREATE TABLE IF NOT EXISTS ha_content_comments (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id VARCHAR(32) NOT NULL,
+        content_type ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+        content_slug VARCHAR(120) NOT NULL,
+        parent_id INT UNSIGNED NULL DEFAULT NULL,
+        body TEXT NOT NULL,
+        status ENUM('pending','approved') NOT NULL DEFAULT 'approved',
+        likes_count INT UNSIGNED NOT NULL DEFAULT 0,
+        ip VARCHAR(45) NOT NULL DEFAULT '',
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        PRIMARY KEY (id),
+        KEY idx_cc_content (content_type, content_slug, status, created_at),
+        KEY idx_cc_parent (parent_id),
+        KEY idx_cc_user (user_id),
+        CONSTRAINT fk_cc_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+        CONSTRAINT fk_cc_parent FOREIGN KEY (parent_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $try("CREATE TABLE IF NOT EXISTS ha_comment_likes (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id VARCHAR(32) NOT NULL,
+        comment_id INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_comment_like (user_id, comment_id),
+        KEY idx_cl_comment (comment_id),
+        CONSTRAINT fk_cl_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+        CONSTRAINT fk_cl_comment FOREIGN KEY (comment_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 }
 
 function db_id_by_slug(string $table, string $slug): ?int
@@ -239,6 +287,7 @@ function db_table_exists(string $table): bool
         'ha_schema_meta', 'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons', 'ha_articles',
         'ha_books', 'ha_media', 'ha_exercises', 'ha_tips', 'ha_research',
         'ha_users', 'ha_roles', 'ha_progress', 'ha_comments', 'ha_settings', 'ha_contact_messages',
+        'ha_content_reactions', 'ha_content_comments', 'ha_comment_likes',
     ];
     if (!in_array($table, $allowed, true) || !db_ready()) {
         return $cache[$table] = false;
@@ -1418,3 +1467,136 @@ function db_set_status(string $table, string $keyCol, string $key, string $statu
     $status = db_status($status, 'draft');
     return db_exec("UPDATE {$table} SET status = ?, updated_at = ? WHERE {$keyCol} = ?", [$status, db_now(), $key]);
 }
+
+/* ------------------------------------------------------------------ */
+/*  Interactions — Reactions / Comments / Likes (v5)                  */
+/* ------------------------------------------------------------------ */
+
+function db_reaction_types(): array
+{
+    return ['like','love','laugh','wow','sad'];
+}
+
+function db_content_types(): array
+{
+    return ['article','video','audio','book','research','course','lesson','exercise','tip','category'];
+}
+
+function db_reaction_get_user(string $userId, string $cType, string $cSlug): ?array
+{
+    if ($userId === '' || $cType === '' || $cSlug === '') return null;
+    return db_one('SELECT * FROM ha_content_reactions WHERE user_id = ? AND content_type = ? AND content_slug = ? LIMIT 1', [$userId, $cType, $cSlug]);
+}
+
+function db_reaction_set(string $userId, string $cType, string $cSlug, string $reaction): bool
+{
+    $now = db_now();
+    $reaction = in_array($reaction, db_reaction_types(), true) ? $reaction : 'like';
+    // upsert
+    return db_exec(
+        'INSERT INTO ha_content_reactions (user_id, content_type, content_slug, reaction_type, created_at, updated_at)
+         VALUES (?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE reaction_type = VALUES(reaction_type), updated_at = VALUES(updated_at)',
+        [$userId, $cType, $cSlug, $reaction, $now, $now]
+    );
+}
+
+function db_reaction_delete(string $userId, string $cType, string $cSlug): bool
+{
+    return db_exec('DELETE FROM ha_content_reactions WHERE user_id = ? AND content_type = ? AND content_slug = ? LIMIT 1', [$userId, $cType, $cSlug]);
+}
+
+function db_reaction_counts(string $cType, string $cSlug): array
+{
+    $rows = db_all('SELECT reaction_type, COUNT(*) AS c FROM ha_content_reactions WHERE content_type = ? AND content_slug = ? GROUP BY reaction_type', [$cType, $cSlug]);
+    $out = ['total'=>0,'like'=>0,'love'=>0,'laugh'=>0,'wow'=>0,'sad'=>0];
+    foreach ($rows as $r) {
+        $t = (string)($r['reaction_type'] ?? '');
+        $cnt = (int)($r['c'] ?? 0);
+        if (isset($out[$t])) $out[$t] = $cnt;
+        $out['total'] += $cnt;
+    }
+    return $out;
+}
+
+function db_reaction_list(string $cType, string $cSlug, int $limit = 50): array
+{
+    return db_all('SELECT r.*, u.name FROM ha_content_reactions r LEFT JOIN ha_users u ON u.id = r.user_id WHERE r.content_type = ? AND r.content_slug = ? ORDER BY r.updated_at DESC LIMIT '.max(1,min(200,$limit)), [$cType, $cSlug]);
+}
+
+/* Comments */
+
+function db_content_comment_add(string $userId, string $cType, string $cSlug, ?int $parentId, string $body, string $ip): ?int
+{
+    $now = db_now();
+    $ok = db_exec(
+        'INSERT INTO ha_content_comments (user_id, content_type, content_slug, parent_id, body, status, likes_count, ip, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?)',
+        [$userId, $cType, $cSlug, $parentId, $body, 'approved', 0, $ip, $now, $now]
+    );
+    return $ok ? db_last_id() : null;
+}
+
+function db_content_comments_all(string $cType, string $cSlug, string $status = 'approved'): array
+{
+    $sql = 'SELECT cc.*, u.name, u.email FROM ha_content_comments cc LEFT JOIN ha_users u ON u.id = cc.user_id WHERE cc.content_type = ? AND cc.content_slug = ?';
+    $params = [$cType, $cSlug];
+    if ($status === 'approved' || $status === 'pending') {
+        $sql .= ' AND cc.status = ?';
+        $params[] = $status;
+    }
+    $sql .= ' ORDER BY cc.created_at ASC, cc.id ASC';
+    return db_all($sql, $params);
+}
+
+function db_content_comment_find(int $id): ?array
+{
+    return db_one('SELECT * FROM ha_content_comments WHERE id = ? LIMIT 1', [$id]);
+}
+
+function db_content_comment_counts(string $cType, string $cSlug): array
+{
+    $row = db_one('SELECT COUNT(*) AS total FROM ha_content_comments WHERE content_type = ? AND content_slug = ? AND status = ?', [$cType, $cSlug, 'approved']);
+    $total = (int)($row['total'] ?? 0);
+    // replies count = total where parent_id not null
+    $row2 = db_one('SELECT COUNT(*) AS replies FROM ha_content_comments WHERE content_type = ? AND content_slug = ? AND parent_id IS NOT NULL AND status = ?', [$cType, $cSlug, 'approved']);
+    $replies = (int)($row2['replies'] ?? 0);
+    $comments = $total - $replies;
+    return ['total'=>$total, 'comments'=>$comments, 'replies'=>$replies];
+}
+
+function db_comment_like_exists(string $userId, int $commentId): bool
+{
+    $r = db_one('SELECT id FROM ha_comment_likes WHERE user_id = ? AND comment_id = ? LIMIT 1', [$userId, $commentId]);
+    return $r !== null;
+}
+
+function db_comment_like_add(string $userId, int $commentId): bool
+{
+    $now = db_now();
+    $ok = db_exec('INSERT IGNORE INTO ha_comment_likes (user_id, comment_id, created_at) VALUES (?,?,?)', [$userId, $commentId, $now]);
+    if ($ok) {
+        db_exec('UPDATE ha_content_comments SET likes_count = likes_count + 1, updated_at = ? WHERE id = ?', [$now, $commentId]);
+    }
+    return $ok;
+}
+
+function db_comment_like_remove(string $userId, int $commentId): bool
+{
+    $ok = db_exec('DELETE FROM ha_comment_likes WHERE user_id = ? AND comment_id = ? LIMIT 1', [$userId, $commentId]);
+    if ($ok) {
+        db_exec('UPDATE ha_content_comments SET likes_count = GREATEST(likes_count - 1, 0), updated_at = ? WHERE id = ? AND likes_count > 0', [db_now(), $commentId]);
+    }
+    return $ok;
+}
+
+function db_comment_likes_for_user(string $userId, array $commentIds): array
+{
+    if ($userId === '' || $commentIds === []) return [];
+    $place = implode(',', array_fill(0, count($commentIds), '?'));
+    $rows = db_all('SELECT comment_id FROM ha_comment_likes WHERE user_id = ? AND comment_id IN ('.$place.')', array_merge([$userId], $commentIds));
+    $out = [];
+    foreach ($rows as $r) $out[(int)$r['comment_id']] = true;
+    return $out;
+}
+

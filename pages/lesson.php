@@ -250,6 +250,7 @@ foreach ((array) ($data['blocks'] ?? []) as $b) {
                 </div>
             </div>
 
+            <?= ha_interaction_block('lesson', $slug) ?>
             <?= comments_teaser(2, 'تجربه‌ی دیگران از این درس') ?>
 
             <nav class="pager" aria-label="درس قبلی و بعدی">

@@ -1,14 +1,7 @@
 <?php
 /**
- * HAvoice — اجزای رابطِ «مسیرِ یادگیری»
- *
- * هدفِ این ماژول یک چیز است: کاربر با یک نگاه بفهمد
- *   «الان کجاست، درسِ فعلی چیست، درسِ بعدی چیست و تمرینِ بعدی چیست».
- *
- * همه‌ی اجزا از همان Design Tokenها و کلاس‌های موجود (btn, card, chip,
- * progress, badge) استفاده می‌کنند و استایلشان در assets/css/learning.css
- * است — بدونِ استایلِ درون‌خطی و بدونِ JS اجباری (همه‌ی دکمه‌ها یا پیوند
- * واقعی‌اند یا فرمِ POST؛ اگر JS خاموش باشد هم کار می‌کنند).
+ * HAvoice — اجزای رابطِ «مسیرِ یادگیری» + پخش‌کننده‌ی حرفه‌ای صوت/ویدیو
+ * Progressive Loading/Streaming، شروع سریع، بافرینگ زیبا، خطای واضح
  */
 
 if (!defined('HA_ROOT')) {
@@ -19,9 +12,6 @@ if (!defined('HA_ROOT')) {
 /*  وضعیتِ قلم‌ها                                                      */
 /* ------------------------------------------------------------------ */
 
-/**
- * برچسبِ وضعیتِ یک درس/تمرین: انجام‌نشده | در حالِ مطالعه | تکمیل‌شده.
- */
 function status_pill(string $state, string $label = ''): string
 {
     $meta  = progress_state_meta($state);
@@ -31,13 +21,6 @@ function status_pill(string $state, string $label = ''): string
          . '<span>' . e($text) . '</span></span>';
 }
 
-/**
- * فرمِ تغییرِ وضعیت (PRG، بدونِ نیاز به JS).
- *
- * @param array{type?:string,key:string,state:string,label:string,class?:string,
- *             icon?:string,goto?:string,next?:string,title?:string,small?:bool,
- *             pressed?:bool,formClass?:string} $o
- */
 function progress_form(array $o): string
 {
     $type  = ($o['type'] ?? 'lesson') === 'exercise' ? 'exercise' : 'lesson';
@@ -73,7 +56,6 @@ function progress_form(array $o): string
     <?php return (string) ob_get_clean();
 }
 
-/** دکمه‌ی «تکمیل شد / برداشتنِ علامت» برای یک درس. */
 function lesson_complete_form(string $lessonSlug, string $state, string $goto = 'next-lesson'): string
 {
     if ($state === 'done') {
@@ -93,14 +75,13 @@ function lesson_complete_form(string $lessonSlug, string $state, string $goto = 
         'key'   => $lessonSlug,
         'state' => 'done',
         'label' => 'تکمیل شد — برو به قدمِ بعدی',
-        'class' => 'btn btn--primary',
+        'class' => 'btn btn--primary btn--cta',
         'icon'  => 'check',
         'goto'  => $goto,
         'pressed' => false,
     ]);
 }
 
-/** دکمه‌ی «انجام شد» برای یک تمرین. */
 function exercise_complete_form(string $exerciseId, string $state, string $class = 'btn btn--ghost btn--sm'): string
 {
     if ($state === 'done') {
@@ -127,7 +108,6 @@ function exercise_complete_form(string $exerciseId, string $state, string $class
     ]);
 }
 
-/** فرمِ پاک‌کردنِ پیشرفتِ یک دوره. */
 function progress_reset_form(string $courseSlug, string $label = 'پاک کردنِ پیشرفتِ این دوره'): string
 {
     $courseSlug = slugify($courseSlug);
@@ -150,7 +130,6 @@ function progress_reset_form(string $courseSlug, string $label = 'پاک کرد�
 /*  پنلِ مسیرِ یادگیری                                                 */
 /* ------------------------------------------------------------------ */
 
-/** یک قدم در جریانِ «دوره ← درس ← تمرین». */
 function learn_step(array $step): string
 {
     $n        = (string) ($step['n'] ?? '');
@@ -197,7 +176,6 @@ function learn_step(array $step): string
     <?php return (string) ob_get_clean();
 }
 
-/** دکمه‌های یک قدم (پیوند + فرم‌ها کنار هم). */
 function learn_actions(array $items): string
 {
     $out = '';
@@ -223,14 +201,6 @@ function learn_actions(array $items): string
     return $out;
 }
 
-/**
- * پنلِ «مسیرِ یادگیری» — همان ترتیبِ خواسته‌شده:
- *   دوره ← درسِ فعلی ← درسِ بعدی ← تمرین ← تمرینِ بعدی
- *
- * @param array $course  داده‌ی دوره
- * @param array $path    خروجیِ course_learning_path()
- * @param array $opts    ['mode' => 'course'|'lesson', 'currentSlug' => '']
- */
 function learning_flow(array $course, array $path, array $opts = []): string
 {
     $mode        = ($opts['mode'] ?? 'course') === 'lesson' ? 'lesson' : 'course';
@@ -252,16 +222,15 @@ function learning_flow(array $course, array $path, array $opts = []): string
     $exTotal = (int) ($path['exercise_summary']['total'] ?? 0);
     $exDone  = (int) ($path['exercise_summary']['done'] ?? 0);
 
-    /* ---- قدمِ ۱: دوره ---- */
     $courseActions = [];
     if ($mode === 'lesson') {
         $courseActions[] = ['href' => $courseUrl, 'label' => 'بازگشت به دوره', 'class' => 'btn btn--ghost btn--sm', 'icon' => 'arrow-right'];
         $courseActions[] = ['href' => url('courses'), 'label' => 'همه‌ی دوره‌ها', 'class' => 'btn btn--ghost btn--sm'];
     } else {
         if ($current !== null) {
-            $courseActions[] = ['href' => (string) $current['url'], 'label' => $done > 0 ? 'ادامه‌ی یادگیری' : 'شروع یادگیری', 'class' => 'btn btn--primary btn--sm', 'icon' => 'play'];
+            $courseActions[] = ['href' => (string) $current['url'], 'label' => $done > 0 ? 'ادامه‌ی یادگیری' : 'شروع یادگیری', 'class' => 'btn btn--primary btn--sm btn--cta', 'icon' => 'play'];
         } elseif ($first !== null) {
-            $courseActions[] = ['href' => (string) $first['url'], 'label' => 'شروع یادگیری', 'class' => 'btn btn--primary btn--sm', 'icon' => 'play'];
+            $courseActions[] = ['href' => (string) $first['url'], 'label' => 'شروع یادگیری', 'class' => 'btn btn--primary btn--sm btn--cta', 'icon' => 'play'];
         }
         $courseActions[] = ['href' => $courseUrl . '#syllabus', 'label' => 'دیدنِ سرفصل‌ها', 'class' => 'btn btn--ghost btn--sm', 'icon' => 'list', 'anchor' => 'syllabus'];
     }
@@ -278,14 +247,13 @@ function learning_flow(array $course, array $path, array $opts = []): string
         'actions'  => learn_actions($courseActions),
     ]);
 
-    /* ---- قدمِ ۲: درسِ فعلی ---- */
     if ($current !== null) {
         $isDone = ($current['state'] ?? '') === 'done';
         $actions = [];
         $actions[] = [
             'href'  => (string) $current['url'],
             'label' => $isDone ? 'مرورِ درس' : ($current['state'] === 'started' ? 'ادامه‌ی مطالعه' : 'شروع این درس'),
-            'class' => 'btn btn--primary btn--sm',
+            'class' => 'btn btn--primary btn--sm btn--cta',
             'icon'  => $isDone ? 'eye' : 'play',
         ];
         if ($mode === 'lesson' && $currentSlug === (string) $current['slug']) {
@@ -313,7 +281,6 @@ function learning_flow(array $course, array $path, array $opts = []): string
         ]);
     }
 
-    /* ---- قدمِ ۳: درسِ بعدی ---- */
     if ($next !== null) {
         $steps[] = learn_step([
             'n'        => 3,
@@ -325,7 +292,7 @@ function learning_flow(array $course, array $path, array $opts = []): string
             'note'     => (string) ($next['stage'] ?? ''),
             'modifier' => 'next',
             'actions'  => learn_actions([
-                ['href' => (string) $next['url'], 'label' => 'درس بعدی', 'class' => 'btn btn--ghost btn--sm', 'icon' => 'arrow-left'],
+                ['href' => (string) $next['url'], 'label' => 'درس بعدی', 'class' => 'btn btn--ghost btn--sm btn--cta', 'icon' => 'arrow-left'],
             ]),
         ]);
     } else {
@@ -342,7 +309,6 @@ function learning_flow(array $course, array $path, array $opts = []): string
         ]);
     }
 
-    /* ---- قدمِ ۴: تمرین ---- */
     if ($exercise !== null) {
         $steps[] = learn_step([
             'n'        => 4,
@@ -354,7 +320,7 @@ function learning_flow(array $course, array $path, array $opts = []): string
             'note'     => (string) ($exercise['lessonTitle'] ?? '') !== '' ? 'تمرینِ درسِ «' . (string) $exercise['lessonTitle'] . '»' : '',
             'modifier' => 'exercise',
             'actions'  => learn_actions([
-                ['href' => (string) $exercise['url'], 'label' => 'شروع تمرین', 'class' => 'btn btn--ghost btn--sm', 'icon' => 'timer'],
+                ['href' => (string) $exercise['url'], 'label' => 'شروع تمرین', 'class' => 'btn btn--ghost btn--sm btn--cta', 'icon' => 'timer'],
                 ['html' => exercise_complete_form((string) $exercise['id'], (string) ($exercise['state'] ?? ''))],
             ]),
         ]);
@@ -371,7 +337,6 @@ function learning_flow(array $course, array $path, array $opts = []): string
         ]);
     }
 
-    /* ---- قدمِ ۵: تمرینِ بعدی ---- */
     if ($exerciseNext !== null) {
         $steps[] = learn_step([
             'n'        => 5,
@@ -435,14 +400,6 @@ function learning_flow(array $course, array $path, array $opts = []): string
     <?php return (string) ob_get_clean();
 }
 
-/* ------------------------------------------------------------------ */
-/*  نوارِ «قدمِ بعدی» در صفحه‌ی درس                                    */
-/* ------------------------------------------------------------------ */
-
-/**
- * نوارِ چسبانِ پایینِ صفحه (موبایل) و نوارِ بالای محتوا (دسکتاپ):
- * همیشه یک دکمه‌ی اصلی دارد تا کاربر بداند قدمِ بعدی چیست.
- */
 function lesson_next_bar(array $lp, string $lessonSlug, string $courseSlug): string
 {
     $next     = $lp['next'] ?? null;
@@ -458,12 +415,12 @@ function lesson_next_bar(array $lp, string $lessonSlug, string $courseSlug): str
             'key'   => $lessonSlug,
             'state' => $state === 'done' ? 'done' : 'done',
             'label' => 'تکمیل شد — درسِ بعدی',
-            'class' => 'btn btn--primary btn--sm',
+            'class' => 'btn btn--primary btn--sm btn--cta',
             'icon'  => 'arrow-left',
             'goto'  => 'next-lesson',
         ]);
     } else {
-        $primary = '<a class="btn btn--primary btn--sm" href="' . e($courseUrl) . '">'
+        $primary = '<a class="btn btn--primary btn--sm btn--cta" href="' . e($courseUrl) . '">'
                  . ha_icon('flag', 15) . 'پایانِ درس‌ها — بازگشت به دوره</a>';
     }
 
@@ -500,19 +457,9 @@ function lesson_next_bar(array $lp, string $lessonSlug, string $courseSlug): str
 }
 
 /* ------------------------------------------------------------------ */
-/*  رسانه: PDF / ویدیو / صوت                                           */
+/*  رسانه: PDF / ویدیو / صوت — حرفه‌ای با استریم پیشرونده             */
 /* ------------------------------------------------------------------ */
 
-/**
- * نمایش‌دهنده‌ی PDF داخلِ سایت.
- *
- * چرا iframe و نه object/embed؟ سیاستِ امنیتیِ سایت object-src 'none' است
- * (جلوگیری از Flash/plugin)، ولی frame-src 'self' اجازه‌ی iframe از همین
- * دامنه را می‌دهد — پس PDF با مرورگرِ داخلیِ همان مرورگر باز می‌شود و
- * روی موبایل هم از عرض بیرون نمی‌زند. دکمه‌های «تبِ جدید» و «دریافت»
- * همیشه هست تا اگر مرورگری نمایشِ داخلی نداشت (بیشترِ موبایل‌ها)، راه
- * جایگزینِ یک‌کلیکی وجود داشته باشد.
- */
 function pdf_viewer(string $url, string $title = '', string $note = ''): string
 {
     $safe = ha_safe_file_url($url);
@@ -538,46 +485,72 @@ function pdf_viewer(string $url, string $title = '', string $note = ''): string
 }
 
 /**
- * مارکاپِ پخش‌کننده‌ی یک رسانه (ویدیو/صوت) برای نمایشِ «داخلِ سایت».
- * امبدِ مجاز (آپارات/یوتیوب/ویمئو) → iframe؛ فایلِ محلی → <video>/<audio>.
+ * پخش‌کننده‌ی حرفه‌ای — Progressive + Streaming + Error State زیبا
+ * فقط هنگام نیاز بارگذاری می‌کند (data-src)، شروع سریع حتی با اینترنت ضعیف
  */
 function media_player(array $item): string
 {
     $type = ($item['type'] ?? '') === 'audio' ? 'audio' : 'video';
     $raw  = (string) ($item['url'] ?? '');
     $title = (string) ($item['title'] ?? ($type === 'audio' ? 'فایلِ صوتی' : 'ویدیو'));
+    $thumb = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
 
     $embed = ha_embed_url($raw);
     if ($embed !== '') {
-        return '<div class="media-player media-player--embed"><iframe src="' . e($embed) . '" title="' . e($title) . '"'
-             . ' loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen'
-             . ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"></iframe></div>';
+        $GLOBALS['HA_MEDIA_MODAL'] = true;
+        return '<div class="ha-player ha-player--video is-embed" data-ha-player data-ha-type="video-embed" data-ha-src="' . e($embed) . '" data-ha-title="' . e($title) . '">'
+             . '<div class="ha-player__stage" style="background:#000"><div class="ha-player__poster">'
+             . ($thumb !== '' ? '<img src="' . e($thumb) . '" alt="" loading="lazy" decoding="async">' : '<span class="ha-player__glyph">' . ha_icon('play', 28) . '</span>')
+             . '</div><button class="ha-player__bigplay" type="button" data-media-open data-media-payload="' . e(media_player_payload($item)) . '" aria-label="پخش: ' . e($title) . '">' . ha_icon('play', 22) . '</button></div>'
+             . '<div class="ha-player__controls"><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time">امبد خارجی • پخش سریع</span></div></div></div>';
     }
 
     $src = ha_safe_media_url($raw);
     if ($src === '') {
-        return '<div class="media-placeholder media-placeholder--' . $type . '">' . ha_icon($type === 'audio' ? 'headphones' : 'play')
-             . '<span>' . e($title) . '</span><small>فایلِ قابلِ پخش ثبت نشده است</small></div>';
+        return '<div class="ha-error"><span class="ha-error__icon">' . ha_icon($type === 'audio' ? 'headphones' : 'play', 22) . '</span><p class="ha-error__title">' . e($title) . '</p><p class="ha-error__text">فایلِ قابلِ پخش ثبت نشده است</p></div>';
     }
 
     if ($type === 'audio') {
-        return '<div class="media-player media-player--audio"><audio controls preload="none" src="' . e($src) . '"'
-             . ' aria-label="' . e($title) . '"></audio></div>';
+        return '<div class="ha-player ha-player--audio" data-ha-player data-ha-type="audio" data-ha-src="' . e($src) . '" data-ha-title="' . e($title) . '">'
+             . '<div class="ha-player__stage">'
+             . '<div class="ha-player__poster"><span class="ha-player__glyph">' . ha_icon('headphones', 28) . '</span></div>'
+             . '<button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش صوت: ' . e($title) . '">' . ha_icon('play', 20) . '</button>'
+             . '<div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری صوت…</p><p class="ha-player__status-text">شروع سریع حتی با اینترنت ضعیف</p></div></div>'
+             . '<div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اتصال کند؟ ادامه به‌زودی</p></div></div>'
+             . '<div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش صوت</p><p class="ha-player__status-text" data-ha-error-text>فایل بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry>' . ha_icon('rotate', 14) . ' تلاش مجدد</button></div></div>'
+             . '<audio class="ha-player__media" data-ha-media preload="none" data-src="' . e($src) . '" aria-label="' . e($title) . '"></audio>'
+             . '</div>'
+             . '<div class="ha-player__controls" data-ha-controls><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time" data-ha-time>۰۰:۰۰</span></div>'
+             . '<div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>'
+             . '<div class="ha-player__actions"><button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف">' . ha_icon('play', 16) . '</button>'
+             . '<div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا">' . ha_icon('volume', 16) . '</button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>'
+             . '<div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><a class="ha-player__chip" href="' . e($src) . '" download>' . ha_icon('download', 12) . ' دریافت</a></div></div></div></div>';
     }
-    return '<div class="media-player media-player--video"><video controls preload="metadata" playsinline src="' . e($src) . '"'
-         . ' aria-label="' . e($title) . '"></video></div>';
+
+    // video local file
+    return '<div class="ha-player ha-player--video" data-ha-player data-ha-type="video" data-ha-src="' . e($src) . '" data-ha-title="' . e($title) . '">'
+         . '<div class="ha-player__stage">'
+         . ($thumb !== '' ? '<div class="ha-player__poster"><img src="' . e($thumb) . '" alt="" loading="lazy"></div>' : '')
+         . '<button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش ویدیو: ' . e($title) . '">' . ha_icon('play', 22) . '</button>'
+         . '<div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری…</p><p class="ha-player__status-text">استریم پیشرونده • شروع فوری</p></div></div>'
+         . '<div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اینترنت ضعیف؟ صبور باشید</p></div></div>'
+         . '<div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش ویدیو</p><p class="ha-player__status-text" data-ha-error-text>ویدیو بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry>' . ha_icon('rotate', 14) . ' تلاش مجدد</button></div></div>'
+         . '<video class="ha-player__media" data-ha-media preload="metadata" playsinline controlsList="nodownload" data-src="' . e($src) . '" ' . ($thumb !== '' ? 'poster="' . e($thumb) . '"' : '') . ' aria-label="' . e($title) . '"></video>'
+         . '</div>'
+         . '<div class="ha-player__controls" data-ha-controls><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time" data-ha-time>۰۰:۰۰</span></div>'
+         . '<div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>'
+         . '<div class="ha-player__actions"><button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف">' . ha_icon('play', 16) . '</button>'
+         . '<div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا">' . ha_icon('volume', 16) . '</button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>'
+         . '<div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><button class="ha-player__btn" type="button" data-ha-fullscreen aria-label="تمام صفحه">' . ha_icon('external', 14) . '</button></div></div></div></div>';
 }
 
-/** آیا این رسانه امبدِ بیرونی است (نیاز به مودال دارد) یا فایلِ محلی؟ */
 function media_is_embed(array $item): bool
 {
     return ha_embed_url((string) ($item['url'] ?? '')) !== '';
 }
 
-/** داده‌ی JSON لازم برای مودالِ پخش (در data-* کارت‌ها). */
 function media_player_payload(array $item): string
 {
-    /* هر کارتی که این داده را می‌گیرد، به پوسته‌ی مودال در footer نیاز دارد. */
     $GLOBALS['HA_MEDIA_MODAL'] = true;
     $payload = [
         'id'    => (string) ($item['slug'] ?? ($item['id'] ?? '')),
@@ -585,14 +558,11 @@ function media_player_payload(array $item): string
         'type'  => ($item['type'] ?? '') === 'audio' ? 'audio' : 'video',
         'embed' => ha_embed_url((string) ($item['url'] ?? '')),
         'src'   => ha_safe_media_url((string) ($item['url'] ?? '')),
+        'thumb' => ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? ''))),
     ];
     return (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }
 
-/**
- * پوسته‌ی مودالِ پخش — یک بار در هر صفحه چاپ می‌شود (footer).
- * JS با داده‌ی data-media-payload هر کارت پرش می‌کند.
- */
 function media_modal_shell(): string
 {
     ob_start(); ?>
@@ -603,7 +573,9 @@ function media_modal_shell(): string
                 <h2 id="media-modal-title" class="modal__title" data-media-modal-title>پخش</h2>
                 <button class="icon-btn" type="button" data-media-modal-close aria-label="بستنِ پخش‌کننده"><?= ha_icon('close', 18) ?></button>
             </header>
-            <div class="modal__body" data-media-modal-body></div>
+            <div class="modal__body" data-media-modal-body>
+                <div class="ha-loading"><div class="ha-loading__spinner"></div><p class="ha-loading__title">آماده‌سازی پخش‌کننده…</p><p class="ha-loading__text">استریم پیشرونده با شروع سریع</p></div>
+            </div>
         </div>
     </div>
     <?php return (string) ob_get_clean();
@@ -613,24 +585,20 @@ function media_modal_shell(): string
 /*  نظرات / تجربیات                                                    */
 /* ------------------------------------------------------------------ */
 
-/**
- * بلوکِ «تجربیاتِ دیگران» — جای مناسب برای نظرات در مسیرِ یادگیری:
- * انتهای صفحه‌ی دوره و درس، با دکمه‌ی رفتن به صفحه‌ی نظرات.
- */
 function comments_teaser(int $limit = 3, string $title = 'تجربیاتِ دیگران'): string
 {
     $items = function_exists('comments_approved') ? comments_approved($limit, 0) : [];
     $url   = url('comments');
 
     ob_start(); ?>
-    <section class="card comments-teaser" aria-label="نظرات و تجربیات">
+    <section class="card comments-teaser reveal" aria-label="نظرات و تجربیات">
         <header class="comments-teaser__head">
             <h2><?= ha_icon('comment', 16) ?> <?= e($title) ?></h2>
             <a class="link-arrow" href="<?= e($url) ?>">همه‌ی نظرات و ثبتِ تجربه</a>
         </header>
         <?php if ($items === []): ?>
             <p class="muted-sm">هنوز تجربه‌ای ثبت نشده است. بعد از انجامِ اولین تمرین، تجربه‌ی خودتان را بنویسید تا دیگران از آن استفاده کنند.</p>
-            <a class="btn btn--ghost btn--sm" href="<?= e($url) ?>"><?= ha_icon('plus', 14) ?> نوشتنِ اولین تجربه</a>
+            <a class="btn btn--ghost btn--sm btn--cta" href="<?= e($url) ?>"><?= ha_icon('plus', 14) ?> نوشتنِ اولین تجربه</a>
         <?php else: ?>
             <ul class="comments-teaser__list">
                 <?php foreach ($items as $c): ?>
@@ -643,13 +611,12 @@ function comments_teaser(int $limit = 3, string $title = 'تجربیاتِ دی�
                 </li>
                 <?php endforeach; ?>
             </ul>
-            <a class="btn btn--ghost btn--sm btn--block" href="<?= e($url) ?>"><?= ha_icon('comment', 14) ?> نظرِ من درباره‌ی این دوره</a>
+            <a class="btn btn--ghost btn--sm btn--cta btn--block" href="<?= e($url) ?>"><?= ha_icon('comment', 14) ?> نظرِ من درباره‌ی این دوره</a>
         <?php endif; ?>
     </section>
     <?php return (string) ob_get_clean();
 }
 
-/** تاریخِ کوتاهِ فارسی‌شده از یک datetime (برای برچسبِ نظرات). */
 function ha_fa_date(string $datetime): string
 {
     $ts = strtotime($datetime);

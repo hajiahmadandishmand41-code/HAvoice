@@ -27,6 +27,7 @@ require HA_ROOT . '/includes/ui.php';
 require HA_ROOT . '/includes/learning_ui.php';
 require HA_ROOT . '/includes/meta.php';
 require HA_ROOT . '/includes/comments.php';
+require HA_ROOT . '/includes/interactions.php';
 
 /* Seed خودکار فقط وقتی صریحاً فعال و جداول خالی باشند. */
 if (function_exists('repo_maybe_auto_seed')) {
@@ -244,6 +245,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             break;
         case 'progress':
             require HA_ROOT . '/includes/handlers/progress.php';
+            break;
+        case 'reaction':
+            require HA_ROOT . '/includes/handlers/reaction.php';
+            break;
+        case 'content_comment':
+            require HA_ROOT . '/includes/handlers/content_comment.php';
+            break;
+        case 'comment_like':
+            require HA_ROOT . '/includes/handlers/comment_like.php';
             break;
         // Admin POST handlers
         case 'admin_course_save':

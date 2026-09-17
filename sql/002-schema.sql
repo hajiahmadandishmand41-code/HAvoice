@@ -1,5 +1,5 @@
 -- =====================================================================
---  HAvoice — schema v4 (MySQL 5.6+ / MariaDB — InfinityFree)
+--  HAvoice — schema v5 (MySQL 5.6+ / MariaDB — InfinityFree)
 --
 --  نصب:
 --   1) phpMyAdmin → Import فایل database_import.sql (ریشه‌ی پروژه)
@@ -332,9 +332,58 @@ CREATE TABLE IF NOT EXISTS ha_progress (
     CONSTRAINT fk_progress_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== NEW: Interactions v5 ==========
+
+CREATE TABLE IF NOT EXISTS ha_content_reactions (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    content_type  ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+    content_slug  VARCHAR(120) NOT NULL,
+    reaction_type ENUM('like','love','laugh','wow','sad') NOT NULL DEFAULT 'like',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_reaction_user_content (user_id, content_type, content_slug),
+    KEY idx_reaction_content (content_type, content_slug),
+    KEY idx_reaction_type (reaction_type),
+    CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_content_comments (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    content_type  ENUM('article','video','audio','book','research','course','lesson','exercise','tip','category') NOT NULL,
+    content_slug  VARCHAR(120) NOT NULL,
+    parent_id     INT UNSIGNED NULL DEFAULT NULL,
+    body          TEXT NOT NULL,
+    status        ENUM('pending','approved') NOT NULL DEFAULT 'approved',
+    likes_count   INT UNSIGNED NOT NULL DEFAULT 0,
+    ip            VARCHAR(45) NOT NULL DEFAULT '',
+    created_at    DATETIME NOT NULL,
+    updated_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_cc_content (content_type, content_slug, status, created_at),
+    KEY idx_cc_parent (parent_id),
+    KEY idx_cc_user (user_id),
+    CONSTRAINT fk_cc_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cc_parent FOREIGN KEY (parent_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ha_comment_likes (
+    id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id       VARCHAR(32) NOT NULL,
+    comment_id    INT UNSIGNED NOT NULL,
+    created_at    DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_comment_like (user_id, comment_id),
+    KEY idx_cl_comment (comment_id),
+    CONSTRAINT fk_cl_user FOREIGN KEY (user_id) REFERENCES ha_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cl_comment FOREIGN KEY (comment_id) REFERENCES ha_content_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '4');
+INSERT IGNORE INTO ha_schema_meta (meta_key, meta_value) VALUES ('version', '5');
 
 INSERT IGNORE INTO ha_roles (role_key, label, created_at) VALUES
     ('user',  'کاربر', NOW()),

@@ -1,0 +1,997 @@
+/* HAvoice — Professional Media System v2
+   Audio/Video با Progressive Loading/Streaming، شروع سریع، روان روی اینترنت ضعیف
+   فقط Media موردنیاز بارگذاری می‌شود — از دانلود اضافی جلوگیری
+   Loading / Buffering / Error State زیبا و واضح — RTL و Mobile-First
+*/
+
+/* ===== توکن‌های اختصاصی پخش‌کننده ===== */
+:root {
+  --player-bg: var(--surface);
+  --player-bg-soft: var(--surface-2);
+  --player-border: var(--border);
+  --player-radius: var(--r-lg);
+  --player-shadow: var(--sh-md);
+  --player-accent: var(--brand);
+  --player-accent-2: var(--secondary);
+  --player-text: var(--text);
+  --player-muted: var(--text-mute);
+  --player-progress-bg: var(--surface-3);
+  --player-progress-fill: linear-gradient(90deg, var(--brand), var(--brand-3));
+  --player-buffered: rgba(26,58,124,.18);
+}
+[data-theme="dark"] {
+  --player-buffered: rgba(147,178,245,.22);
+}
+
+/* ===== کارت‌های رسانه — بازطراحی مدرن ===== */
+.media-card {
+  --mc-radius: var(--r-lg);
+  border-radius: var(--mc-radius) !important;
+  border: 1px solid var(--border) !important;
+  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 96%, var(--brand-soft))) !important;
+  box-shadow: var(--sh-sm) !important;
+  transition: transform .28s var(--ease-out), box-shadow .28s var(--ease), border-color .2s !important;
+  overflow: hidden;
+  position: relative;
+}
+.media-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sh-lg) !important;
+  border-color: var(--brand-200) !important;
+}
+.media-card__thumb {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  position: relative;
+  background: radial-gradient(120% 120% at 88% 8%, rgba(255,255,255,.22), transparent 58%), linear-gradient(135deg, var(--cm-1, var(--brand)) 0%, var(--cm-2, var(--secondary)) 100%);
+  aspect-ratio: 16/9;
+  overflow: hidden;
+}
+.media-card__thumb--audio {
+  aspect-ratio: auto;
+  min-height: 132px;
+}
+.media-card__thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-card__thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(6,14,34,.55) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+.media-card__play {
+  z-index: 3 !important;
+  width: 56px !important;
+  height: 56px !important;
+  background: rgba(255,255,255,.96) !important;
+  color: var(--brand) !important;
+  box-shadow: 0 10px 28px rgba(6,14,34,.28), 0 2px 8px rgba(6,14,34,.12) !important;
+  border: 1px solid rgba(255,255,255,.6);
+  backdrop-filter: blur(8px);
+  transition: transform .25s var(--ease-out), background .2s, box-shadow .2s !important;
+}
+.media-card:hover .media-card__play {
+  transform: scale(1.08);
+  background: #fff !important;
+  box-shadow: 0 14px 36px rgba(6,14,34,.32) !important;
+}
+.media-card__duration {
+  z-index: 3 !important;
+  background: rgba(6,14,34,.78) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.14);
+  padding: .22rem .6rem !important;
+  border-radius: var(--r-full) !important;
+  font-weight: 700 !important;
+}
+.media-card__body {
+  padding: var(--sp-4) var(--sp-5) var(--sp-3);
+  gap: var(--sp-2);
+}
+.media-card__title {
+  font-size: var(--fs-md) !important;
+  font-weight: 800 !important;
+  line-height: 1.5 !important;
+}
+.media-card__foot {
+  margin-top: auto;
+  padding: var(--sp-3) var(--sp-5) var(--sp-4);
+  border-top: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+/* ===== HA Player — هسته‌ی پخش حرفه‌ای ===== */
+.ha-player {
+  position: relative;
+  display: grid;
+  gap: 0;
+  border-radius: var(--player-radius);
+  background: var(--player-bg);
+  border: 1px solid var(--player-border);
+  box-shadow: var(--player-shadow);
+  overflow: hidden;
+  min-width: 0;
+  --hp-progress: 0%;
+  --hp-buffered: 0%;
+  direction: rtl;
+}
+.ha-player--audio {
+  grid-template-rows: auto auto;
+}
+.ha-player--video {
+  background: #050A16;
+  aspect-ratio: 16/9;
+}
+.ha-player--video .ha-player__stage {
+  aspect-ratio: 16/9;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* مرحله‌ی نمایش */
+.ha-player__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 132px;
+  background: radial-gradient(120% 120% at 88% 8%, rgba(255,255,255,.12), transparent 60%), linear-gradient(135deg, var(--cm-1, var(--brand)) 0%, var(--cm-2, var(--secondary)) 100%);
+  overflow: hidden;
+}
+.ha-player--video .ha-player__stage {
+  min-height: 0;
+  background: #000;
+}
+.ha-player__media {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+  background: transparent;
+}
+.ha-player--audio .ha-player__media {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  opacity: 0;
+  pointer-events: none;
+}
+.ha-player--video .ha-player__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* پوستر / آیکون */
+.ha-player__poster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  transition: opacity .32s var(--ease), visibility .32s;
+}
+.ha-player__poster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ha-player__poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,14,34,.08) 0%, rgba(6,14,34,.55) 100%);
+}
+.ha-player__glyph {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-full);
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.22);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+
+/* دکمه‌ی پخش بزرگ وسط */
+.ha-player__bigplay {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-full);
+  background: rgba(255,255,255,.96);
+  color: var(--brand);
+  border: 1px solid rgba(255,255,255,.8);
+  box-shadow: 0 12px 32px rgba(6,14,34,.32), 0 2px 8px rgba(6,14,34,.12);
+  cursor: pointer;
+  transition: transform .24s var(--ease-out), background .2s, box-shadow .2s, opacity .2s;
+  flex: 0 0 auto;
+}
+.ha-player__bigplay:hover {
+  transform: scale(1.06);
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(6,14,34,.36);
+}
+.ha-player__bigplay:active {
+  transform: scale(.98);
+}
+.ha-player.is-playing .ha-player__bigplay {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.85);
+}
+.ha-player--audio .ha-player__bigplay {
+  width: 56px;
+  height: 56px;
+}
+
+/* وضعیت‌ها: لودینگ / بافرینگ / خطا */
+.ha-player__status {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  place-items: center;
+  background: rgba(8,14,30,.62);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  padding: var(--sp-5);
+  text-align: center;
+}
+.ha-player.is-loading .ha-player__status--loading,
+.ha-player.is-buffering .ha-player__status--buffering,
+.ha-player.is-error .ha-player__status--error {
+  display: grid;
+}
+.ha-player__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,.22);
+  border-top-color: #fff;
+  border-radius: var(--r-full);
+  animation: ha-spin .8s linear infinite;
+  margin: 0 auto var(--sp-3);
+}
+.ha-player__status-title {
+  font-weight: 800;
+  font-size: var(--fs-base);
+  margin: 0 0 var(--sp-1);
+  color: #fff;
+}
+.ha-player__status-text {
+  font-size: var(--fs-sm);
+  color: rgba(255,255,255,.82);
+  margin: 0;
+  line-height: 1.7;
+}
+.ha-player__status--error {
+  background: linear-gradient(180deg, rgba(180,35,24,.92), rgba(90,16,10,.96));
+}
+.ha-player__status--error .ha-player__status-title {
+  color: #fff;
+}
+.ha-player__retry {
+  margin-top: var(--sp-4);
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .55rem 1.1rem;
+  border-radius: var(--r-full);
+  background: #fff;
+  color: var(--danger);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,.18);
+  transition: transform .2s var(--ease), box-shadow .2s;
+}
+.ha-player__retry:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+}
+
+/* نوار کنترل */
+.ha-player__controls {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  background: var(--player-bg);
+  border-top: 1px solid var(--player-border);
+  min-width: 0;
+}
+.ha-player--video .ha-player__controls {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 5;
+  background: linear-gradient(180deg, transparent 0%, rgba(5,10,22,.82) 42%, rgba(5,10,22,.96) 100%);
+  border-top: 0;
+  padding: var(--sp-8) var(--sp-4) var(--sp-3);
+  color: #fff;
+  transform: translateY(0);
+  transition: transform .28s var(--ease-out), opacity .28s;
+}
+.ha-player--video:not(.is-playing) .ha-player__controls,
+.ha-player--video.is-controls-hidden .ha-player__controls {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.ha-player--video:hover .ha-player__controls,
+.ha-player--video.is-paused .ha-player__controls,
+.ha-player--video:focus-within .ha-player__controls {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ردیف بالا: عنوان و زمان */
+.ha-player__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.ha-player__title {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--player-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.ha-player--video .ha-player__title {
+  color: #fff;
+}
+.ha-player__time {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--player-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  direction: ltr;
+}
+.ha-player--video .ha-player__time {
+  color: rgba(255,255,255,.86);
+}
+
+/* پیشرفت */
+.ha-player__progress-wrap {
+  position: relative;
+  height: 28px;
+  display: grid;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  margin-inline: calc(var(--sp-1) * -1);
+  padding-inline: var(--sp-1);
+}
+.ha-player__progress-track {
+  position: relative;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--player-progress-bg);
+  overflow: hidden;
+}
+.ha-player--video .ha-player__progress-track {
+  background: rgba(255,255,255,.22);
+  height: 5px;
+}
+.ha-player__progress-buffered {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--hp-buffered);
+  background: var(--player-buffered);
+  border-radius: var(--r-full);
+  transition: width .2s linear;
+}
+.ha-player__progress-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--hp-progress);
+  background: var(--player-progress-fill);
+  border-radius: var(--r-full);
+  transition: width .12s linear;
+}
+.ha-player__progress-thumb {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: var(--hp-progress);
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  margin-inline-start: -7px;
+  border-radius: var(--r-full);
+  background: #fff;
+  border: 2px solid var(--brand);
+  box-shadow: 0 2px 8px rgba(6,14,34,.22);
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity .18s, transform .18s var(--ease-out);
+}
+.ha-player__progress-wrap:hover .ha-player__progress-thumb,
+.ha-player__progress-wrap:active .ha-player__progress-thumb,
+.ha-player__progress-wrap.is-dragging .ha-player__progress-thumb {
+  opacity: 1;
+  transform: scale(1);
+}
+.ha-player--video .ha-player__progress-thumb {
+  border-color: #fff;
+}
+
+/* ردیف کنترل‌های پایین */
+.ha-player__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.ha-player__btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background .18s, color .18s, border-color .18s, transform .18s var(--ease);
+}
+.ha-player__btn:hover {
+  background: var(--brand-softer);
+  border-color: var(--brand-200);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+.ha-player__btn:active {
+  transform: translateY(0);
+}
+.ha-player__btn--primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+  box-shadow: var(--sh-brand);
+  width: 40px;
+  height: 40px;
+}
+.ha-player__btn--primary:hover {
+  background: var(--brand-hover);
+  color: var(--on-brand);
+  filter: brightness(1.06);
+}
+.ha-player--video .ha-player__btn {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.16);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+.ha-player--video .ha-player__btn:hover {
+  background: rgba(255,255,255,.20);
+  border-color: rgba(255,255,255,.28);
+  color: #fff;
+}
+.ha-player--video .ha-player__btn--primary {
+  background: #fff;
+  color: var(--brand);
+  border-color: #fff;
+}
+
+/* ولوم */
+.ha-player__volume {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-inline-start: auto;
+  min-width: 0;
+}
+.ha-player__volume-track {
+  width: 72px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--player-progress-bg);
+  position: relative;
+  cursor: pointer;
+  display: none;
+}
+.ha-player__volume-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 80%;
+  background: var(--text-soft);
+  border-radius: var(--r-full);
+}
+.ha-player--video .ha-player__volume-track {
+  background: rgba(255,255,255,.22);
+}
+.ha-player--video .ha-player__volume-fill {
+  background: #fff;
+}
+@media (min-width: 560px) {
+  .ha-player__volume-track {
+    display: block;
+  }
+}
+
+/* سرعت و دانلود */
+.ha-player__extra {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-inline-start: var(--sp-2);
+}
+.ha-player__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .22rem .55rem;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: border-color .18s, color .18s, background .18s;
+}
+.ha-player__chip:hover {
+  border-color: var(--brand-200);
+  color: var(--brand);
+  background: var(--brand-softer);
+}
+.ha-player--video .ha-player__chip {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.16);
+  color: rgba(255,255,255,.86);
+}
+.ha-player--video .ha-player__chip:hover {
+  background: rgba(255,255,255,.20);
+  color: #fff;
+}
+
+/* حالت فقط صوت در کارت — فشرده و مینیمال */
+.media-card .ha-player {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.media-card .ha-player__stage {
+  min-height: 132px;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  margin: calc(var(--sp-5) * -1) calc(var(--sp-5) * -1) 0;
+}
+.media-card .ha-player__controls {
+  padding: var(--sp-4) 0 0;
+  background: transparent;
+  border-top: 0;
+}
+.media-card .ha-player__top {
+  margin-bottom: var(--sp-1);
+}
+
+/* مودال ویدیو — پلیر تمام عرض */
+.media-modal .ha-player--video {
+  border-radius: var(--r-md);
+  aspect-ratio: auto;
+}
+.media-modal .ha-player--video .ha-player__stage {
+  aspect-ratio: 16/9;
+  min-height: 280px;
+}
+@media (min-width: 720px) {
+  .media-modal .ha-player--video .ha-player__stage {
+    min-height: 420px;
+  }
+}
+
+/* لودینگ اسکلت برای کارت‌های رسانه */
+.media-card.is-loading .media-card__thumb {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: ha-shimmer 1.4s ease infinite;
+}
+.media-card.is-loading .media-card__body > * {
+  background: var(--surface-2);
+  border-radius: var(--r-xs);
+  color: transparent !important;
+  animation: ha-shimmer 1.4s ease infinite;
+  background-size: 400% 100%;
+}
+
+/* بافرینگ نوار در کارت‌های قدیمی (audio native) — مخفی، چون با ha-player جایگزین می‌شود */
+.audio-player {
+  width: 100%;
+  border-radius: var(--r-md);
+  height: 44px;
+}
+
+/* بهبود lesson-media */
+.lesson-media .ha-player {
+  margin-top: var(--sp-3);
+}
+
+/* Responsive */
+@media (max-width: 559.98px) {
+  .ha-player__controls {
+    padding: var(--sp-3);
+  }
+  .ha-player__title {
+    font-size: var(--fs-xs);
+  }
+  .ha-player__bigplay {
+    width: 52px;
+    height: 52px;
+  }
+  .media-card .ha-player__stage {
+    min-height: 116px;
+  }
+}
+
+/* کاهش حرکت */
+@media (prefers-reduced-motion: reduce) {
+  .ha-player__spinner {
+    animation: none;
+    border-top-color: rgba(255,255,255,.22);
+  }
+  .ha-player,
+  .ha-player__bigplay,
+  .ha-player__btn {
+    transition: none;
+  }
+}
+
+/* ===== بهبود هدر — دکمه‌های کوچک Add و Comments کنار Dark/Light ===== */
+.header-actions {
+  gap: 4px !important;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--sh-xs);
+  transition: all .22s var(--ease) !important;
+}
+.icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm);
+  border-color: var(--brand-200) !important;
+}
+.icon-btn--sm {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: var(--r-full) !important;
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+}
+.icon-btn--sm:hover {
+  background: var(--brand-soft) !important;
+  border-color: var(--brand-200) !important;
+  color: var(--brand-strong) !important;
+}
+.header-actions__comments,
+.header-actions__add {
+  position: relative;
+}
+.header-actions__comments::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: var(--success);
+  border: 1.5px solid var(--surface);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.header-actions__comments.has-new::after {
+  opacity: 1;
+}
+.header-actions__group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.header-actions__group .icon-btn {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  width: 34px !important;
+  height: 34px !important;
+}
+.header-actions__group .icon-btn:hover {
+  background: var(--surface) !important;
+  box-shadow: var(--sh-xs) !important;
+}
+
+/* ===== CTAهای واضح: شروع، ادامه یادگیری، ثبت‌نام ===== */
+.btn--cta {
+  position: relative;
+  font-weight: 900 !important;
+  letter-spacing: -.01em;
+  padding: .85rem 1.5rem !important;
+  min-height: 48px !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: var(--sh-brand) !important;
+  overflow: hidden;
+}
+.btn--cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,.18) 40%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform .6s var(--ease-out);
+}
+.btn--cta:hover::before {
+  transform: translateX(120%);
+}
+.btn--primary.btn--lg {
+  font-weight: 800 !important;
+  box-shadow: var(--sh-brand) !important;
+}
+.btn--accent.btn--lg {
+  background: linear-gradient(135deg, var(--amber-600) 0%, #E2571A 100%) !important;
+  box-shadow: var(--sh-accent) !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+}
+.header-actions__cta {
+  font-weight: 900 !important;
+  padding: .6rem 1.15rem !important;
+  border-radius: var(--r-full) !important;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-3) 100%) !important;
+  box-shadow: var(--sh-brand) !important;
+  min-height: 40px !important;
+}
+.hero .btn--accent.btn--lg,
+.hero .btn--primary.btn--lg {
+  min-height: 52px !important;
+  padding: .9rem 1.6rem !important;
+  font-size: var(--fs-md) !important;
+}
+
+/* ===== کارت‌ها مدرن ===== */
+.card {
+  border-radius: var(--r-lg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--sh-xs) !important;
+  transition: transform .28s var(--ease-out), box-shadow .28s var(--ease), border-color .22s !important;
+  background: var(--surface) !important;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sh-lg) !important;
+  border-color: var(--border-strong) !important;
+}
+.course-card:hover {
+  border-color: var(--brand-200) !important;
+  box-shadow: var(--sh-lg), 0 0 0 1px var(--brand-soft) !important;
+}
+.article-card__title,
+.course-card__title,
+.book-card__title {
+  font-weight: 800 !important;
+  line-height: 1.45 !important;
+}
+.course-card__foot .btn--primary {
+  border-radius: var(--r-full) !important;
+  font-weight: 800 !important;
+}
+
+/* ===== بهبود صفحات محتوا ===== */
+.page-banner {
+  background: radial-gradient(900px 300px at 92% -40%, color-mix(in srgb, var(--brand-soft) 70%, transparent), transparent 62%), linear-gradient(180deg, var(--bg-soft), var(--bg)) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(1.25rem, 3vw, 2rem) !important;
+}
+.page-banner__title {
+  font-weight: 900 !important;
+  letter-spacing: -.02em;
+  line-height: 1.28 !important;
+}
+.section-head__title {
+  font-weight: 900 !important;
+  letter-spacing: -.015em;
+}
+
+/* فیلتر تب‌ها */
+.filter-tabs .chip {
+  border-radius: var(--r-full) !important;
+  min-height: 38px !important;
+  padding: .45rem 1rem !important;
+  font-weight: 700 !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--sh-xs);
+  transition: all .2s var(--ease) !important;
+}
+.filter-tabs .chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm);
+  border-color: var(--brand-200) !important;
+}
+.filter-tabs .chip.is-active {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: var(--on-brand) !important;
+  box-shadow: var(--sh-brand) !important;
+}
+
+/* ===== لودینگ / بافرینگ / خطا — سراسری ===== */
+.ha-loading {
+  display: grid;
+  place-items: center;
+  gap: var(--sp-3);
+  padding: clamp(2rem, 5vw, 3rem) var(--sp-4);
+  text-align: center;
+  color: var(--text-soft);
+}
+.ha-loading__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  border-radius: var(--r-full);
+  animation: ha-spin .8s linear infinite;
+}
+.ha-loading__title {
+  font-weight: 800;
+  color: var(--text);
+  font-size: var(--fs-md);
+  margin: 0;
+}
+.ha-loading__text {
+  font-size: var(--fs-sm);
+  color: var(--text-mute);
+  margin: 0;
+  max-width: 36ch;
+  line-height: 1.8;
+}
+.ha-error {
+  display: grid;
+  gap: var(--sp-3);
+  place-items: center;
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+  border: 1px dashed var(--danger);
+  border-radius: var(--r-lg);
+  background: var(--danger-soft);
+}
+.ha-error__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--danger);
+  color: #fff;
+}
+.ha-error__title {
+  font-weight: 800;
+  color: var(--danger);
+  margin: 0;
+}
+.ha-error__text {
+  color: var(--text-soft);
+  font-size: var(--fs-sm);
+  margin: 0;
+  max-width: 40ch;
+  line-height: 1.8;
+}
+.ha-buffering {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: .35rem .75rem;
+  border-radius: var(--r-full);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent);
+}
+.ha-buffering__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: currentColor;
+  animation: ha-pulse 1.2s infinite;
+}
+
+/* بهبود course-layout و lesson */
+.course-layout,
+.detail-grid,
+.article__grid {
+  gap: clamp(1.25rem, 3vw, 2rem) !important;
+}
+.course-aside .card,
+.article__side .card {
+  border-radius: var(--r-lg) !important;
+}
+
+/* موبایل فرست */
+@media (max-width: 767.98px) {
+  .media-card__body {
+    padding: var(--sp-4) !important;
+  }
+  .ha-player__actions {
+    gap: var(--sp-1);
+  }
+  .ha-player__btn {
+    width: 34px;
+    height: 34px;
+  }
+  .header-actions {
+    gap: 2px !important;
+  }
+  .header-actions__group {
+    gap: 1px;
+    padding: 1px;
+  }
+}
+
+
+/* wave animation for audio */
+.ha-player__wave{display:flex;align-items:flex-end;gap:3px;height:28px;position:relative;z-index:2;margin-top:8px}
+.ha-player__wave span{display:block;width:4px;height:18%;background:rgba(255,255,255,.86);border-radius:999px;animation:ha-wave 1s ease-in-out infinite}
+.ha-player__wave span:nth-child(2){animation-delay:.1s}
+.ha-player__wave span:nth-child(3){animation-delay:.2s}
+.ha-player__wave span:nth-child(4){animation-delay:.3s}
+.ha-player__wave span:nth-child(5){animation-delay:.15s}
+.ha-player.is-playing .ha-player__wave span{animation-play-state:running}
+.ha-player:not(.is-playing) .ha-player__wave span{animation-play-state:paused;opacity:.6}
+
+/* thumb progress sync using CSS vars */
+.ha-player__progress-fill{width:var(--hp-progress,0%)}
+.ha-player__progress-buffered{width:var(--hp-buffered,0%)}
+.ha-player__progress-thumb{inset-inline-start:var(--hp-progress,0%)}
+
+/* fallback keyframes */
+@keyframes ha-spin{to{transform:rotate(360deg)}}
+@keyframes ha-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes ha-shimmer{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes ha-wave{0%,100%{height:18%}50%{height:88%}}

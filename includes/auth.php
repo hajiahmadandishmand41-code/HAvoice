@@ -562,10 +562,10 @@ function auth_require_guest(string $message = ''): void
         return;
     }
     if ($message === '') {
-        $message = 'برای دسترسی به دوره‌ها، درس‌ها و تمرین‌ها ابتدا وارد حساب کاربری شوید؛ اگر حساب ندارید، ثبت‌نام رایگان است.';
+        $message = 'برای دسترسی به دوره‌ها، درس‌ها و تمرین‌ها ثبت‌نام کنید — رایگان و کمتر از ۳۰ ثانیه. پس از ثبت‌نام به همین صفحه برمی‌گردید. اگر قبلاً حساب دارید، وارد شوید.';
     }
     flash('error', $message);
-    redirect(url('login', ['next' => ha_current_request_url()]));
+    redirect(url('register', ['next' => ha_current_request_url()]));
 }
 
 /* ------------------------------------------------------------------ */

@@ -46,6 +46,14 @@ $list = $filter
                 <div class="grid grid--2">
                     <?php foreach ($list as $item): ?><div class="reveal"><?= audio_card($item) ?></div><?php endforeach; ?>
                 </div>
+                <div class="ha-interactions-list" style="margin-top:2rem">
+                <?php foreach ($list as $item): 
+                    $s = slugify((string)($item['slug'] ?? ''));
+                    if ($s === '') continue;
+                ?>
+                    <div id="ha-audio-<?= e($s) ?>" style="margin-top:1.5rem"><?= ha_interaction_block('audio', $s) ?></div>
+                <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         <?php endif; ?>
     </div>

@@ -104,6 +104,15 @@ $allTopics = array_values(array_unique($allTopics));
             <div class="reveal"><?= exercise_card($ex) ?></div>
 <?php endforeach; ?>
         </div>
+        <?php
+        // تعامل برای هر تمرین (Reaction + Comment)
+        if ($filtered !== []):
+            foreach ($filtered as $ex):
+                $eslug = slugify((string)($ex['id'] ?? $ex['slug'] ?? ''));
+                if ($eslug === '') continue;
+        ?>
+            <div id="ha-exercise-<?= e($eslug) ?>" style="margin-top:1.2rem"><?= ha_interaction_block('exercise', $eslug) ?></div>
+        <?php endforeach; endif; ?>
 
 <?php if ($filtered === []): ?>
         <?php if ($courseFlt !== '' && $courseInfo !== null): ?>

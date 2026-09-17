@@ -49,6 +49,7 @@ if ($slug!=='') {
                     </section>
                 <?php endif; ?>
                 <?= tag_list((array)($item['tags'] ?? [])) ?>
+                <?= ha_interaction_block('research', (string)($item['slug'] ?? $slug)) ?>
             </div>
             <aside class="article__side">
                 <div class="card side-card">
