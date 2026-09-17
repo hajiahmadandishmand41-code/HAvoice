@@ -12,7 +12,7 @@ $path = isset($_GET['path']) && is_string($_GET['path']) ? $_GET['path'] : '';
 $path = ltrim(str_replace("\\", '/', $path), '/');
 
 $rootName = 'assets';
-if (str_starts_with($path, 'uploads/')) {
+if (strpos($path, 'uploads/') === 0) {
     $rootName = 'uploads';
     $path = substr($path, strlen('uploads/'));
 }
