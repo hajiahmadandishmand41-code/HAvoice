@@ -1,86 +1,44 @@
-/* HAvoice — تابلوی مجازی (Board) — RTL, Mobile-First, Modern */
-
-.board-container { max-width: 760px; margin: 0 auto; }
-
-.board-hero {
-  padding: 1.2rem 1.1rem;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #EEF2FF 0%, #FFFFFF 60%, #F0F9FF 100%);
-  border: 1px solid #E0E7FF;
-  margin-bottom: 1.2rem;
-}
-.board-hero__top { display: flex; gap: .9rem; align-items: flex-start; }
-.board-hero__icon {
-  width: 48px; height: 48px; flex: 0 0 48px;
-  display: grid; place-items: center;
-  border-radius: 14px; background: #1A3A7C; color: #fff;
-}
-.board-hero__stats { margin-top: .8rem; display: flex; gap: .5rem; flex-wrap: wrap; }
-
-.board-new { padding: 1.1rem; border-radius: 16px; margin-bottom: 1.3rem; }
-.board-new__title { font-size: 1rem; margin: 0 0 .8rem; display: flex; gap: .4rem; align-items: center; }
-.board-form .grid { gap: .8rem; }
-
-.board-feed { display: flex; flex-direction: column; gap: 1.1rem; }
-
-.ha-board-post {
-  background: #fff;
-  border: 1px solid #E8EEF6;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(15,23,42,.04);
-  transition: box-shadow .18s;
-}
-.ha-board-post:hover { box-shadow: 0 6px 20px rgba(15,23,42,.08); }
-.ha-board-post__head {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .9rem 1rem .7rem;
-  border-bottom: 1px solid #F1F5F9;
-}
-.ha-board-post__meta { flex: 1; min-width: 0; }
-.ha-board-post__name { display: block; font-size: .95rem; line-height: 1.2; }
-.ha-board-post__date { font-size: .78rem; opacity: .6; }
-.ha-board-post__score {
-  font-size: .75rem; padding: .2rem .5rem; border-radius: 999px;
-  background: #F5F7FF; border: 1px solid #E0E7FF; color: #1A3A7C;
-}
-.ha-board-post__body { padding: .9rem 1rem; }
-.ha-board-post__text { margin: 0; line-height: 1.85; font-size: .97rem; white-space: pre-wrap; word-break: break-word; }
-.ha-board-post__media { margin-top: .8rem; border-radius: 12px; overflow: hidden; }
-.ha-board-post__media img { width: 100%; height: auto; display: block; max-height: 520px; object-fit: cover; }
-.ha-board-post__foot {
-  padding: .7rem 1rem .9rem;
-  border-top: 1px solid #F1F5F9;
-  display: flex; flex-wrap: wrap; gap: .6rem .9rem; justify-content: space-between; align-items: center;
-}
-.ha-board-post__stats { display: flex; gap: .6rem; font-size: .85rem; opacity: .8; }
-.ha-reactions__bar--compact { gap: .3rem; }
-.ha-reaction--sm { padding: .3rem .55rem; font-size: .85rem; }
-
-.ha-board-comments { padding: .8rem 1rem 1rem; background: #FAFBFF; border-top: 1px dashed #E2E8F0; }
-.ha-board-comments .ha-comment { background: #fff; }
-
-.pager--board { display: flex; gap: .8rem; align-items: center; justify-content: center; margin: 1.5rem 0; }
-
-.profile-card__head { display: flex; gap: 1rem; align-items: center; }
-
-/* board info */
-.board-info { margin-top: 1.5rem; background: #FFF7ED; border-color: #FED7AA; }
-
-/* responsive */
-@media (max-width: 640px) {
-  .board-hero { padding: 1rem .9rem; }
-  .board-hero__top { flex-direction: column; }
-  .ha-board-post__head { padding: .75rem .8rem .6rem; }
-  .ha-board-post__body { padding: .75rem .8rem; }
-  .ha-board-post__foot { padding: .6rem .8rem .8rem; flex-direction: column; align-items: flex-start; }
-  .board-new { padding: .9rem; }
-}
-@media (max-width: 380px) {
-  .ha-reaction--sm .ha-reaction__label { display: none; }
-}
-
-/* focus */
-.ha-board-post__body img:focus-visible, .ha-board-post__foot button:focus-visible {
-  outline: 2px solid #1A3A7C; outline-offset: 2px;
+/* HAvoice — تابلوی مجازی (Board) — RTL, Mobile-First */
+.board-container{max-width:760px;margin:0 auto}
+.board-simple-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.2rem;padding:1rem 0}
+.board-simple-head h1{margin:.15rem 0 .35rem;font-size:clamp(1.45rem,4vw,2rem)}
+.board-new--simple{padding:1rem;margin-bottom:1.25rem;border-radius:16px}
+.board-new__title-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem}
+.board-new__title{font-size:1rem;margin:0;display:flex;gap:.4rem;align-items:center}
+.board-form .input{width:100%}
+.board-upload-row{display:grid;grid-template-columns:auto 1fr auto;gap:.65rem;align-items:center;margin-top:.7rem}
+.board-upload{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;min-height:42px;padding:.55rem .8rem;border:1px solid #dbe4ef;border-radius:10px;cursor:pointer;background:#fff;white-space:nowrap}
+.board-upload input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.board-feed{display:flex;flex-direction:column;gap:1rem}
+.board-feed-item{position:relative}
+.ha-board-post{background:#fff;border:1px solid #e8eef6;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+.ha-board-post__score{display:none!important}
+.ha-board-post__stats{display:none!important}
+.board-page .ha-board-comments{display:none}
+.ha-board-post__head{display:flex;align-items:center;gap:.6rem;padding:.85rem 1rem .7rem;border-bottom:1px solid #f1f5f9}
+.ha-board-post__meta{flex:1;min-width:0}
+.ha-board-post__name{display:block;font-size:.95rem;line-height:1.2}
+.ha-board-post__date{font-size:.78rem;opacity:.6}
+.ha-board-post__body{padding:.9rem 1rem}
+.ha-board-post__text{margin:0;line-height:1.85;font-size:.97rem;white-space:pre-wrap;word-break:break-word}
+.ha-board-post__media{margin-top:.8rem;border-radius:12px;overflow:hidden}
+.ha-board-post__media img{width:100%;height:auto;display:block;max-height:520px;object-fit:cover}
+.ha-board-post__foot{padding:.65rem 1rem;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;align-items:center}
+.ha-reactions__bar--compact{gap:.3rem}
+.ha-reaction--sm{padding:.3rem .55rem;font-size:.85rem}
+.board-post-open{display:block;text-align:center;margin:-.2rem .75rem .7rem;padding:.65rem;border:1px solid #e5eaf2;border-radius:10px;background:#f8fafc;text-decoration:none;font-weight:600}
+.board-back{display:inline-flex;margin-bottom:.9rem;text-decoration:none;font-weight:600}
+.board-post-page .ha-board-comments{display:block}
+.board-post-page .ha-board-post__stats{display:flex}
+.board-post-page .ha-board-post__score{display:none!important}
+.board-empty{padding:2rem;text-align:center}
+@media(max-width:640px){
+ .board-simple-head{align-items:stretch;flex-direction:column}
+ .board-simple-head .btn{width:100%}
+ .board-upload-row{grid-template-columns:1fr;}
+ .board-upload{width:100%}
+ .board-upload-row .btn{width:100%}
+ .ha-board-post__head{padding:.75rem .8rem .6rem}
+ .ha-board-post__body{padding:.75rem .8rem}
+ .ha-board-post__foot{padding:.55rem .8rem}
 }
