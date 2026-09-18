@@ -814,36 +814,43 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                 <strong class="ha-board-post__name"><?= e($name) ?></strong>
                 <span class="ha-board-post__date"><?= e($dateFa) ?></span>
             </div>
-            <span class="ha-board-post__score" title="امتیاز الگوریتم پویا"><?= fa_num(number_format(ha_board_feed_score($post),1)) ?></span>
         </header>
         <div class="ha-board-post__body">
             <p class="ha-board-post__text"><?= nl2br(e($body)) ?></p>
             <?php if ($image !== ''): ?>
-                <?php $safeImg = ha_safe_file_url($image); if ($safeImg !== ''): ?>
+                <?php $safeImg = ha_file_url($image); if ($safeImg !== ''): ?>
                 <figure class="ha-board-post__media"><img src="<?= e($safeImg) ?>" alt="" loading="lazy" decoding="async"></figure>
                 <?php endif; ?>
             <?php endif; ?>
             <?php if ($mediaUrl !== ''): ?>
-                <?php $safeMedia = ha_safe_media_url($mediaUrl); $embed = ha_embed_url($mediaUrl); ?>
+                <?php $safeMedia = ha_media_src($mediaUrl); $embed = ha_embed_url($mediaUrl); ?>
+                <?php
+                /* تشخیصِ نوعِ رسانه از پسوندِ واقعی — نه فقط mp4/mp3، وگرنه
+                   webm/ogg/m4a/wav به‌جای پخش‌شدن به لینکِ ساده می‌افتادند. */
+                $mediaExt = strtolower((string) pathinfo((string) parse_url($safeMedia, PHP_URL_PATH), PATHINFO_EXTENSION));
+                $isVideo  = $mediaType === 'video' || in_array($mediaExt, ['mp4', 'webm', 'ogv', 'mov', 'm4v'], true);
+                $isAudio  = $mediaType === 'audio' || in_array($mediaExt, ['mp3', 'm4a', 'ogg', 'oga', 'wav', 'weba'], true);
+                ?>
                 <?php if ($embed !== ''): ?>
-                    <div class="video-embed"><iframe src="<?= e($embed) ?>" title="رسانه" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+                    <div class="ha-board-post__media ha-board-post__media--video">
+                        <iframe src="<?= e($embed) ?>" title="رسانه‌ی پست" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                    </div>
                 <?php elseif ($safeMedia !== ''): ?>
-                    <?php if ($mediaType === 'video' || str_ends_with(strtolower($safeMedia), '.mp4')): ?>
-                        <video controls preload="metadata" src="<?= e($safeMedia) ?>" style="width:100%;border-radius:12px"></video>
-                    <?php elseif ($mediaType === 'audio' || str_ends_with(strtolower($safeMedia), '.mp3')): ?>
-                        <audio controls preload="none" src="<?= e($safeMedia) ?>" style="width:100%"></audio>
+                    <?php if ($isVideo): ?>
+                        <div class="ha-board-post__media ha-board-post__media--video">
+                            <video controls playsinline preload="metadata" src="<?= e($safeMedia) ?>"></video>
+                        </div>
+                    <?php elseif ($isAudio): ?>
+                        <div class="ha-board-post__media ha-board-post__media--audio">
+                            <audio controls preload="none" src="<?= e($safeMedia) ?>"></audio>
+                        </div>
                     <?php else: ?>
-                        <a href="<?= e($safeMedia) ?>" target="_blank" rel="noopener" class="btn btn--ghost btn--xs">مشاهده رسانه</a>
+                        <p class="ha-board-post__link"><a href="<?= e($safeMedia) ?>" target="_blank" rel="noopener nofollow" class="btn btn--ghost btn--xs"><?= ha_icon('external', 13) ?> مشاهده رسانه</a></p>
                     <?php endif; ?>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
         <footer class="ha-board-post__foot">
-            <div class="ha-board-post__stats">
-                <span>❤️ <?= fa_num($reactions['total']) ?></span>
-                <span>💬 <?= fa_num($commentCounts['total']) ?></span>
-                <span>👁️ <?= fa_num((int)($post['views_count'] ?? 0)) ?></span>
-            </div>
             <div class="ha-reactions__bar ha-reactions__bar--compact">
                 <?php foreach ($reactionTypes as $key=>$meta): 
                     $cnt = (int)($reactions[$key] ?? 0);
@@ -909,7 +916,7 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                                     <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
                                     <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
                                     <textarea name="body" class="input" required minlength="2" maxlength="2000" rows="2" placeholder="پاسخ به <?= e($cName) ?>..."></textarea>
-                                    <div class="btn-row" style="margin-top:.5rem">
+                                    <div class="btn-row ha-comment-form__actions">
                                         <button class="btn btn--primary btn--xs btn--cta" type="submit">ثبت پاسخ</button>
                                         <button class="btn btn--ghost btn--xs" type="button" data-ha-cancel-reply>انصراف</button>
                                     </div>
@@ -933,8 +940,11 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                 <input type="hidden" name="parent_id" value="0">
                 <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
                 <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-                <textarea name="body" class="input" required minlength="2" maxlength="2000" rows="2" placeholder="نظر شما..."></textarea>
-                <button class="btn btn--primary btn--xs btn--cta" type="submit" style="margin-top:.5rem">ثبت نظر</button>
+                <label class="sr-only" for="board-comment-<?= $id ?>">متن نظر</label>
+                <textarea id="board-comment-<?= $id ?>" name="body" class="input" required minlength="2" maxlength="2000" rows="2" placeholder="نظر خود را بنویسید…"></textarea>
+                <div class="btn-row ha-comment-form__actions">
+                    <button class="btn btn--primary btn--xs btn--cta" type="submit"><?= ha_icon('chat', 13) ?> ثبت نظر</button>
+                </div>
             </form>
             <?php endif; ?>
         </div>

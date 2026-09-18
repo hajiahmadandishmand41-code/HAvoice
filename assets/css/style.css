@@ -2162,6 +2162,12 @@ body.nav-open .nav-backdrop { opacity: 1; visibility: visible; transition: opaci
 .media-placeholder--audio { border-color: var(--indigo-100); background: var(--secondary-soft); }
 [data-theme="dark"] .media-placeholder--video,
 [data-theme="dark"] .media-placeholder--audio { background: var(--surface-2); }
+/* حالتِ «خودکار» هم باید همین را بگیرد، وگرنه کاربری که تمِ سیستمش تاریک
+   است پس‌زمینه‌ی روشنِ --brand-softer را زیرِ متنِ روشن می‌بیند. */
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] .media-placeholder--video,
+    [data-theme="auto"] .media-placeholder--audio { background: var(--surface-2); }
+}
 .audio-block, .video-block { margin: var(--sp-5) 0; }
 .audio-block__title { font-size: var(--fs-sm); font-weight: var(--fw-bold); margin: 0 0 var(--sp-2); }
 .audio-block audio, .video-block video { width: 100%; border-radius: var(--r-sm); }
@@ -3563,6 +3569,11 @@ body.admin-nav-open .admin-sidebar {
 [data-theme="dark"] .comments-hero__stat { background:
     radial-gradient(120% 130% at 85% 0%, rgba(46, 94, 196, .22), transparent 62%),
     var(--surface-2); }
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] .comments-hero__stat { background:
+        radial-gradient(120% 130% at 85% 0%, rgba(46, 94, 196, .22), transparent 62%),
+        var(--surface-2); }
+}
 
 /* چیدمانِ فرم + ستونِ کنار */
 .comments-grid {

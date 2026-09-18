@@ -56,9 +56,9 @@ if ($lpState === '') {
 }
 
 /* رسانه‌ی خودِ درس (فایل/ویدیو/صوتی که مدیر روی همان درس گذاشته) */
-$lessonFile  = ha_safe_file_url((string) ($data['file'] ?? ''));
-$lessonVideo = ha_safe_media_url((string) ($data['video'] ?? ''));
-$lessonAudio = ha_safe_media_url((string) ($data['audio'] ?? ''));
+$lessonFile  = ha_file_url((string) ($data['file'] ?? ''));
+$lessonVideo = ha_media_src((string) ($data['video'] ?? ''));
+$lessonAudio = ha_media_src((string) ($data['audio'] ?? ''));
 
 /* نکات و اشتباهات رایج از بلوک‌های tip استخراج می‌شوند (اگر جداگانه نبودند) */
 $tipWarns = [];

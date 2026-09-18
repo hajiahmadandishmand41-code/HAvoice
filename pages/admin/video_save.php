@@ -41,6 +41,11 @@ $kinds = ha_upload_kinds();
 /* فایلِ ویدیو (اختیاری): اگر مدیر فایل آپلود کند، همان نشانیِ پخش می‌شود و
    فیلدِ «نشانی» می‌تواند خالی بماند. ویدیوی بزرگ روی میزبانیِ اشتراکی
    معمولاً ممکن نیست؛ در آن حالت پیوندِ آپارات/یوتیوب مسیرِ پیشنهادی است. */
+/* رکوردِ فعلی (شاملِ پیش‌نویس) — برای پاک‌سازیِ فایلِ جایگزین‌شده */
+$prevItem  = admin_find_media($orig !== '' ? $orig : $slug, 'video');
+$prevUrl   = admin_existing_path($prevItem, 'url');
+$prevThumb = admin_existing_path($prevItem, 'thumbnail');
+
 $upVideo = ha_upload_store('video_file', $kinds['video'], 'video');
 if (!$upVideo['ok'] && $upVideo['error'] !== null) {
     flash('error', 'آپلود ویدیو: ' . $upVideo['error']);
@@ -49,6 +54,10 @@ if (!$upVideo['ok'] && $upVideo['error'] !== null) {
 $uploadedVideo = $upVideo['ok'] ? (string) $upVideo['path'] : '';
 
 $url = $uploadedVideo !== '' ? $uploadedVideo : ha_safe_media_url((string) ($_POST['url'] ?? ''));
+/* فایلِ ویدیوی قبلی وقتی دیگر ارجاعی ندارد حذف می‌شود (نشانیِ بیرونی دست‌نخورده می‌ماند) */
+if ($url !== $prevUrl) {
+    ha_upload_discard($prevUrl, $url);
+}
 if ($url === '') {
     flash('error', 'یا فایلِ ویدیو را آپلود کنید یا نشانیِ آن (آپارات/یوتیوب/Vimeo یا فایلِ mp4) را بنویسید؛ بدونِ یکی از این دو، ویدیو در سایت پخش نمی‌شود.');
     redirect($editUrl);
@@ -83,15 +92,15 @@ if ($category === '' && $field !== '') {
 }
 
 /* بندانگشتی: آپلود یا URL */
-$thumb = ha_safe_file_url((string) ($_POST['thumbnail'] ?? ''));
-$up = ha_upload_store('thumbnail_file', $kinds['image'], 'image');
-if (!$up['ok'] && $up['error'] !== null) {
-    flash('error', 'آپلود بندانگشتی: ' . $up['error']);
+$resThumb = admin_upload_resolve(
+    'thumbnail_file', $kinds['image'], 'image',
+    ha_safe_file_url((string) ($_POST['thumbnail'] ?? '')), $prevThumb
+);
+if ($resThumb['error'] !== null) {
+    flash('error', 'آپلود بندانگشتی: ' . $resThumb['error']);
     redirect($editUrl);
 }
-if ($up['ok'] && $up['path'] !== '') {
-    $thumb = $up['path'];
-}
+$thumb = $resThumb['path'];
 
 $now = date('c');
 $existing = null;

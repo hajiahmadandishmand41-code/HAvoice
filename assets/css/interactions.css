@@ -1,10 +1,38 @@
-/* HAvoice — سیستم تعامل کامل (Reaction, Comment, Reply, Like) — Responsive مدرن */
+/* HAvoice — سیستم تعامل کامل (Reaction, Comment, Reply, Like) — RTL, Mobile-First
+ *
+ * قانونِ رنگ در این فایل: هیچ رنگی hard-code نمی‌شود.
+ * نسخه‌ی پیشین از توکن‌هایی مثل var(--primary) و var(--surface-1) استفاده
+ * می‌کرد که در style.css اصلاً تعریف نشده‌اند؛ در نتیجه همیشه مقدارِ
+ * fallbackِ روشن (#fff، #1A3A7C) اعمال می‌شد و در حالتِ تاریک کامنت‌ها و
+ * فرم‌ها «سفید روی سفید» می‌شدند. اکنون فقط از توکن‌های واقعیِ
+ * Design System (--surface, --text, --brand, --border, …) استفاده می‌شود
+ * تا هر دو تم خودکار درست باشند.
+ */
+
+/* ===== توکن‌های محلیِ تعامل — از پالتِ تم مشتق می‌شوند ===== */
+:root {
+  --ix-surface:       var(--surface);
+  --ix-surface-soft:  var(--surface-2);
+  --ix-border:        var(--border);
+  --ix-text:          var(--text);
+  --ix-muted:         var(--text-mute);
+  --ix-accent:        var(--brand-strong);
+  --ix-accent-solid:  var(--brand);
+  --ix-on-accent:     var(--on-brand);
+  --ix-reply-bg:      var(--brand-softer);
+  --ix-like-bg:       var(--danger-soft);
+  --ix-like-border:   color-mix(in srgb, var(--danger) 45%, transparent);
+  --ix-like-text:     var(--danger);
+  --ix-radius:        var(--r-md, 14px);
+}
 
 /* Head + stats */
 .ha-interactions {
-  margin: 2.5rem 0;
+  margin: var(--sp-10, 2.5rem) 0;
   padding: 0;
   font-family: inherit;
+  color: var(--ix-text);
+  min-width: 0;
 }
 .ha-interactions__head {
   display: flex;
@@ -14,15 +42,16 @@
   justify-content: space-between;
   margin-bottom: 1.1rem;
   padding-bottom: .8rem;
-  border-bottom: 1px solid var(--border, #E8EEF6);
+  border-bottom: 1px solid var(--ix-border);
 }
 .ha-interactions__title {
-  font-size: 1.15rem;
+  font-size: var(--fs-lg, 1.125rem);
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: .45rem;
   margin: 0;
+  color: var(--ix-text);
 }
 .ha-interactions__stats {
   display: flex;
@@ -34,21 +63,22 @@
   align-items: center;
   gap: .28rem;
   padding: .28rem .6rem;
-  border-radius: 999px;
-  background: var(--surface-2, #F5F7FB);
-  border: 1px solid var(--border, #E8EEF6);
-  font-size: .85rem;
+  border-radius: var(--r-full, 999px);
+  background: var(--ix-surface-soft);
+  border: 1px solid var(--ix-border);
+  color: var(--ix-text);
+  font-size: var(--fs-sm, .85rem);
 }
-.ha-stat__num { font-weight: 700; color: var(--primary, #1A3A7C); }
-.ha-stat__label { opacity: .7; font-size: .8rem; }
+.ha-stat__num { font-weight: 700; color: var(--ix-accent); }
+.ha-stat__label { color: var(--ix-muted); font-size: var(--fs-xs, .8rem); }
 
-/* Reactions bar */
+/* ===== Reactions bar ===== */
 .ha-reactions {
   margin: 1rem 0 1.6rem;
   padding: 1rem;
-  background: var(--surface-1, #fff);
-  border: 1px solid var(--border, #E8EEF6);
-  border-radius: 14px;
+  background: var(--ix-surface);
+  border: 1px solid var(--ix-border);
+  border-radius: var(--ix-radius);
 }
 .ha-reactions__bar {
   display: flex;
@@ -61,139 +91,190 @@
   display: inline-flex;
   align-items: center;
   gap: .35rem;
+  min-height: 38px;
   padding: .45rem .75rem;
-  border-radius: 999px;
-  border: 1px solid var(--border, #E0E8F2);
-  background: #fff;
+  border-radius: var(--r-full, 999px);
+  border: 1px solid var(--ix-border);
+  background: var(--ix-surface);
+  color: var(--ix-text);
   cursor: pointer;
-  font-size: .9rem;
-  transition: all .18s ease;
-  user-select: none;
+  font: inherit;
+  font-size: var(--fs-base, .9rem);
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
 }
 .ha-reaction:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(26,58,124,.12);
-  border-color: var(--primary, #1A3A7C);
+  background: var(--ix-surface-soft);
+  border-color: var(--ix-accent);
 }
 .ha-reaction.is-active {
-  background: var(--primary, #1A3A7C);
-  color: #fff;
-  border-color: var(--primary, #1A3A7C);
-  box-shadow: 0 4px 14px rgba(26,58,124,.25);
+  background: var(--ix-accent-solid);
+  color: var(--ix-on-accent);
+  border-color: var(--ix-accent-solid);
 }
+.ha-reaction.is-active .ha-reaction__count { color: inherit; }
 .ha-reaction__emoji { font-size: 1.15rem; line-height: 1; }
-.ha-reaction__count { font-weight: 700; min-width: .6rem; }
+.ha-reaction__count { font-weight: 700; min-width: .6rem; color: inherit; }
 .ha-reaction--remove {
-  background: #FFF1F2;
-  border-color: #FECDD3;
-  color: #9F1239;
-  font-size: .82rem;
+  background: var(--ix-like-bg);
+  border-color: var(--ix-like-border);
+  color: var(--ix-like-text);
+  font-size: var(--fs-sm, .82rem);
 }
-.ha-reactions__hint { margin: .7rem 0 0; font-size: .8rem; opacity: .65; }
+.ha-reactions__hint { margin: .7rem 0 0; font-size: var(--fs-xs, .8rem); color: var(--ix-muted); }
 
-/* Guest CTA */
+/* ===== Guest CTA ===== */
 .ha-guest-cta {
   display: flex;
   gap: 1rem;
   align-items: flex-start;
   padding: 1.1rem 1.2rem;
-  border-radius: 14px;
-  border: 1px dashed var(--primary, #1A3A7C);
-  background: linear-gradient(135deg, #F0F5FF 0%, #FFFFFF 100%);
+  border-radius: var(--ix-radius);
+  border: 1px dashed var(--ix-accent);
+  background: var(--ix-reply-bg);
+  color: var(--ix-text);
   margin: 1rem 0;
 }
 .ha-guest-cta__icon {
   width: 42px; height: 42px;
   display: grid; place-items: center;
-  border-radius: 12px;
-  background: var(--primary, #1A3A7C);
-  color: #fff;
+  border-radius: var(--r-sm, 12px);
+  background: var(--ix-accent-solid);
+  color: var(--ix-on-accent);
   flex: 0 0 42px;
 }
-.ha-guest-cta__body h4 { margin: 0 0 .25rem; font-size: 1rem; }
+.ha-guest-cta__body { min-width: 0; }
+.ha-guest-cta__body h4 { margin: 0 0 .25rem; font-size: var(--fs-md, 1rem); color: var(--ix-text); }
 .ha-guest-cta .btn-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
 .btn--cta {
   position: relative;
   overflow: hidden;
   transition: transform .18s, box-shadow .18s;
 }
-.btn--cta:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(26,58,124,.22); }
+.btn--cta:hover { transform: translateY(-1px); box-shadow: var(--sh-sm); }
 
-/* Comments */
-.ha-comments { margin-top: 1.5rem; }
-.ha-comments__title { font-size: 1.05rem; margin: 0 0 1rem; }
+/* ===== Comments ===== */
+.ha-comments { margin-top: 1.5rem; min-width: 0; }
+.ha-comments__title { font-size: var(--fs-md, 1.05rem); margin: 0 0 1rem; color: var(--ix-text); }
+
 .ha-comment-form {
   padding: 1rem;
-  border: 1px solid var(--border, #E8EEF6);
-  border-radius: 14px;
-  background: var(--surface-1, #fff);
+  border: 1px solid var(--ix-border);
+  border-radius: var(--ix-radius);
+  background: var(--ix-surface);
+  color: var(--ix-text);
   margin-bottom: 1.2rem;
+  min-width: 0;
 }
 .ha-comment-form__head {
   display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem;
+  color: var(--ix-text);
 }
+/* textarea/input داخلِ فرمِ نظر: رنگِ متن و placeholder باید از تم بیاید،
+   وگرنه در تمِ تاریک متنِ تایپ‌شده دیده نمی‌شود. */
+.ha-comment-form textarea,
+.ha-comment-form input[type="text"] {
+  width: 100%;
+  max-width: 100%;
+  background: var(--ix-surface);
+  color: var(--ix-text);
+  border: 1px solid var(--input-border, var(--ix-border));
+  border-radius: var(--r-sm, 10px);
+}
+.ha-comment-form textarea::placeholder,
+.ha-comment-form input::placeholder { color: var(--ix-muted); opacity: 1; }
+.ha-comment-form textarea:focus-visible,
+.ha-comment-form input:focus-visible {
+  outline: var(--focus-width, 3px) solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--focus);
+}
+.ha-comment-form .field__help { color: var(--ix-muted); }
+.ha-comment-form button[disabled],
+.ha-comment-form.is-busy button[type="submit"] { opacity: .6; cursor: progress; }
+
 .ha-avatar {
-  width: 34px; height: 34px; border-radius: 999px;
+  width: 34px; height: 34px; border-radius: var(--r-full, 999px);
   display: grid; place-items: center;
-  background: var(--primary, #1A3A7C); color: #fff;
+  background: var(--ix-accent-solid); color: var(--ix-on-accent);
   font-weight: 700; font-size: .9rem;
+  flex: 0 0 auto;
 }
 .ha-comment-form__textarea { min-height: 88px; resize: vertical; }
 .ha-comment-form--reply {
   margin-top: .7rem;
-  background: #F9FAFB;
+  background: var(--ix-surface-soft);
   border-style: dashed;
 }
 
-.ha-comment-list { display: flex; flex-direction: column; gap: .9rem; }
-.ha-empty { padding: 1rem; text-align: center; opacity: .6; }
+.ha-comment-list { display: flex; flex-direction: column; gap: .9rem; min-width: 0; }
+.ha-empty { padding: 1rem; text-align: center; color: var(--ix-muted); }
 
 .ha-comment {
   padding: .9rem 1rem;
-  border: 1px solid var(--border, #E8EEF6);
-  border-radius: 14px;
-  background: #fff;
-  transition: box-shadow .18s;
+  border: 1px solid var(--ix-border);
+  border-radius: var(--ix-radius);
+  background: var(--ix-surface);
+  color: var(--ix-text);
+  transition: border-color .18s, box-shadow .18s;
+  min-width: 0;
 }
-.ha-comment:hover { box-shadow: 0 2px 12px rgba(0,0,0,.04); }
+.ha-comment:hover { border-color: var(--border-strong); }
+.ha-comment:focus-within { border-color: var(--focus); }
 .ha-comment--reply {
   margin-inline-start: 1.2rem;
-  border-inline-start: 3px solid var(--primary, #1A3A7C);
-  background: #FAFBFF;
+  border-inline-start: 3px solid var(--ix-accent);
+  background: var(--ix-surface-soft);
 }
-.ha-comment__main { display: flex; gap: .75rem; }
+/* تودرتوییِ عمیق در موبایل باعث سرریزِ افقی می‌شد؛ از عمقِ ۳ به بعد
+   دیگر تورفتگی اضافه نمی‌شود. */
+.ha-comment__replies .ha-comment__replies .ha-comment__replies .ha-comment--reply {
+  margin-inline-start: 0;
+}
+.ha-comment__main { display: flex; gap: .75rem; min-width: 0; }
 .ha-comment__avatar {
-  width: 36px; height: 36px; border-radius: 999px;
+  width: 36px; height: 36px; border-radius: var(--r-full, 999px);
   display: grid; place-items: center;
-  background: #E8EEF6; color: var(--primary, #1A3A7C);
+  background: var(--brand-soft); color: var(--ix-accent);
   font-weight: 700; flex: 0 0 36px;
 }
 .ha-comment__body { flex: 1; min-width: 0; }
 .ha-comment__meta { display: flex; flex-wrap: wrap; gap: .45rem .6rem; align-items: center; margin-bottom: .3rem; }
-.ha-comment__name { font-size: .95rem; }
-.ha-comment__date { font-size: .78rem; opacity: .6; }
-.ha-comment__text { margin: .25rem 0 .5rem; line-height: 1.7; font-size: .93rem; white-space: pre-wrap; word-break: break-word; }
+.ha-comment__name { font-size: var(--fs-base, .95rem); color: var(--ix-text); }
+.ha-comment__date { font-size: var(--fs-xs, .78rem); color: var(--ix-muted); }
+.ha-comment__text {
+  margin: .25rem 0 .5rem;
+  line-height: var(--lh-base, 1.8);
+  font-size: var(--fs-base, .93rem);
+  color: var(--ix-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 .ha-comment__actions { display: flex; flex-wrap: wrap; gap: .4rem; }
 .ha-action-btn {
   display: inline-flex; align-items: center; gap: .3rem;
+  min-height: 34px;
   padding: .3rem .6rem;
-  border-radius: 999px;
-  border: 1px solid var(--border, #E8EEF6);
-  background: #fff;
-  font-size: .82rem;
+  border-radius: var(--r-full, 999px);
+  border: 1px solid var(--ix-border);
+  background: var(--ix-surface);
+  color: var(--ix-text);
+  font: inherit;
+  font-size: var(--fs-sm, .82rem);
   cursor: pointer;
-  transition: all .15s;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.ha-action-btn:hover { border-color: var(--primary, #1A3A7C); }
+.ha-action-btn:hover { border-color: var(--ix-accent); background: var(--ix-surface-soft); }
 .ha-action-btn.is-liked {
-  background: #FFF1F2;
-  border-color: #FECDD3;
-  color: #BE123C;
+  background: var(--ix-like-bg);
+  border-color: var(--ix-like-border);
+  color: var(--ix-like-text);
 }
-.ha-comment__replies { margin-top: .8rem; display: flex; flex-direction: column; gap: .7rem; }
+.ha-comment__replies { margin-top: .8rem; display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
 .ha-inline-form { display: contents; }
 
-/* responsive */
+/* ===== responsive ===== */
 @media (max-width: 640px) {
   .ha-interactions__head { flex-direction: column; align-items: flex-start; }
   .ha-reactions { padding: .8rem; }
@@ -201,35 +282,48 @@
   .ha-guest-cta { flex-direction: column; }
   .ha-comment { padding: .75rem .8rem; }
   .ha-comment--reply { margin-inline-start: .6rem; }
+  /* از عمقِ ۲ به بعد در موبایل تورفتگی حذف می‌شود تا کارت باریک نشود */
+  .ha-comment__replies .ha-comment__replies .ha-comment--reply { margin-inline-start: 0; }
   .ha-comment__main { gap: .55rem; }
   .ha-comment__avatar { width: 32px; height: 32px; flex-basis: 32px; }
+  .ha-comment-form { padding: .8rem; }
 }
 @media (max-width: 380px) {
   .ha-reactions__bar { gap: .35rem; }
   .ha-reaction__label { display: none; }
 }
 
-/* accessibility */
-.ha-reaction:focus-visible, .ha-action-btn:focus-visible, .ha-comment-form__textarea:focus-visible {
-  outline: 2px solid var(--primary, #1A3A7C);
+/* ===== accessibility ===== */
+.ha-reaction:focus-visible,
+.ha-action-btn:focus-visible,
+.ha-comment-form__textarea:focus-visible {
+  outline: var(--focus-width, 3px) solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* mini stats on media cards */
+/* ===== mini stats on media cards ===== */
 .media-card__interactions {
   display: flex;
   gap: .5rem;
   align-items: center;
   padding: .5rem .9rem .7rem;
-  border-top: 1px dashed var(--border, #E8EEF6);
-  background: #FAFBFF;
-  font-size: .85rem;
+  border-top: 1px dashed var(--ix-border);
+  background: var(--ix-surface-soft);
+  color: var(--ix-text);
+  font-size: var(--fs-sm, .85rem);
 }
 .ha-mini-stat {
   display: inline-flex;
   gap: .25rem;
   padding: .2rem .5rem;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid var(--border, #E8EEF6);
+  border-radius: var(--r-full, 999px);
+  background: var(--ix-surface);
+  border: 1px solid var(--ix-border);
+  color: var(--ix-text);
 }
+
+/* ردیفِ دکمه‌های فرمِ نظر/پاسخ (جایگزینِ style="margin-top" درون‌خطی) */
+.ha-comment-form__actions { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* آواتارِ بزرگ‌تر در سرصفحه‌ی پروفایل */
+.ha-avatar--lg { width: 56px; height: 56px; font-size: 1.3rem; }

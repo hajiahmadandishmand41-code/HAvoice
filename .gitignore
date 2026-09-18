@@ -3,11 +3,14 @@ storage/messages/*
 storage/rate-limit/*
 storage/sessions/*
 storage/admin/*
+# تابلوی مجازی در نبودِ دیتابیس روی فایل می‌نویسد — داده‌ی زمانِ اجراست
+storage/board/*
 !storage/messages/index.html
 !storage/rate-limit/index.html
 !storage/sessions/index.html
 !storage/sessions/.htaccess
 !storage/admin/index.html
+!storage/board/index.html
 !storage/.htaccess
 
 # حساب‌های کاربری (هشِ رمزها) — داده‌ی زمانِ اجراست و نباید در مخزن بیاید

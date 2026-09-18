@@ -57,23 +57,26 @@ if ($category === '' && $field !== '') {
     $category = category_label($field, $field);
 }
 
-/* آپلودها */
+/* آپلودها — جلد و فایل PDF. فایلِ جایگزین‌شده از uploads/ پاک می‌شود. */
 $uploadNotes = [];
-$kinds  = ha_upload_kinds();
-$image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
-$upImg  = ha_upload_store('image_file', $kinds['image'], 'image');
-if (!$upImg['ok']) {
-    $uploadNotes[] = 'جلد آپلود نشد: ' . $upImg['error'];
-} elseif ($upImg['path'] !== '') {
-    $image = $upImg['path'];
-}
-$file  = ha_safe_file_url((string) ($_POST['file'] ?? ''));
-$upDoc = ha_upload_store('file_upload', $kinds['document'], 'document');
-if (!$upDoc['ok']) {
-    $uploadNotes[] = 'فایل کتاب آپلود نشد: ' . $upDoc['error'];
-} elseif ($upDoc['path'] !== '') {
-    $file = $upDoc['path'];
-}
+$kinds    = ha_upload_kinds();
+$prev     = admin_find_by_slug(books_all(), $orig !== '' ? $orig : $slug);
+$prevImg  = admin_existing_path($prev, 'image', 'cover');
+$prevFile = admin_existing_path($prev, 'file');
+
+$resImg = admin_upload_resolve(
+    'image_file', $kinds['image'], 'image',
+    ha_safe_file_url((string) ($_POST['image'] ?? '')), $prevImg
+);
+if ($resImg['error'] !== null) { $uploadNotes[] = 'جلد آپلود نشد: ' . $resImg['error']; }
+$image = $resImg['path'];
+
+$resDoc = admin_upload_resolve(
+    'file_upload', $kinds['document'], 'document',
+    ha_safe_file_url((string) ($_POST['file'] ?? '')), $prevFile
+);
+if ($resDoc['error'] !== null) { $uploadNotes[] = 'فایل کتاب آپلود نشد: ' . $resDoc['error']; }
+$file = $resDoc['path'];
 
 $item = [
     'slug'       => $slug,

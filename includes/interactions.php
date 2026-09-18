@@ -559,7 +559,7 @@ function ha_interaction_block(string $cType, string $cSlug, string $title = ''):
                             $body = (string)($c['body'] ?? '');
                             $replies = $byParent[$id] ?? [];
                             ?>
-                            <div class="ha-comment <?= $depth > 0 ? 'ha-comment--reply' : '' ?>" data-comment-id="<?= $id ?>" style="--depth: <?= $depth ?>">
+                            <div class="ha-comment <?= $depth > 0 ? 'ha-comment--reply' : '' ?>" data-comment-id="<?= $id ?>">
                                 <div class="ha-comment__main">
                                     <div class="ha-comment__avatar"><?= e(auth_initial($name)) ?></div>
                                     <div class="ha-comment__body">
@@ -592,8 +592,9 @@ function ha_interaction_block(string $cType, string $cSlug, string $title = ''):
                                             <input type="hidden" name="parent_id" value="<?= $id ?>">
                                             <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
                                             <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-                                            <textarea name="body" class="input" required minlength="3" maxlength="2000" rows="2" placeholder="پاسخ به <?= e($name) ?>..."></textarea>
-                                            <div class="btn-row" style="margin-top:.5rem">
+                                            <label class="sr-only" for="ha-reply-<?= $id ?>">پاسخ به <?= e($name) ?></label>
+                                            <textarea id="ha-reply-<?= $id ?>" name="body" class="input" required minlength="3" maxlength="2000" rows="2" placeholder="پاسخ به <?= e($name) ?>…"></textarea>
+                                            <div class="btn-row ha-comment-form__actions">
                                                 <button class="btn btn--primary btn--xs btn--cta" type="submit">ثبت پاسخ</button>
                                                 <button class="btn btn--ghost btn--xs" type="button" data-ha-cancel-reply>انصراف</button>
                                             </div>

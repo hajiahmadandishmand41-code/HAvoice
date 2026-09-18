@@ -25,9 +25,11 @@
         var img = document.createElement('img');
         img.id='b-image-preview';
         img.src=url;
-        img.style.cssText='max-width:100%;max-height:240px;border-radius:12px;margin-top:.6rem;display:block';
+        img.className='board-upload__preview';
         img.alt='پیش‌نمایش تصویر انتخاب‌شده';
-        this.parentElement.appendChild(img);
+        var row = this.closest('.board-upload-row') || this.parentElement;
+        if (row && row.parentElement) row.parentElement.insertBefore(img, row.nextSibling);
+        else this.parentElement.appendChild(img);
         img.onload=function(){ URL.revokeObjectURL(url); };
       });
     }
@@ -57,29 +59,9 @@
       });
     }
 
-    // reply toggle already handled by interactions.js, but ensure for board too
-    document.addEventListener('click', function(e){
-      var btn=e.target.closest('[data-ha-reply]');
-      if(btn){
-        var id=btn.getAttribute('data-ha-reply');
-        var form=document.querySelector('[data-ha-reply-form="'+id+'"]');
-        if(form){
-          var hidden=form.hasAttribute('hidden');
-          document.querySelectorAll('[data-ha-reply-form]').forEach(function(f){ f.setAttribute('hidden',''); });
-          if(hidden){
-            form.removeAttribute('hidden');
-            var ta=form.querySelector('textarea');
-            if(ta) ta.focus();
-            form.scrollIntoView({behavior:'smooth',block:'center'});
-          }
-        }
-      }
-      var cancel=e.target.closest('[data-ha-cancel-reply]');
-      if(cancel){
-        var rf=cancel.closest('[data-ha-reply-form]');
-        if(rf) rf.setAttribute('hidden','');
-      }
-    });
+    // توجه: باز/بستنِ فرمِ پاسخ عمداً اینجا نیست — interactions.js
+    // آن را برای کلِ سایت (ازجمله .board-page) مدیریت می‌کند. تکرارِ آن
+    // باعث می‌شد هر کلیک دوبار اجرا شود و فرم بلافاصله بسته گردد.
 
     // char counter for board post
     var ta=document.getElementById('b-body');

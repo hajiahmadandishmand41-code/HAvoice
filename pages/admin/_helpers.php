@@ -528,3 +528,106 @@ function admin_course_stages_from_post(array $existingCourse): array
 
     return $stages;
 }
+
+/* ------------------------------------------------------------------ */
+/*  آپلود: تعیینِ مسیرِ نهایی + پاک‌سازیِ فایلِ جایگزین‌شده              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * مسیرِ نهایی یک فیلدِ فایل را تعیین می‌کند و اگر فایلِ تازه‌ای جایگزینِ
+ * فایلِ قبلی شد، فایلِ قدیمی را از uploads/ پاک می‌کند.
+ *
+ * ترتیبِ اولویت — دقیقاً همان رفتارِ پیشینِ فرم‌ها:
+ *   ۱) فایلِ تازه آپلودشده    ۲) نشانیِ دستیِ فیلدِ متنی    ۳) هیچ
+ *
+ * چرا اینجا؟ پیش‌تر هر فرمِ مدیریت این منطق را جداگانه تکرار می‌کرد و
+ * هیچ‌کدام فایلِ قبلی را پاک نمی‌کرد؛ نتیجه انباشتِ فایل‌های orphan در
+ * uploads/ بود (روی InfinityFree که سهمِ فضا کم است، مشکل‌ساز).
+ *
+ * @param string $fileField  نامِ فیلدِ <input type=file>
+ * @param array  $mimeMap    نگاشتِ MIME⇒پسوند از ha_upload_kinds()
+ * @param string $kind       نوع (image/document/video/audio) برای سقفِ حجم
+ * @param string $urlValue   مقدارِ فیلدِ متنیِ نشانی (از پیش sanitize‌شده)
+ * @param string $previous   مسیرِ ذخیره‌شده‌ی فعلی در رکورد (برای پاک‌سازی)
+ * @return array{path:string, error:?string, replaced:bool}
+ */
+function admin_upload_resolve(
+    string $fileField,
+    array $mimeMap,
+    string $kind,
+    string $urlValue,
+    string $previous = ''
+): array {
+    $up = ha_upload_store($fileField, $mimeMap, $kind);
+    if (!$up['ok']) {
+        /* خطای آپلود: مقدارِ قبلی/دستی حفظ می‌شود تا داده‌ای از بین نرود */
+        return ['path' => $urlValue !== '' ? $urlValue : $previous, 'error' => $up['error'], 'replaced' => false];
+    }
+    if ((string) $up['path'] !== '') {
+        $new = (string) $up['path'];
+        ha_upload_discard($previous, $new);   // فایلِ قبلی دیگر ارجاعی ندارد
+        return ['path' => $new, 'error' => null, 'replaced' => true];
+    }
+    /* فایلی آپلود نشد — نشانیِ دستی ملاک است. اگر مدیر نشانی را عوض کرده
+       و مسیرِ قبلی یک فایلِ آپلودیِ بی‌ارجاع شده، آن هم پاک می‌شود. */
+    if ($urlValue !== $previous) {
+        ha_upload_discard($previous, $urlValue);
+    }
+    return ['path' => $urlValue, 'error' => null, 'replaced' => false];
+}
+
+/** مسیرِ فایلِ فعلیِ یک رکورد (برای تشخیصِ جایگزینی) — با کلیدهای جایگزین. */
+function admin_existing_path(?array $existing, string ...$keys): string
+{
+    if ($existing === null) {
+        return '';
+    }
+    foreach ($keys as $k) {
+        $v = trim((string) ($existing[$k] ?? ''));
+        if ($v !== '') {
+            return $v;
+        }
+    }
+    return '';
+}
+
+/**
+ * یافتنِ رکوردِ فعلی بر پایه‌ی نامک — شاملِ پیش‌نویس‌ها.
+ *
+ * توجه: find_book()/find_article() عمومیِ سایت فقط رویِ موارد «منتشرشده»
+ * می‌گردند؛ برای پنل باید پیش‌نویس‌ها هم دیده شوند، وگرنه هنگام ویرایشِ
+ * یک پیش‌نویس، مسیرِ فایلِ قبلی پیدا نمی‌شود و پاک‌سازی انجام نمی‌گیرد.
+ *
+ * @param list<array<string,mixed>> $items
+ */
+function admin_find_by_slug(array $items, string $slug, string $key = 'slug'): ?array
+{
+    $slug = slugify($slug);
+    if ($slug === '') {
+        return null;
+    }
+    foreach ($items as $item) {
+        if (is_array($item) && slugify((string) ($item[$key] ?? '')) === $slug) {
+            return $item;
+        }
+    }
+    return null;
+}
+
+/** همان، ولی برای media که کلیدِ نوع (video/audio) هم دارد. */
+function admin_find_media(string $slug, string $type): ?array
+{
+    $slug = slugify($slug);
+    if ($slug === '') {
+        return null;
+    }
+    foreach (media_all() as $m) {
+        if (!is_array($m)) {
+            continue;
+        }
+        if (slugify((string) ($m['slug'] ?? '')) === $slug && (string) ($m['type'] ?? '') === $type) {
+            return $m;
+        }
+    }
+    return null;
+}

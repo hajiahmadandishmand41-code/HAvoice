@@ -41,6 +41,10 @@ if ($title === '' || $slug === '') {
 $kinds = ha_upload_kinds();
 
 /* فایلِ صوتی (اختیاری): اگر آپلود شود، همان نشانیِ پخش می‌شود. */
+/* رکوردِ فعلی (شاملِ پیش‌نویس) — برای پاک‌سازیِ فایلِ جایگزین‌شده */
+$prevItem = admin_find_media($orig !== '' ? $orig : $slug, 'audio');
+$prevUrl  = admin_existing_path($prevItem, 'url');
+
 $upAudio = ha_upload_store('audio_file', $kinds['audio'], 'audio');
 if (!$upAudio['ok'] && $upAudio['error'] !== null) {
     flash('error', 'آپلود صوت: ' . $upAudio['error']);
@@ -49,6 +53,10 @@ if (!$upAudio['ok'] && $upAudio['error'] !== null) {
 $uploadedAudio = $upAudio['ok'] ? (string) $upAudio['path'] : '';
 
 $url = $uploadedAudio !== '' ? $uploadedAudio : ha_safe_media_url((string) ($_POST['url'] ?? ''));
+/* فایلِ صوتیِ قبلی وقتی دیگر ارجاعی ندارد حذف می‌شود */
+if ($url !== $prevUrl) {
+    ha_upload_discard($prevUrl, $url);
+}
 if ($url === '') {
     flash('error', 'یا فایلِ صوتی را آپلود کنید یا نشانیِ آن را بنویسید؛ بدونِ یکی از این دو، پادکست در سایت پخش نمی‌شود.');
     redirect($editUrl);

@@ -34,10 +34,10 @@ if ($cat === null) {
 
 $author     = trim((string) ($article['author'] ?? ''));
 $sourceName = trim((string) ($article['source_name'] ?? ''));
-$sourceUrl  = ha_safe_file_url((string) ($article['source_url'] ?? ''));
+$sourceUrl  = ha_file_url((string) ($article['source_url'] ?? ''));
 $refs       = array_values(array_filter(array_map('strval', (array) ($article['refs'] ?? []))));
-$coverImage = ha_safe_file_url((string) ($article['image'] ?? ''));
-$attachFile = ha_safe_file_url((string) ($article['file'] ?? ''));
+$coverImage = ha_file_url((string) ($article['image'] ?? ''));
+$attachFile = ha_file_url((string) ($article['file'] ?? ''));
 ?>
 
 <article class="article">

@@ -58,23 +58,28 @@ if ($category === '') {
     $category = 'عمومی';
 }
 
-/* آپلودها (اختیاری؛ در خطا متوقف نمی‌شویم ولی پیام می‌دهیم) */
+/* آپلودها (اختیاری؛ در خطا متوقف نمی‌شویم ولی پیام می‌دهیم).
+   نسخه‌ی قبلیِ فایل — اگر جایگزین شود — از uploads/ پاک می‌شود تا
+   فایلِ بی‌ارجاع (orphan) روی میزبانی باقی نماند. */
 $uploadNotes = [];
-$kinds  = ha_upload_kinds();
-$image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
-$upImg  = ha_upload_store('image_file', $kinds['image'], 'image');
-if (!$upImg['ok']) {
-    $uploadNotes[] = 'تصویر آپلود نشد: ' . $upImg['error'];
-} elseif ($upImg['path'] !== '') {
-    $image = $upImg['path'];
-}
-$file  = ha_safe_file_url((string) ($_POST['file'] ?? ''));
-$upDoc = ha_upload_store('file_upload', $kinds['document'], 'document');
-if (!$upDoc['ok']) {
-    $uploadNotes[] = 'فایل آپلود نشد: ' . $upDoc['error'];
-} elseif ($upDoc['path'] !== '') {
-    $file = $upDoc['path'];
-}
+$kinds    = ha_upload_kinds();
+$prev     = admin_find_by_slug(articles_all(), $orig !== '' ? $orig : $slug);
+$prevImg  = admin_existing_path($prev, 'image');
+$prevFile = admin_existing_path($prev, 'file');
+
+$resImg = admin_upload_resolve(
+    'image_file', $kinds['image'], 'image',
+    ha_safe_file_url((string) ($_POST['image'] ?? '')), $prevImg
+);
+if ($resImg['error'] !== null) { $uploadNotes[] = 'تصویر آپلود نشد: ' . $resImg['error']; }
+$image = $resImg['path'];
+
+$resDoc = admin_upload_resolve(
+    'file_upload', $kinds['document'], 'document',
+    ha_safe_file_url((string) ($_POST['file'] ?? '')), $prevFile
+);
+if ($resDoc['error'] !== null) { $uploadNotes[] = 'فایل آپلود نشد: ' . $resDoc['error']; }
+$file = $resDoc['path'];
 
 $article = [
     'slug'        => $slug,

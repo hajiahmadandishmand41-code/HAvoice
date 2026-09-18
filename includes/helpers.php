@@ -787,7 +787,7 @@ function ha_embed_url(string $src): string
 
 function render_audio_block(array $block): string
 {
-    $src   = ha_safe_media_url((string) ($block['src'] ?? ''));
+    $src   = ha_media_src((string) ($block['src'] ?? ''));
     $title = (string) ($block['title'] ?? 'فایل صوتی');
     if ($src === '') {
         return '<div class="media-placeholder media-placeholder--audio">' . ha_icon('headphones')
@@ -823,7 +823,7 @@ function render_video_block(array $block): string
              . ' allowfullscreen></iframe></div>';
     }
 
-    $src = ha_safe_media_url($raw);
+    $src = ha_media_src($raw);
     if ($src === '') {
         return '<div class="media-placeholder media-placeholder--video">' . ha_icon('play')
              . '<span>' . e($title) . '</span><small>ویدیو به‌زودی افزوده می‌شود — ساختار آماده است</small></div>';

@@ -11,7 +11,11 @@
   }
 
   ready(function () {
-    var root = document.querySelector('[data-ha-interactions]');
+    // این فایل تنها مسئولِ باز/بستنِ فرمِ پاسخ در کلِ سایت است.
+    // تابلوی مجازی ریشه‌ی [data-ha-interactions] ندارد، پس .board-page را هم
+    // می‌پذیریم؛ در غیرِ این‌صورت روی تابلو هیچ شنونده‌ای ثبت نمی‌شد و پیش‌تر
+    // board.js مجبور بود همین منطق را تکرار کند (خطرِ دوبار اجرا شدن).
+    var root = document.querySelector('[data-ha-interactions], .board-page');
     if (!root) return;
 
     // Reply toggle

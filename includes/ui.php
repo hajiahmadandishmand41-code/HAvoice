@@ -122,7 +122,7 @@ function article_card(array $article, bool $featured = false): string
     }
     $icon = $cat !== null ? (string) ($cat['icon'] ?? 'article') : 'article';
     $tag  = $cat !== null ? cat_label($cat, (string) ($article['category'] ?? 'عمومی')) : (string) ($article['category'] ?? 'عمومی');
-    $image = ha_safe_file_url((string) ($article['image'] ?? ''));
+    $image = ha_file_url((string) ($article['image'] ?? ''));
 
     ob_start(); ?>
     <article class="card article-card<?= $featured ? ' article-card--featured' : '' ?> reveal" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
@@ -352,11 +352,11 @@ function course_card(array $course): string
 
 function video_card(array $item): string
 {
-    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $url    = ha_media_src((string) ($item['url'] ?? ''));
     $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
-    $thumb  = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $thumb  = ha_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
     $title  = (string) ($item['title'] ?? 'ویدیو');
     $excerpt = (string) ($item['excerpt'] ?? '');
     $isEmbed = ha_embed_url($url) !== '';
@@ -468,7 +468,7 @@ function video_card(array $item): string
 
 function audio_card(array $item): string
 {
-    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $url    = ha_media_src((string) ($item['url'] ?? ''));
     $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
@@ -539,7 +539,7 @@ function book_card(array $book): string
 {
     $href = url('books', ['slug' => (string) ($book['slug'] ?? '')]);
     $cat  = find_category(ha_item_field_slug($book));
-    $image = ha_safe_file_url((string) ($book['image'] ?? ''));
+    $image = ha_file_url((string) ($book['image'] ?? ''));
     $hasOnlineRead = !empty($book['blocks']);
 
     ob_start(); ?>

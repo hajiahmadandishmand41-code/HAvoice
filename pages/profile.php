@@ -48,11 +48,11 @@ $flash = flash();
 
         <div class="card profile-card">
             <div class="profile-card__head">
-                <span class="ha-avatar" style="width:56px;height:56px;font-size:1.3rem"><?= e(auth_initial($profile['name'])) ?></span>
+                <span class="ha-avatar ha-avatar--lg"><?= e(auth_initial($profile['name'])) ?></span>
                 <div>
                     <h1><?= e($profile['name']) ?></h1>
                     <p class="muted-sm"><?= e($profile['email']) ?> · <?= e($profile['role']==='admin'?'مدیر':'کاربر') ?> · عضویت: <?= e($profile['created_at'] ? ha_fa_date($profile['created_at']) : '') ?></p>
-                    <div class="chip-row" style="margin-top:.5rem">
+                    <div class="chip-row mt-sm">
                         <span class="chip chip--soft"><?= fa_num($profile['stats']['posts'] ?? 0) ?> پست</span>
                         <?php if ($isOwn): ?><a class="chip chip--ghost" href="<?= e(url('account')) ?>">حساب کاربری</a><?php endif; ?>
                         <a class="chip chip--ghost" href="<?= e(url('board')) ?>">تابلوی مجازی</a>

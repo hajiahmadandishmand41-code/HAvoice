@@ -21,9 +21,9 @@ if ($slug!=='') {
     }
     $cat = find_category(ha_item_field_slug($book));
     $related = related_books($book, 3);
-    $bookImage = ha_safe_file_url((string) ($book['image'] ?? ''));
-    $bookFile  = ha_safe_file_url((string) ($book['file'] ?? ''));
-    $bookLink  = ha_safe_file_url((string) ($book['link'] ?? ''));
+    $bookImage = ha_file_url((string) ($book['image'] ?? ''));
+    $bookFile  = ha_file_url((string) ($book['file'] ?? ''));
+    $bookLink  = ha_file_url((string) ($book['link'] ?? ''));
     $bookBlocks = (array) ($book['blocks'] ?? []);
     $linkedCourse = null;
     if (!empty($book['course'])) {

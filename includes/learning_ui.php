@@ -462,7 +462,7 @@ function lesson_next_bar(array $lp, string $lessonSlug, string $courseSlug): str
 
 function pdf_viewer(string $url, string $title = '', string $note = ''): string
 {
-    $safe = ha_safe_file_url($url);
+    $safe = ha_file_url($url);
     if ($safe === '') {
         return '';
     }
@@ -493,7 +493,7 @@ function media_player(array $item): string
     $type = ($item['type'] ?? '') === 'audio' ? 'audio' : 'video';
     $raw  = (string) ($item['url'] ?? '');
     $title = (string) ($item['title'] ?? ($type === 'audio' ? 'فایلِ صوتی' : 'ویدیو'));
-    $thumb = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $thumb = ha_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
 
     $embed = ha_embed_url($raw);
     if ($embed !== '') {
@@ -505,7 +505,7 @@ function media_player(array $item): string
              . '<div class="ha-player__controls"><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time">امبد خارجی • پخش سریع</span></div></div></div>';
     }
 
-    $src = ha_safe_media_url($raw);
+    $src = ha_media_src($raw);
     if ($src === '') {
         return '<div class="ha-error"><span class="ha-error__icon">' . ha_icon($type === 'audio' ? 'headphones' : 'play', 22) . '</span><p class="ha-error__title">' . e($title) . '</p><p class="ha-error__text">فایلِ قابلِ پخش ثبت نشده است</p></div>';
     }
@@ -557,8 +557,8 @@ function media_player_payload(array $item): string
         'title' => (string) ($item['title'] ?? ''),
         'type'  => ($item['type'] ?? '') === 'audio' ? 'audio' : 'video',
         'embed' => ha_embed_url((string) ($item['url'] ?? '')),
-        'src'   => ha_safe_media_url((string) ($item['url'] ?? '')),
-        'thumb' => ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? ''))),
+        'src'   => ha_media_src((string) ($item['url'] ?? '')),
+        'thumb' => ha_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? ''))),
     ];
     return (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }

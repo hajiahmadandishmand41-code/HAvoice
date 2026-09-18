@@ -292,6 +292,89 @@ function ha_upload_kind_hint(string $kind): string
     }
 }
 
+/**
+ * حذفِ امنِ یک فایلِ آپلودشده‌ی قدیمی پس از جایگزینی.
+ *
+ * چرا لازم است؟ فرم‌های مدیریت هنگام ویرایش، مسیرِ جدید را جای مسیرِ
+ * قدیمی می‌نوشتند ولی فایلِ قبلی در uploads/ می‌ماند (orphan) و فضای
+ * محدودِ میزبانیِ اشتراکی را پر می‌کرد.
+ *
+ * محافظت‌ها:
+ *  • فقط مسیرهای «uploads/…» پذیرفته می‌شوند؛ هر نشانیِ بیرونی
+ *    (http/https) یا مسیرِ assets/ نادیده گرفته می‌شود.
+ *  • realpath باید واقعاً داخلِ پوشه‌ی uploads بیفتد (ضدِ traversal).
+ *  • اگر مسیرِ جدید و قدیم یکی باشد، چیزی حذف نمی‌شود.
+ *  • اگر همان فایل هنوز در رکوردِ دیگری استفاده شود، فراخوان نباید این
+ *    تابع را صدا بزند؛ نام‌ها تصادفی‌اند پس اشتراک عملاً رخ نمی‌دهد.
+ *
+ * @return bool آیا فایلی واقعاً حذف شد؟
+ */
+function ha_upload_discard(string $oldPath, string $newPath = ''): bool
+{
+    $old = trim($oldPath);
+    if ($old === '' || $old === trim($newPath)) {
+        return false;
+    }
+    $old = ltrim(str_replace('\\', '/', $old), '/');
+    if (strpos($old, 'uploads/') !== 0 || strpos($old, '..') !== false) {
+        return false; // نشانیِ بیرونی یا assets/ — دستِ ما نیست
+    }
+    $dir = realpath(ha_uploads_dir());
+    if ($dir === false) {
+        return false;
+    }
+    $full = realpath(HA_ROOT . '/' . $old);
+    if ($full === false || !is_file($full)) {
+        return false;
+    }
+    if (strpos($full, $dir . DIRECTORY_SEPARATOR) !== 0) {
+        return false; // خارج از uploads
+    }
+    return @unlink($full);
+}
+
+/**
+ * نشانیِ قابلِ استفاده در HTML برای یک مسیرِ ذخیره‌شده.
+ *
+ * چرا لازم است؟ مسیرها در دیتابیس/JSON به‌شکلِ نسبیِ «uploads/…» ذخیره
+ * می‌شوند (و باید همان بمانند تا جابه‌جاییِ دامنه مشکلی نسازد). اما اگر
+ * همان رشته مستقیماً در src/href چاپ شود، مرورگر آن را نسبت به «مسیرِ
+ * صفحه‌ی جاری» حل می‌کند؛ یعنی در نشانیِ زیبا مثلِ /articles/my-slug به
+ * /articles/uploads/… می‌رسد و تصویر/فایل ۴۰۴ می‌شود. با ریشه‌ای کردنِ
+ * مسیر (پیشوندِ HA_BASE_PATH) نشانی در هر عمقی از مسیر درست می‌ماند و
+ * روی InfinityFree — چه در ریشه‌ی دامنه و چه در زیرپوشه — کار می‌کند.
+ *
+ * نشانی‌های مطلقِ بیرونی (http/https) دست‌نخورده برمی‌گردند.
+ */
+function ha_file_url(string $path): string
+{
+    $safe = ha_safe_file_url($path);
+    return $safe === '' ? '' : ha_public_url($safe);
+}
+
+/** همانِ ha_file_url ولی برای فیلدهای رسانه (صوت/ویدیو) که ha_safe_media_url اعتبارسنجی‌شان می‌کند. */
+function ha_media_src(string $src): string
+{
+    $safe = ha_safe_media_url($src);
+    return $safe === '' ? '' : ha_public_url($safe);
+}
+
+/**
+ * مسیرِ نسبیِ داخلیِ از پیش اعتبارسنجی‌شده را به نشانیِ ریشه‌ایِ قابلِ سرو
+ * تبدیل می‌کند. نشانی‌های مطلق/پروتکل‌نسبی بدونِ تغییر عبور می‌کنند.
+ */
+function ha_public_url(string $safeRelative): string
+{
+    if ($safeRelative === '') {
+        return '';
+    }
+    if (preg_match('#^(https?:)?//#i', $safeRelative)) {
+        return $safeRelative;
+    }
+    $prefix = defined('HA_BASE_PATH') ? rtrim((string) HA_BASE_PATH, '/') : '';
+    return $prefix . '/' . ltrim($safeRelative, '/');
+}
+
 /** آیا نشانی برای استفاده در فیلدهای فایل/تصویر معتبر است؟ (http/https یا مسیرِ نسبیِ داخلی) */
 function ha_safe_file_url(string $url): string
 {

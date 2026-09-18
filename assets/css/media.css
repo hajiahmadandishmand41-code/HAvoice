@@ -22,6 +22,12 @@
 [data-theme="dark"] {
   --player-buffered: rgba(147,178,245,.22);
 }
+/* حالتِ خودکار + تمِ تاریکِ سیستم: نوارِ بافرشده باید روشن بماند */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --player-buffered: rgba(147,178,245,.22);
+  }
+}
 
 /* ===== کارت‌های رسانه — بازطراحی مدرن ===== */
 .media-card {

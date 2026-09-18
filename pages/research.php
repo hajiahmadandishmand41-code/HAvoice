@@ -36,7 +36,7 @@ if ($slug!=='') {
         <div class="container container--narrow article__grid">
             <div class="prose">
                 <?= render_blocks((array)($item['blocks'] ?? [])) ?>
-                <?php if(!empty($item['link'])): $rlink = ha_safe_file_url((string) $item['link']); if ($rlink !== ''): ?>
+                <?php if(!empty($item['link'])): $rlink = ha_file_url((string) $item['link']); if ($rlink !== ''): ?>
                     <p class="article__attachment"><a class="btn btn--ghost btn--sm" href="<?= e($rlink) ?>" rel="noopener nofollow" target="_blank"><?= ha_icon('external', 14) ?> مشاهده‌ی منبعِ بیرونی</a></p>
                 <?php endif; endif; ?>
                 <?php if(!empty($item['refs'])): ?>

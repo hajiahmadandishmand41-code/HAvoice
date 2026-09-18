@@ -83,11 +83,14 @@ $flash = flash();
                 <?= csrf_field() ?>
                 <input type="hidden" name="next" value="<?= e(url('board')) ?>">
                 <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+                <label class="sr-only" for="b-body">متن پست</label>
                 <textarea id="b-body" name="body" class="input" maxlength="5000" rows="4" placeholder="چه چیزی می‌خواهید با دیگران به اشتراک بگذارید؟"></textarea>
+                <p class="field__help">متن، یا یک تصویر، یا لینک ویدیو/صوت — دست‌کم یکی لازم است.</p>
                 <div class="board-upload-row">
-                    <label class="board-upload"><span><?= ha_icon('image',15) ?> تصویر</span><input type="file" name="image" accept=".jpg,.jpeg,.png,.webp"></label>
-                    <input type="url" name="media_url" class="input" placeholder="لینک ویدیو یا صوت (اختیاری)" dir="ltr">
-                    <button class="btn btn--primary btn--cta" type="submit">انتشار</button>
+                    <label class="board-upload" for="b-image"><span><?= ha_icon('image',15) ?> تصویر</span><input id="b-image" type="file" name="image" accept=".jpg,.jpeg,.png,.webp"></label>
+                    <label class="sr-only" for="b-media">لینک ویدیو یا صوت</label>
+                    <input id="b-media" type="url" name="media_url" class="input" placeholder="لینک ویدیو یا صوت (اختیاری)" dir="ltr">
+                    <button class="btn btn--primary btn--cta" type="submit"><?= ha_icon('plus',14) ?> انتشار</button>
                 </div>
             </form>
         </section>
