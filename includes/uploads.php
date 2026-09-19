@@ -318,3 +318,35 @@ function ha_safe_file_url(string $url): string
     }
     return '';
 }
+
+/**
+ * حذفِ امنِ فایلِ آپلودشده (فقط داخلِ uploads/) — برای Delete و جایگزینیِ Edit.
+ * اگر مسیر https یا خارج از uploads باشد، بی‌صدا رد می‌شود.
+ */
+function ha_upload_delete(string $path): bool
+{
+    $safe = ha_safe_file_url($path);
+    if ($safe === '' || !str_starts_with($safe, 'uploads/')) return false;
+    // اگر رسانه باشد (ha_safe_media_url هم uploads را می‌پذیرد) — همچنان امن است
+    $full = HA_ROOT . '/' . $safe;
+    $realBase = realpath(ha_uploads_dir());
+    $real = realpath($full);
+    if ($real === false || $realBase === false || !str_starts_with($real, $realBase . DIRECTORY_SEPARATOR)) {
+        // فایل وجود ندارد یا خارج از ریشه — تلاش نکن
+        return false;
+    }
+    if (!is_file($real)) return false;
+    return @unlink($real);
+}
+/** حذفِ امنِ رسانه (uploads/ یا https) — wrapper روی file برای سازگاری. */
+function ha_media_delete(string $path): bool
+{
+    if (function_exists('ha_safe_media_url')) {
+        $safe = ha_safe_media_url($path);
+    } else {
+        $safe = ha_safe_file_url($path);
+        if ($safe === '' && preg_match('#^https?://#i', trim($path))) $safe = trim($path);
+    }
+    if ($safe === '' || preg_match('#^https?://#i', $safe)) return false;
+    return ha_upload_delete($safe);
+}

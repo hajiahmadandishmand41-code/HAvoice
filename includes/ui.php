@@ -122,7 +122,7 @@ function article_card(array $article, bool $featured = false): string
     }
     $icon = $cat !== null ? (string) ($cat['icon'] ?? 'article') : 'article';
     $tag  = $cat !== null ? cat_label($cat, (string) ($article['category'] ?? 'عمومی')) : (string) ($article['category'] ?? 'عمومی');
-    $image = ha_safe_file_url((string) ($article['image'] ?? ''));
+    $image = ha_public_file_url((string) ($article['image'] ?? ''));
 
     ob_start(); ?>
     <article class="card article-card<?= $featured ? ' article-card--featured' : '' ?> reveal" data-search-card data-hay="<?= e(search_haystack($article)) ?>">
@@ -352,11 +352,11 @@ function course_card(array $course): string
 
 function video_card(array $item): string
 {
-    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $url    = ha_public_media_url((string) ($item['url'] ?? ''));
     $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
-    $thumb  = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $thumb  = ha_public_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
     $title  = (string) ($item['title'] ?? 'ویدیو');
     $excerpt = (string) ($item['excerpt'] ?? '');
     $isEmbed = ha_embed_url($url) !== '';
@@ -389,35 +389,13 @@ function video_card(array $item): string
                    aria-label="پخش ویدیو: <?= e($title) ?>"><?= ha_icon('play', 22) ?></button>
             </div>
         <?php else: ?>
-            <div class="ha-player ha-player--video" data-ha-player data-ha-type="video" data-ha-src="<?= e($url) ?>" data-ha-title="<?= e($title) ?>" style="<?= e($style) ?>">
-                <div class="ha-player__stage">
-                    <?php if ($thumb !== ''): ?>
-                        <div class="ha-player__poster"><img src="<?= e($thumb) ?>" alt="" loading="lazy" decoding="async"></div>
-                    <?php else: ?>
-                        <div class="ha-player__poster"><span class="ha-player__glyph"><?= ha_icon('play', 28) ?></span></div>
-                    <?php endif; ?>
-                    <button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش ویدیو: <?= e($title) ?>"><?= ha_icon('play', 22) ?></button>
-                    <div class="ha-player__status ha-player__status--loading" data-ha-status="loading">
-                        <div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری…</p><p class="ha-player__status-text">اتصال سریع برای شروع فوری</p></div>
-                    </div>
-                    <div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering">
-                        <div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بافر…</p><p class="ha-player__status-text">اینترنت ضعیف؟ صبور باشید، به‌زودی ادامه می‌دهد</p></div>
-                    </div>
-                    <div class="ha-player__status ha-player__status--error" data-ha-status="error">
-                        <div><div class="ha-error__icon" style="margin:0 auto .6rem;background:rgba(255,255,255,.18)"><?= ha_icon('alert', 20) ?></div><p class="ha-player__status-title">خطا در پخش</p><p class="ha-player__status-text" data-ha-error-text>ویدیو بارگذاری نشد. اتصال را بررسی کنید.</p><button class="ha-player__retry" type="button" data-ha-retry><?= ha_icon('rotate', 14) ?> تلاش مجدد</button></div>
-                    </div>
-                    <video class="ha-player__media" data-ha-media preload="metadata" playsinline controlsList="nodownload" data-src="<?= e($url) ?>" poster="<?= e($thumb) ?>" aria-label="<?= e($title) ?>"></video>
+            <?php if ($hasUrl): ?>
+                <div style="border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border)">
+                    <video controls preload="metadata" playsinline <?= $thumb!=='' ? 'poster="'.e($thumb).'"' : '' ?> src="<?= e($url) ?>" aria-label="<?= e($title) ?>" style="width:100%;aspect-ratio:16/9;height:auto;display:block;background:#000;max-width:100%"></video>
                 </div>
-                <div class="ha-player__controls" data-ha-controls>
-                    <div class="ha-player__top"><span class="ha-player__title"><?= e($title) ?></span><span class="ha-player__time" data-ha-time>۰۰:۰۰ / <?= e($dur !== '' ? $dur : '۰۰:۰۰') ?></span></div>
-                    <div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>
-                    <div class="ha-player__actions">
-                        <button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف"><?= ha_icon('play', 16) ?></button>
-                        <div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا"><?= ha_icon('volume', 16) ?></button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>
-                        <div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><a class="ha-player__chip" href="<?= e($url) ?>" download><?= ha_icon('download', 12) ?> دریافت</a></div>
-                    </div>
-                </div>
-            </div>
+            <?php else: ?>
+                <div class="media-placeholder media-placeholder--video" style="padding:1rem;text-align:center;border:1px dashed var(--border);border-radius:12px;background:var(--surface-2)"><?= ha_icon('play',24) ?><p class="muted-sm">ویدیو به‌زودی</p></div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <div class="media-card__body">
@@ -468,7 +446,7 @@ function video_card(array $item): string
 
 function audio_card(array $item): string
 {
-    $url    = ha_safe_media_url((string) ($item['url'] ?? ''));
+    $url    = ha_public_media_url((string) ($item['url'] ?? ''));
     $hasUrl = $url !== '';
     $cat    = find_category(ha_item_field_slug($item));
     $dur    = format_duration((int) ($item['seconds'] ?? 0));
@@ -478,32 +456,14 @@ function audio_card(array $item): string
 
     ob_start(); ?>
     <article class="card media-card media-card--audio reveal" data-ha-card="audio">
-        <div class="ha-player ha-player--audio" data-ha-player data-ha-type="audio" data-ha-src="<?= e($url) ?>" data-ha-title="<?= e($title) ?>" style="<?= e($style) ?>">
-            <div class="ha-player__stage">
-                <div class="ha-player__poster">
-                    <span class="ha-player__glyph"><?= ha_icon('headphones', 28) ?></span>
-                    <span class="ha-player__wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-                </div>
-                <button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش صوت: <?= e($title) ?>"><?= ha_icon('play', 20) ?></button>
-                <div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری صوت…</p><p class="ha-player__status-text">شروع سریع حتی با اینترنت ضعیف</p></div></div>
-                <div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اتصال کند؟ ادامه به‌زودی</p></div></div>
-                <div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش صوت</p><p class="ha-player__status-text" data-ha-error-text>فایل بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry><?= ha_icon('rotate', 14) ?> تلاش مجدد</button></div></div>
-                <audio class="ha-player__media" data-ha-media preload="none" data-src="<?= e($url) ?>" aria-label="<?= e($title) ?>"></audio>
-            </div>
-            <div class="ha-player__controls" data-ha-controls>
-                <div class="ha-player__top">
-                    <span class="ha-player__title"><?= e($title) ?></span>
-                    <span class="ha-player__time" data-ha-time>۰۰:۰۰ / <?= e($dur !== '' ? $dur : '۰۰:۰۰') ?></span>
-                </div>
-                <div class="ha-player__progress-wrap" data-ha-seek>
-                    <div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div>
-                </div>
-                <div class="ha-player__actions">
-                    <button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف"><?= ha_icon('play', 16) ?></button>
-                    <div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا"><?= ha_icon('volume', 16) ?></button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>
-                    <div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><?php if ($hasUrl): ?><a class="ha-player__chip" href="<?= e($url) ?>" download><?= ha_icon('download', 12) ?> دریافت</a><?php endif; ?></div>
-                </div>
-            </div>
+        <div data-ha-player data-ha-type="audio" data-ha-src="<?= e($url) ?>" data-ha-title="<?= e($title) ?>" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;<?= e($style) ?>">
+            <p style="margin:0 0 .6rem;display:flex;align-items:center;gap:.45rem;color:var(--text);font-weight:700"><?= ha_icon('headphones', 16) ?> <?= e($title) ?></p>
+            <?php if ($hasUrl): ?>
+                <audio controls preload="metadata" src="<?= e($url) ?>" aria-label="<?= e($title) ?>" style="width:100%;height:44px;border-radius:8px"></audio>
+                <p class="muted-sm" style="margin:.5rem 0 0;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><a href="<?= e($url) ?>" download class="btn btn--ghost btn--xs"><?= ha_icon('download', 12) ?> دریافت</a><span><?= e($dur) ?></span></p>
+            <?php else: ?>
+                <p class="muted-sm">فایلِ صوتی به‌زودی افزوده می‌شود</p>
+            <?php endif; ?>
         </div>
 
         <div class="media-card__body" style="padding-top:1rem">
@@ -539,7 +499,7 @@ function book_card(array $book): string
 {
     $href = url('books', ['slug' => (string) ($book['slug'] ?? '')]);
     $cat  = find_category(ha_item_field_slug($book));
-    $image = ha_safe_file_url((string) ($book['image'] ?? ''));
+    $image = ha_public_file_url((string) ($book['image'] ?? ''));
     $hasOnlineRead = !empty($book['blocks']);
 
     ob_start(); ?>

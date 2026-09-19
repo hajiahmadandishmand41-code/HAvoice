@@ -77,17 +77,21 @@ $flash = flash();
         <section class="card board-new board-new--simple" id="new-post">
             <div class="board-new__title-row">
                 <h2 class="board-new__title"><?= ha_icon('plus',16) ?> افزودن پست</h2>
-                <span class="muted-sm">متن، تصویر یا ویدیو</span>
+                <span class="muted-sm" style="color:var(--text-mute);font-size:var(--fs-xs)">متن، تصویر یا ویدیو — ساده و خلوت</span>
             </div>
             <form method="post" action="<?= e(url('board_post')) ?>" enctype="multipart/form-data" class="board-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="next" value="<?= e(url('board')) ?>">
                 <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-                <textarea id="b-body" name="body" class="input" maxlength="5000" rows="4" placeholder="چه چیزی می‌خواهید با دیگران به اشتراک بگذارید؟"></textarea>
+                <div class="field" style="margin:0">
+                    <label for="b-body" class="sr-only">متن پست</label>
+                    <textarea id="b-body" name="body" class="input" maxlength="5000" rows="4" placeholder="چه چیزی می‌خواهید با دیگران به اشتراک بگذارید؟ — ایده، تجربه یا پرسش…" required></textarea>
+                    <p class="field__help">حداکثر ۵۰۰۰ نویسه. حداقل یکی از متن، تصویر یا لینک کافی‌ست.</p>
+                </div>
                 <div class="board-upload-row">
-                    <label class="board-upload"><span><?= ha_icon('image',15) ?> تصویر</span><input type="file" name="image" accept=".jpg,.jpeg,.png,.webp"></label>
-                    <input type="url" name="media_url" class="input" placeholder="لینک ویدیو یا صوت (اختیاری)" dir="ltr">
-                    <button class="btn btn--primary btn--cta" type="submit">انتشار</button>
+                    <label class="board-upload" for="b-image"><span><?= ha_icon('image',15) ?> انتخاب تصویر</span><input id="b-image" type="file" name="image" accept=".jpg,.jpeg,.png,.webp"></label>
+                    <input id="b-media" type="url" name="media_url" class="input" placeholder="لینک ویدیو/صوت https:// ... (اختیاری)" dir="ltr" autocomplete="url">
+                    <button class="btn btn--primary" type="submit"><?= ha_icon('send',14) ?> انتشار</button>
                 </div>
             </form>
         </section>

@@ -311,6 +311,28 @@ function asset(string $file, bool $versioned = true): string
     return $cache[$key] = $prefix . $path . '?v=' . $ver;
 }
 
+/**
+ * نگاشتِ uploads/… یا assets/… به نشانیِ عمومی با asset().
+ * اگر قبلاً https:// باشد همان را برمی‌گرداند؛ در غیرِ صورت پس از
+ * اعتبارسنجی با ha_safe_file_url، به asset() می‌رود تا هم absolute
+ * شود (مشکلِ مسیرِ نسبی در pretty URL) و هم نسخه‌گذاری بگیرد.
+ */
+function ha_public_file_url(string $path): string
+{
+    $safe = function_exists('ha_safe_file_url') ? ha_safe_file_url($path) : '';
+    if ($safe === '') return '';
+    if (preg_match('#^https?://#i', $safe)) return $safe;
+    return asset($safe);
+}
+function ha_public_media_url(string $path): string
+{
+    $safe = ha_safe_media_url($path);
+    if ($safe === '') return '';
+    if (preg_match('#^https?://#i', $safe)) return $safe;
+    if (str_starts_with($safe, 'uploads/') || str_starts_with($safe, 'assets/')) return asset($safe);
+    return $safe;
+}
+
 /* ------------------------------------------------------------------ */
 /*  متادیتای مسیرها                                                   */
 /* ------------------------------------------------------------------ */
@@ -787,7 +809,7 @@ function ha_embed_url(string $src): string
 
 function render_audio_block(array $block): string
 {
-    $src   = ha_safe_media_url((string) ($block['src'] ?? ''));
+    $src   = ha_public_media_url((string) ($block['src'] ?? ''));
     $title = (string) ($block['title'] ?? 'فایل صوتی');
     if ($src === '') {
         return '<div class="media-placeholder media-placeholder--audio">' . ha_icon('headphones')
@@ -823,7 +845,7 @@ function render_video_block(array $block): string
              . ' allowfullscreen></iframe></div>';
     }
 
-    $src = ha_safe_media_url($raw);
+    $src = ha_public_media_url($raw);
     if ($src === '') {
         return '<div class="media-placeholder media-placeholder--video">' . ha_icon('play')
              . '<span>' . e($title) . '</span><small>ویدیو به‌زودی افزوده می‌شود — ساختار آماده است</small></div>';

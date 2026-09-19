@@ -819,12 +819,12 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
         <div class="ha-board-post__body">
             <p class="ha-board-post__text"><?= nl2br(e($body)) ?></p>
             <?php if ($image !== ''): ?>
-                <?php $safeImg = ha_safe_file_url($image); if ($safeImg !== ''): ?>
+                <?php $safeImg = ha_public_file_url($image); if ($safeImg !== ''): ?>
                 <figure class="ha-board-post__media"><img src="<?= e($safeImg) ?>" alt="" loading="lazy" decoding="async"></figure>
                 <?php endif; ?>
             <?php endif; ?>
             <?php if ($mediaUrl !== ''): ?>
-                <?php $safeMedia = ha_safe_media_url($mediaUrl); $embed = ha_embed_url($mediaUrl); ?>
+                <?php $safeMedia = ha_public_media_url($mediaUrl); $embed = ha_embed_url($mediaUrl); ?>
                 <?php if ($embed !== ''): ?>
                     <div class="video-embed"><iframe src="<?= e($embed) ?>" title="رسانه" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
                 <?php elseif ($safeMedia !== ''): ?>
@@ -872,8 +872,13 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
             </div>
         </footer>
 
-        <!-- Comments for this post -->
+        <!-- Comments for this post — مرتب: عنوان + واکنش‌ها + لیست + فرم -->
         <div class="ha-board-comments" id="comments-post-<?= $id ?>">
+            <div class="ha-comments__title" style="margin:0 0 .75rem;display:flex;align-items:center;gap:.45rem;font-size:var(--fs-base);font-weight:var(--fw-extra);color:var(--text)">
+                <?= ha_icon('chat', 16) ?> گفتگو
+                <span class="badge badge--soft" style="font-variant-numeric:tabular-nums"><?= fa_num($commentCounts['total']) ?> نظر</span>
+                <?php if ((int)$commentCounts['replies']>0): ?><span class="muted-sm" style="font-size:var(--fs-xs)">↩️ <?= fa_num((int)$commentCounts['replies']) ?> پاسخ</span><?php endif; ?>
+            </div>
             <?php
             $render = function(array $list, int $depth=0) use (&$render, $byParent, $likedComments, $id) {
                 foreach ($list as $c) {
@@ -890,7 +895,7 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                         <div class="ha-comment__main">
                             <div class="ha-comment__avatar"><?= e(auth_initial($cName)) ?></div>
                             <div class="ha-comment__body">
-                                <div class="ha-comment__meta"><strong><?= e($cName) ?></strong><span class="ha-comment__date"><?= e($cDateFa) ?></span></div>
+                                <div class="ha-comment__meta"><strong class="ha-comment__name"><?= e($cName) ?></strong><span class="ha-comment__date"><?= e($cDateFa) ?></span><?php if($depth>0): ?><span class="badge badge--soft">پاسخ</span><?php endif; ?></div>
                                 <p class="ha-comment__text"><?= nl2br(e($cBody)) ?></p>
                                 <div class="ha-comment__actions">
                                     <form method="post" action="<?= e(url('board_comment_like')) ?>" class="ha-inline-form">
@@ -898,7 +903,7 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                                         <input type="hidden" name="comment_id" value="<?= $cid ?>">
                                         <input type="hidden" name="post_id" value="<?= $id ?>">
                                         <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
-                                        <button type="submit" class="ha-action-btn <?= $isLiked?'is-liked':'' ?>"><?= ha_icon($isLiked?'heart-filled':'heart',14) ?> <?= $cLikes>0?fa_num($cLikes):'پسند' ?></button>
+                                        <button type="submit" class="ha-action-btn <?= $isLiked?'is-liked':'' ?>" aria-pressed="<?= $isLiked?'true':'false' ?>"><?= ha_icon($isLiked?'heart-filled':'heart',14) ?> <?= $cLikes>0?fa_num($cLikes):'پسند' ?></button>
                                     </form>
                                     <button type="button" class="ha-action-btn" data-ha-reply="<?= $cid ?>"><?= ha_icon('reply',14) ?> پاسخ</button>
                                 </div>
@@ -910,7 +915,7 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                                     <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
                                     <textarea name="body" class="input" required minlength="2" maxlength="2000" rows="2" placeholder="پاسخ به <?= e($cName) ?>..."></textarea>
                                     <div class="btn-row" style="margin-top:.5rem">
-                                        <button class="btn btn--primary btn--xs btn--cta" type="submit">ثبت پاسخ</button>
+                                        <button class="btn btn--primary btn--xs" type="submit">ثبت پاسخ</button>
                                         <button class="btn btn--ghost btn--xs" type="button" data-ha-cancel-reply>انصراف</button>
                                     </div>
                                 </form>
@@ -924,18 +929,38 @@ function ha_board_render_post(array $post, string $myUserId = '', array $myReact
                 }
             };
             $roots = $byParent[0] ?? [];
-            $render($roots,0);
+            if ($roots === []) {
+                echo '<p class="muted-sm" style="color:var(--text-mute);font-size:var(--fs-sm);padding:.4rem 0">هنوز نظری ثبت نشده — اولین نفر باشید.</p>';
+            } else {
+                $render($roots,0);
+            }
             ?>
             <?php $currentUser = auth_current_user(); if ($currentUser): ?>
-            <form method="post" action="<?= e(url('board_comment')) ?>" class="ha-comment-form">
+            <form method="post" action="<?= e(url('board_comment')) ?>" class="ha-comment-form" style="margin-top:.75rem">
                 <?= csrf_field() ?>
                 <input type="hidden" name="post_id" value="<?= $id ?>">
                 <input type="hidden" name="parent_id" value="0">
                 <input type="hidden" name="next" value="<?= e(ha_current_request_url()) ?>">
                 <div class="honeypot" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-                <textarea name="body" class="input" required minlength="2" maxlength="2000" rows="2" placeholder="نظر شما..."></textarea>
-                <button class="btn btn--primary btn--xs btn--cta" type="submit" style="margin-top:.5rem">ثبت نظر</button>
+                <div class="field" style="margin:0">
+                    <label for="ha-board-comment-<?= $id ?>" class="sr-only">متن نظر</label>
+                    <textarea id="ha-board-comment-<?= $id ?>" name="body" class="input" required minlength="2" maxlength="2000" rows="3" placeholder="نظر خود را بنویسید..."></textarea>
+                    <p class="field__help">حداقل ۲ نویسه، حداکثر ۲۰۰۰ — از لینکِ زیاد پرهیز کنید.</p>
+                </div>
+                <button class="btn btn--primary btn--sm" type="submit" style="margin-top:.4rem"><?= ha_icon('chat',14) ?> ثبت نظر</button>
             </form>
+            <?php else: ?>
+            <div class="ha-guest-cta" style="margin:.6rem 0 0">
+                <div class="ha-guest-cta__icon"><?= ha_icon('sparkle', 20) ?></div>
+                <div class="ha-guest-cta__body">
+                    <h4>برای گفتگو وارد شوید</h4>
+                    <p class="muted-sm">ثبت‌نام کمتر از ۳۰ ثانیه است و پس از ورود به همین پست برمی‌گردید.</p>
+                    <div class="btn-row">
+                        <a class="btn btn--primary btn--sm" href="<?= e(url('register',['next'=>ha_current_request_url()])) ?>">ثبت‌نام</a>
+                        <a class="btn btn--ghost btn--sm" href="<?= e(url('login',['next'=>ha_current_request_url()])) ?>">ورود</a>
+                    </div>
+                </div>
+            </div>
             <?php endif; ?>
         </div>
     </article>

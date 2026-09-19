@@ -62,6 +62,12 @@ $lessonIndex = course_lesson_index();
             <input class="input" id="v-thumb-file" type="file" name="thumbnail_file" accept="image/jpeg,image/png,image/webp">
             <p class="field__help"><?= e(ha_upload_kind_hint('image')) ?></p>
         </div>
+        <?php if (!empty($item['thumbnail'])): $__vPrev = ha_public_file_url((string)$item['thumbnail']); if ($__vPrev !== ''): ?>
+        <div class="field"><span class="field__help">بندانگشتی فعلی:</span><img src="<?= e($__vPrev) ?>" alt="" style="max-width:160px;border-radius:8px"><br><small class="muted-sm" style="word-break:break-all"><?= e($item['thumbnail']) ?></small></div>
+        <?php endif; endif; ?>
+        <?php if (!empty($item['url'])): $__vUrl = ha_public_media_url((string)$item['url']); if ($__vUrl !== ''): ?>
+        <div class="field"><span class="field__help">ویدیوی فعلی:</span><a href="<?= e($__vUrl) ?>" target="_blank" rel="noopener" class="btn btn--ghost btn--xs">مشاهده/پخش</a> <small class="muted-sm" style="word-break:break-all"><?= e($item['url']) ?></small></div>
+        <?php endif; endif; ?>
         <div class="field">
             <label for="v-course">دوره مرتبط</label>
             <select class="input" id="v-course" name="course">

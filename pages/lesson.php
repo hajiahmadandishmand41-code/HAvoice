@@ -55,10 +55,11 @@ if ($lpState === '') {
     $lpState = progress_lesson_state($slug);
 }
 
-/* رسانه‌ی خودِ درس (فایل/ویدیو/صوتی که مدیر روی همان درس گذاشته) */
-$lessonFile  = ha_safe_file_url((string) ($data['file'] ?? ''));
-$lessonVideo = ha_safe_media_url((string) ($data['video'] ?? ''));
-$lessonAudio = ha_safe_media_url((string) ($data['audio'] ?? ''));
+/* رسانه‌ی خودِ درس (فایل/ویدیو/صوتی که مدیر روی همان درس گذاشته)
+   Use public wrappers so asset() resolves absolute URL; media_player/pdf_viewer also safe. */
+$lessonFile  = ha_public_file_url((string) ($data['file'] ?? ''));
+$lessonVideo = ha_public_media_url((string) ($data['video'] ?? ''));
+$lessonAudio = ha_public_media_url((string) ($data['audio'] ?? ''));
 
 /* نکات و اشتباهات رایج از بلوک‌های tip استخراج می‌شوند (اگر جداگانه نبودند) */
 $tipWarns = [];

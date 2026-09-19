@@ -1,2 +1,4 @@
 # assetها عمومی‌اند؛ فقط فهرست‌گیری ممنوع
-Options -Indexes
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
