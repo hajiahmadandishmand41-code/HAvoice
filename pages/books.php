@@ -21,9 +21,11 @@ if ($slug!=='') {
     }
     $cat = find_category(ha_item_field_slug($book));
     $related = related_books($book, 3);
-    $bookImage = ha_safe_file_url((string) ($book['image'] ?? ''));
-    $bookFile  = ha_safe_file_url((string) ($book['file'] ?? ''));
-    $bookLink  = ha_safe_file_url((string) ($book['link'] ?? ''));
+    $bookImage = ha_public_file_url((string) ($book['image'] ?? ''));
+    // bookFile raw for pdf_viewer (it will convert internally), public for direct link
+    $bookFileRaw  = ha_safe_file_url((string) ($book['file'] ?? ''));
+    $bookFile  = ha_public_file_url((string) ($book['file'] ?? ''));
+    $bookLink  = ha_public_file_url((string) ($book['link'] ?? ''));
     $bookBlocks = (array) ($book['blocks'] ?? []);
     $linkedCourse = null;
     if (!empty($book['course'])) {
@@ -100,7 +102,7 @@ if ($slug!=='') {
                         <h2><?= ha_icon('book', 17) ?> فایلِ <?= e($book['title']) ?> در سایت</h2>
                         <p class="muted-sm">همین‌جا ورق بزنید؛ نیازی به دانلود نیست.</p>
                     </header>
-                    <?= pdf_viewer($bookFile, (string) $book['title'], 'اگر مرورگرِ شما PDF را داخلِ صفحه نشان نمی‌دهد، از دکمه‌ی «تبِ جدید» یا «دریافت» استفاده کنید.') ?>
+                    <?= pdf_viewer($bookFileRaw, (string) $book['title'], 'اگر مرورگرِ شما PDF را داخلِ صفحه نشان نمی‌دهد، از دکمه‌ی «تبِ جدید» یا «دریافت» استفاده کنید.') ?>
                 </section>
             <?php endif; ?>
 

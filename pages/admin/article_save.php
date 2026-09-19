@@ -61,6 +61,11 @@ if ($category === '') {
 /* آپلودها (اختیاری؛ در خطا متوقف نمی‌شویم ولی پیام می‌دهیم) */
 $uploadNotes = [];
 $kinds  = ha_upload_kinds();
+// old values for cleanup on replace/remove
+$oldImage = ''; $oldFile = '';
+if ($orig !== '') {
+    foreach (articles_all() as $a) { if (slugify((string)($a['slug'] ?? '')) === $orig) { $oldImage = (string)($a['image'] ?? ''); $oldFile = (string)($a['file'] ?? ''); break; } }
+}
 $image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
 $upImg  = ha_upload_store('image_file', $kinds['image'], 'image');
 if (!$upImg['ok']) {
@@ -101,6 +106,9 @@ if (!repo_save_article($article, $orig)) {
     flash('error', 'ذخیره‌سازی مقاله ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
+// cleanup old uploads if replaced or removed
+if ($oldImage !== '' && $oldImage !== $image) ha_upload_delete($oldImage);
+if ($oldFile !== '' && $oldFile !== $file) ha_upload_delete($oldFile);
 
 $msg = $article['status'] === 'published' ? 'مقاله ذخیره و منتشر شد.' : 'مقاله به‌عنوان پیش‌نویس ذخیره شد (در سایت مخفی است).';
 if ($uploadNotes !== []) $msg .= ' ' . implode(' ', $uploadNotes);

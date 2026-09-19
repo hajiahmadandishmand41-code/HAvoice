@@ -52,6 +52,11 @@ if (comments_db() !== null && comments_count_approved() > 0) {
     $homeComments = comments_approved(3);
 }
 
+$homeBoardPosts = [];
+if (function_exists('ha_board_posts_get')) {
+    try { $homeBoardPosts = ha_board_posts_get(3, 0, 'approved', ''); } catch (Throwable $e) { $homeBoardPosts = []; }
+}
+
 $practice        = $exList[0] ?? (exercises()[0] ?? null);
 $practiceSeconds = (int) ($practice['seconds'] ?? 180);
 
@@ -274,6 +279,54 @@ $head = static function (string $eyebrow, string $title, string $lead, string $u
     </div>
 </section>
 <?php endif; ?>
+
+<!-- ۹٫۵) تابلوی مجازی — ویجت کوچکِ صفحه‌ی اصلی ============================ -->
+<section class="section home-board-teaser">
+    <div class="container">
+        <?= section_head([
+            'eyebrow' => 'فضای گفتگو',
+            'title'   => 'تابلوی مجازی',
+            'lead'    => 'ایده، تجربه یا پرسشی دارید؟ اینجا با دیگران به اشتراک بگذارید.',
+            'action'  => ['label' => 'ورود به تابلو', 'url' => url('board'), 'type' => 'button'],
+            'row'     => true,
+        ]) ?>
+        <?php if ($homeBoardPosts !== []): ?>
+            <div class="home-board-teaser__list">
+                <?php foreach ($homeBoardPosts as $bp):
+                    $bpId = (int)($bp['id'] ?? 0);
+                    $bpName = (string)($bp['name'] ?? 'کاربر');
+                    $bpBody = (string)($bp['body'] ?? '');
+                    $bpBodyShort = mb_strimwidth($bpBody, 0, 110, '…', 'UTF-8');
+                    $bpDate = (string)($bp['created_at'] ?? '');
+                    $bpDateFa = $bpDate !== '' ? ha_fa_date($bpDate) : '';
+                    $bpImg = (string)($bp['image'] ?? '');
+                    $bpImgSafe = $bpImg !== '' ? ha_public_file_url($bpImg) : '';
+                    $bpReacts = function_exists('ha_board_reaction_counts') ? ha_board_reaction_counts($bpId) : ['total'=>0];
+                    $bpComments = function_exists('ha_board_comment_counts') ? ha_board_comment_counts($bpId) : ['total'=>0];
+                ?>
+                <a class="home-board-teaser__item" href="<?= e(url('board', ['post'=>$bpId])) ?>">
+                    <span class="home-board-teaser__avatar" aria-hidden="true"><?= e(auth_initial($bpName)) ?></span>
+                    <span class="home-board-teaser__content">
+                        <strong><?= e($bpName) ?></strong>
+                        <?php if ($bpDateFa !== ''): ?><span class="meta"><?= e($bpDateFa) ?> · <?= ha_icon('chat', 11) ?> <?= fa_num((int)($bpComments['total'] ?? 0)) ?> · ❤️ <?= fa_num((int)($bpReacts['total'] ?? 0)) ?></span><?php endif; ?>
+                        <span class="text"><?= e($bpBodyShort) ?></span>
+                    </span>
+                    <?php if ($bpImgSafe !== ''): ?><span class="media-thumb"><img src="<?= e($bpImgSafe) ?>" alt="" loading="lazy" decoding="async"></span><?php endif; ?>
+                    <span class="home-board-teaser__arrow" aria-hidden="true"><?= ha_icon('chevron-left', 16) ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="home-board-teaser__empty card">
+                <div>
+                    <strong style="color:var(--text)">هنوز پستی در تابلو نیست</strong>
+                    <p>اولین ایده یا تجربه را شما منتشر کنید — همین حالا در تابلوی مجازی بنویسید.</p>
+                </div>
+                <a class="btn btn--primary btn--sm" href="<?= e(url('board')) ?>"><?= ha_icon('plus', 14) ?> افزودن پست</a>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
 
 <!-- ۱۰) نظرِ کاربران ===================================================== -->
 <?php if ($homeComments !== []): ?>

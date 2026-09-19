@@ -76,6 +76,7 @@ foreach (media_all() as $m) {
         break;
     }
 }
+$oldUrl = is_array($existing) ? (string)($existing['url'] ?? '') : '';
 
 $item = [
     'type'       => 'audio',
@@ -91,7 +92,7 @@ $item = [
     'date_fa'    => trim((string) ($_POST['date_fa'] ?? '')),
     'status'     => admin_post_status_default_draft($existing === null),
     'featured'   => !empty($_POST['featured']),
-    'created_at' => (string) ($existing['created_at'] ?? $now),
+    'created_at' => is_array($existing) ? (string) ($existing['created_at'] ?? $now) : $now,
     'updated_at' => $now,
 ];
 
@@ -99,6 +100,7 @@ if (!repo_save_media($item, $orig)) {
     flash('error', 'ذخیره‌سازی صوت ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
+if ($oldUrl !== '' && $oldUrl !== $url) { ha_media_delete($oldUrl); ha_upload_delete($oldUrl); }
 flash('success', ($item['status'] === 'published' ? 'فایل صوتی ذخیره و منتشر شد.' : 'فایل صوتی به‌عنوان پیش‌نویس ذخیره شد.')
     . ($uploadedAudio !== '' ? ' فایلِ صوتی در uploads/ ذخیره شد و با پخش‌کننده‌ی سایت پخش می‌شود.' : ''));
 redirect(url('admin_audios'));

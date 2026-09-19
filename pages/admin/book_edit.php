@@ -57,9 +57,9 @@ $curCourse = slugify((string) ($item['course'] ?? ''));
         <div class="field"><label for="b-imageurl">نشانی جلد</label><input class="input" id="b-imageurl" type="text" name="image" value="<?= e($item['image'] ?? '') ?>" dir="ltr" maxlength="300"></div>
         <div class="field"><label for="b-imagefile">آپلود جلد</label><input class="input" id="b-imagefile" type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp">
             <p class="field__help"><?= e(ha_upload_kind_hint('image')) ?></p></div>
-        <?php if (!empty($item['image'])): ?>
-        <div class="field"><span class="field__help">جلد فعلی:</span><img src="<?= e($item['image']) ?>" alt="" style="max-width:140px;border-radius:8px"></div>
-        <?php endif; ?>
+        <?php if (!empty($item['image'])): $__bPrev = ha_public_file_url((string)$item['image']); if ($__bPrev !== ''): ?>
+        <div class="field"><span class="field__help">جلد فعلی:</span><img src="<?= e($__bPrev) ?>" alt="" style="max-width:140px;border-radius:8px"></div>
+        <?php endif; endif; ?>
         <div class="field" style="grid-column:1/-1"><label for="b-summary">خلاصه</label><textarea class="input" id="b-summary" name="summary" rows="4"><?= e($item['summary'] ?? '') ?></textarea></div>
         <div class="field" style="grid-column:1/-1"><label for="b-blocks">متن کامل (JSON)</label>
             <textarea class="input input--code" id="b-blocks" name="blocks_json" rows="6" dir="ltr" spellcheck="false"><?= e(json_encode($item['blocks'] ?? [], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></textarea></div>

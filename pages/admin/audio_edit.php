@@ -52,6 +52,9 @@ $lessonIndex = course_lesson_index();
             <input class="input" id="a-url" type="text" name="url" value="<?= e($item['url'] ?? '') ?>" dir="ltr" maxlength="400" placeholder="https://… یا uploads/…">
             <p class="field__help">یکی از این دو لازم است. اگر فایل آپلود کنید، نشانیِ نوشته‌شده نادیده گرفته می‌شود. پادکست با پخش‌کننده‌ی داخلِ سایت پخش می‌شود (بدونِ خروج از صفحه).</p>
         </div>
+        <?php if (!empty($item['url'])): $__aUrl = ha_public_media_url((string)$item['url']); if ($__aUrl !== ''): ?>
+        <div class="field"><span class="field__help">فایلِ فعلی:</span><a href="<?= e($__aUrl) ?>" target="_blank" rel="noopener" class="btn btn--ghost btn--xs">پخش/دریافت</a> <small class="muted-sm" style="word-break:break-all"><?= e($item['url']) ?></small></div>
+        <?php endif; endif; ?>
         <div class="field">
             <label for="a-course">دوره مرتبط</label>
             <select class="input" id="a-course" name="course">

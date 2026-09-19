@@ -6,4 +6,6 @@
     Order allow,deny
     Deny from all
 </IfModule>
-Options -Indexes
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>

@@ -25,5 +25,10 @@ RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
     </IfModule>
 </FilesMatch>
 
-# بدونِ اجرای CGI و دنبال‌کردنِ symlink
-Options -ExecCGI -Indexes
+# بدونِ اجرای CGI و دنبال‌کردنِ symlink — در IfModule تا روی هاست‌های محدود 500 ندهد
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+<IfModule mod_mime.c>
+    Options -ExecCGI
+</IfModule>

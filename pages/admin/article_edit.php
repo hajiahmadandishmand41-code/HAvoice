@@ -58,9 +58,9 @@ if ($slug !== '') {
         <div class="field"><label for="a-imageurl">نشانیِ تصویرِ جلد</label><input class="input" id="a-imageurl" type="text" name="image" value="<?= e($article['image'] ?? '') ?>" dir="ltr" maxlength="300" placeholder="https://… یا uploads/…">
             <p class="field__help">اگر فایل آپلود کنید، همین فیلد خودکار پر می‌شود.</p></div>
         <div class="field"><label for="a-imagefile">یا آپلودِ تصویر (jpg، png، webp)</label><input class="input" id="a-imagefile" type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp"></div>
-        <?php if (!empty($article['image'])): ?>
-        <div class="field"><span class="field__help">پیش‌نمایشِ فعلی:</span><img src="<?= e($article['image']) ?>" alt="" style="max-width:220px;border-radius:8px"></div>
-        <?php endif; ?>
+        <?php if (!empty($article['image'])): $__aPrev = ha_public_file_url((string)$article['image']); if ($__aPrev !== ''): ?>
+        <div class="field"><span class="field__help">پیش‌نمایشِ فعلی:</span><img src="<?= e($__aPrev) ?>" alt="" style="max-width:220px;border-radius:8px"></div>
+        <?php endif; endif; ?>
         <div class="field"><label for="a-fileurl">نشانیِ فایلِ پیوست (PDF و…)</label><input class="input" id="a-fileurl" type="text" name="file" value="<?= e($article['file'] ?? '') ?>" dir="ltr" maxlength="300" placeholder="https://… یا uploads/…"></div>
         <div class="field"><label for="a-file">یا آپلودِ فایل (PDF)</label><input class="input" id="a-file" type="file" name="file_upload" accept=".pdf"></div>
     </div>

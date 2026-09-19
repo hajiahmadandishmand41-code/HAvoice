@@ -462,7 +462,7 @@ function lesson_next_bar(array $lp, string $lessonSlug, string $courseSlug): str
 
 function pdf_viewer(string $url, string $title = '', string $note = ''): string
 {
-    $safe = ha_safe_file_url($url);
+    $safe = ha_public_file_url($url);
     if ($safe === '') {
         return '';
     }
@@ -485,63 +485,43 @@ function pdf_viewer(string $url, string $title = '', string $note = ''): string
 }
 
 /**
- * پخش‌کننده‌ی حرفه‌ای — Progressive + Streaming + Error State زیبا
- * فقط هنگام نیاز بارگذاری می‌کند (data-src)، شروع سریع حتی با اینترنت ضعیف
+ * پخش‌کننده‌ی ساده و سریع — native controls، بدونِ وابستگیِ سنگینِ JS
+ * - embed (آپارات/یوتیوب) → iframe مستقیم (loading=lazy)
+ * - ویدیو/صوتِ داخلی → <video>/<audio> با preload=metadata و asset() مطلق
+ * - thumb به‌عنوان poster، سریع‌ترین شروع روی اینترنتِ ضعیف و موبایل
  */
 function media_player(array $item): string
 {
-    $type = ($item['type'] ?? '') === 'audio' ? 'audio' : 'video';
-    $raw  = (string) ($item['url'] ?? '');
+    $type  = ($item['type'] ?? '') === 'audio' ? 'audio' : 'video';
+    $raw   = (string) ($item['url'] ?? '');
     $title = (string) ($item['title'] ?? ($type === 'audio' ? 'فایلِ صوتی' : 'ویدیو'));
-    $thumb = ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
+    $thumb = ha_public_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? '')));
 
     $embed = ha_embed_url($raw);
     if ($embed !== '') {
-        $GLOBALS['HA_MEDIA_MODAL'] = true;
-        return '<div class="ha-player ha-player--video is-embed" data-ha-player data-ha-type="video-embed" data-ha-src="' . e($embed) . '" data-ha-title="' . e($title) . '">'
-             . '<div class="ha-player__stage" style="background:#000"><div class="ha-player__poster">'
-             . ($thumb !== '' ? '<img src="' . e($thumb) . '" alt="" loading="lazy" decoding="async">' : '<span class="ha-player__glyph">' . ha_icon('play', 28) . '</span>')
-             . '</div><button class="ha-player__bigplay" type="button" data-media-open data-media-payload="' . e(media_player_payload($item)) . '" aria-label="پخش: ' . e($title) . '">' . ha_icon('play', 22) . '</button></div>'
-             . '<div class="ha-player__controls"><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time">امبد خارجی • پخش سریع</span></div></div></div>';
+        return '<div class="media-native media-native--embed" style="border-radius:12px;overflow:hidden;background:#000">'
+             . '<div class="video-embed"><iframe src="' . e($embed) . '" title="' . e($title) . '" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;display:block;background:#000"></iframe></div>'
+             . ($thumb !== '' ? '<p class="muted-sm" style="padding:.4rem .6rem;margin:0;display:flex;gap:.4rem;align-items:center"><img src="' . e($thumb) . '" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:cover">' . e($title) . '</p>' : '')
+             . '</div>';
     }
 
-    $src = ha_safe_media_url($raw);
+    $src = ha_public_media_url($raw);
     if ($src === '') {
-        return '<div class="ha-error"><span class="ha-error__icon">' . ha_icon($type === 'audio' ? 'headphones' : 'play', 22) . '</span><p class="ha-error__title">' . e($title) . '</p><p class="ha-error__text">فایلِ قابلِ پخش ثبت نشده است</p></div>';
+        return '<div class="media-placeholder media-placeholder--' . e($type) . '" style="padding:1.2rem;text-align:center;border:1px dashed var(--border);border-radius:12px;background:var(--surface-2)">' . ha_icon($type === 'audio' ? 'headphones' : 'play', 24) . '<p style="margin:.6rem 0 0;color:var(--text)"><strong>' . e($title) . '</strong></p><p class="muted-sm">فایلِ قابلِ پخش ثبت نشده است</p></div>';
     }
 
     if ($type === 'audio') {
-        return '<div class="ha-player ha-player--audio" data-ha-player data-ha-type="audio" data-ha-src="' . e($src) . '" data-ha-title="' . e($title) . '">'
-             . '<div class="ha-player__stage">'
-             . '<div class="ha-player__poster"><span class="ha-player__glyph">' . ha_icon('headphones', 28) . '</span></div>'
-             . '<button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش صوت: ' . e($title) . '">' . ha_icon('play', 20) . '</button>'
-             . '<div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری صوت…</p><p class="ha-player__status-text">شروع سریع حتی با اینترنت ضعیف</p></div></div>'
-             . '<div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اتصال کند؟ ادامه به‌زودی</p></div></div>'
-             . '<div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش صوت</p><p class="ha-player__status-text" data-ha-error-text>فایل بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry>' . ha_icon('rotate', 14) . ' تلاش مجدد</button></div></div>'
-             . '<audio class="ha-player__media" data-ha-media preload="none" data-src="' . e($src) . '" aria-label="' . e($title) . '"></audio>'
-             . '</div>'
-             . '<div class="ha-player__controls" data-ha-controls><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time" data-ha-time>۰۰:۰۰</span></div>'
-             . '<div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>'
-             . '<div class="ha-player__actions"><button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف">' . ha_icon('play', 16) . '</button>'
-             . '<div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا">' . ha_icon('volume', 16) . '</button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>'
-             . '<div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><a class="ha-player__chip" href="' . e($src) . '" download>' . ha_icon('download', 12) . ' دریافت</a></div></div></div></div>';
+        return '<div class="media-native media-native--audio" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem">'
+             . '<p style="margin:0 0 .6rem;display:flex;align-items:center;gap:.45rem;color:var(--text);font-weight:700">' . ha_icon('headphones', 16) . e($title) . '</p>'
+             . '<audio controls preload="metadata" src="' . e($src) . '" aria-label="' . e($title) . '" style="width:100%;height:44px;border-radius:8px"></audio>'
+             . '<p class="muted-sm" style="margin:.5rem 0 0;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap"><a href="' . e($src) . '" download class="btn btn--ghost btn--xs">' . ha_icon('download', 12) . ' دریافت</a><span>' . e($title) . '</span></p>'
+             . '</div>';
     }
 
-    // video local file
-    return '<div class="ha-player ha-player--video" data-ha-player data-ha-type="video" data-ha-src="' . e($src) . '" data-ha-title="' . e($title) . '">'
-         . '<div class="ha-player__stage">'
-         . ($thumb !== '' ? '<div class="ha-player__poster"><img src="' . e($thumb) . '" alt="" loading="lazy"></div>' : '')
-         . '<button class="ha-player__bigplay" type="button" data-ha-bigplay aria-label="پخش ویدیو: ' . e($title) . '">' . ha_icon('play', 22) . '</button>'
-         . '<div class="ha-player__status ha-player__status--loading" data-ha-status="loading"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">در حال بارگذاری…</p><p class="ha-player__status-text">استریم پیشرونده • شروع فوری</p></div></div>'
-         . '<div class="ha-player__status ha-player__status--buffering" data-ha-status="buffering"><div><div class="ha-player__spinner"></div><p class="ha-player__status-title">بافرینگ…</p><p class="ha-player__status-text">اینترنت ضعیف؟ صبور باشید</p></div></div>'
-         . '<div class="ha-player__status ha-player__status--error" data-ha-status="error"><div><p class="ha-player__status-title">خطا در پخش ویدیو</p><p class="ha-player__status-text" data-ha-error-text>ویدیو بارگذاری نشد.</p><button class="ha-player__retry" type="button" data-ha-retry>' . ha_icon('rotate', 14) . ' تلاش مجدد</button></div></div>'
-         . '<video class="ha-player__media" data-ha-media preload="metadata" playsinline controlsList="nodownload" data-src="' . e($src) . '" ' . ($thumb !== '' ? 'poster="' . e($thumb) . '"' : '') . ' aria-label="' . e($title) . '"></video>'
-         . '</div>'
-         . '<div class="ha-player__controls" data-ha-controls><div class="ha-player__top"><span class="ha-player__title">' . e($title) . '</span><span class="ha-player__time" data-ha-time>۰۰:۰۰</span></div>'
-         . '<div class="ha-player__progress-wrap" data-ha-seek><div class="ha-player__progress-track"><div class="ha-player__progress-buffered" data-ha-buffered></div><div class="ha-player__progress-fill" data-ha-fill></div><div class="ha-player__progress-thumb" data-ha-thumb></div></div></div>'
-         . '<div class="ha-player__actions"><button class="ha-player__btn ha-player__btn--primary" type="button" data-ha-playpause aria-label="پخش/توقف">' . ha_icon('play', 16) . '</button>'
-         . '<div class="ha-player__volume"><button class="ha-player__btn" type="button" data-ha-mute aria-label="بی‌صدا">' . ha_icon('volume', 16) . '</button><div class="ha-player__volume-track" data-ha-vol-track><div class="ha-player__volume-fill" data-ha-vol-fill></div></div></div>'
-         . '<div class="ha-player__extra"><button class="ha-player__chip" type="button" data-ha-speed>۱×</button><button class="ha-player__btn" type="button" data-ha-fullscreen aria-label="تمام صفحه">' . ha_icon('external', 14) . '</button></div></div></div></div>';
+    return '<div class="media-native media-native--video" style="border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border)">'
+         . '<video controls preload="metadata" playsinline ' . ($thumb !== '' ? 'poster="' . e($thumb) . '"' : '') . ' src="' . e($src) . '" aria-label="' . e($title) . '" style="width:100%;aspect-ratio:16/9;height:auto;display:block;background:#000;max-width:100%"></video>'
+         . '<div style="padding:.55rem .75rem;background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap"><span style="color:var(--text);font-weight:600;display:flex;align-items:center;gap:.35rem">' . ha_icon('play', 14) . e($title) . '</span><a href="' . e($src) . '" download class="btn btn--ghost btn--xs">' . ha_icon('download', 12) . ' دریافت</a></div>'
+         . '</div>';
 }
 
 function media_is_embed(array $item): bool
@@ -557,8 +537,8 @@ function media_player_payload(array $item): string
         'title' => (string) ($item['title'] ?? ''),
         'type'  => ($item['type'] ?? '') === 'audio' ? 'audio' : 'video',
         'embed' => ha_embed_url((string) ($item['url'] ?? '')),
-        'src'   => ha_safe_media_url((string) ($item['url'] ?? '')),
-        'thumb' => ha_safe_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? ''))),
+        'src'   => ha_public_media_url((string) ($item['url'] ?? '')),
+        'thumb' => ha_public_file_url((string) ($item['thumbnail'] ?? ($item['image'] ?? ''))),
     ];
     return (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }

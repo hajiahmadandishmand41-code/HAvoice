@@ -60,6 +60,8 @@ if ($category === '' && $field !== '') {
 /* آپلودها */
 $uploadNotes = [];
 $kinds  = ha_upload_kinds();
+$oldImage=''; $oldFile='';
+if ($orig !== '') { foreach (books_all() as $b) { if (slugify((string)($b['slug'] ?? '')) === $orig) { $oldImage=(string)($b['image'] ?? ''); $oldFile=(string)($b['file'] ?? $b['file_url'] ?? ''); break; } } }
 $image  = ha_safe_file_url((string) ($_POST['image'] ?? ''));
 $upImg  = ha_upload_store('image_file', $kinds['image'], 'image');
 if (!$upImg['ok']) {
@@ -101,6 +103,8 @@ if (!repo_save_book($item, $orig)) {
     flash('error', 'ذخیره‌سازی کتاب ناموفق بود؛ دیتابیس یا storage قابل نوشتن نیست.');
     redirect($editUrl);
 }
+if ($oldImage !== '' && $oldImage !== $image) ha_upload_delete($oldImage);
+if ($oldFile !== '' && $oldFile !== $file) ha_upload_delete($oldFile);
 $msg = $item['status'] === 'published' ? 'کتاب ذخیره و منتشر شد.' : 'کتاب به‌عنوان پیش‌نویس ذخیره شد (مخفی).';
 if ($uploadNotes !== []) $msg .= ' ' . implode(' ', $uploadNotes);
 flash($uploadNotes === [] ? 'success' : 'error', $msg);
