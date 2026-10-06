@@ -18,6 +18,7 @@
     }
   },
   "routes": [
+    { "src": "/install\\.php$", "dest": "/api/index.php?p=404" },
     { "src": "/sitemap\\.xml", "dest": "/api/sitemap.php" },
     { "src": "/sitemap\\.php", "dest": "/api/sitemap.php" },
     { "src": "/robots\\.txt", "dest": "/api/robots.php" },
