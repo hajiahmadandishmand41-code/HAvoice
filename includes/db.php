@@ -23,11 +23,65 @@ define('HA_DB_SCHEMA_VERSION', '6');
 /*  پیکربندی و اتصال                                                  */
 /* ------------------------------------------------------------------ */
 
+function db_dsn(): ?string
+{
+    $configuredDsn = defined('HA_DB_DSN') ? trim((string) HA_DB_DSN) : '';
+    if ($configuredDsn !== '') {
+        /* Native PDO DSN, e.g. mysql:host=...;dbname=... */
+        if (stripos($configuredDsn, 'mysql:') === 0) {
+            return $configuredDsn;
+        }
+
+        /* Standard DATABASE_URL form: mysql://user:pass@host:port/db */
+        $parts = parse_url($configuredDsn);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if (in_array($scheme, ['mysql', 'mysql2', 'mariadb'], true) && !empty($parts['host'])) {
+            $user = isset($parts['user']) ? rawurldecode((string) $parts['user']) : '';
+            $pass = isset($parts['pass']) ? rawurldecode((string) $parts['pass']) : '';
+            $host = (string) $parts['host'];
+            $port = isset($parts['port']) ? (int) $parts['port'] : 3306;
+            $name = ltrim((string) ($parts['path'] ?? ''), '/');
+
+            if ($user === '' || $name === '') {
+                return null;
+            }
+
+            /* PDO's mysql driver accepts bracketed IPv6 hosts. */
+            if (strpos($host, ':') !== false && $host[0] !== '[') {
+                $host = '[' . $host . ']';
+            }
+
+            return 'mysql:host=' . $host
+                . ';port=' . ($port > 0 ? $port : 3306)
+                . ';dbname=' . $name
+                . ';charset=utf8mb4';
+        }
+
+        return null;
+    }
+
+    if (!defined('HA_DB_HOST') || HA_DB_HOST === ''
+        || !defined('HA_DB_NAME') || HA_DB_NAME === ''
+        || !defined('HA_DB_USER') || HA_DB_USER === '') {
+        return null;
+    }
+
+    $host = (string) HA_DB_HOST;
+    $port = (int) (defined('HA_DB_PORT') ? HA_DB_PORT : 3306);
+    $name = (string) HA_DB_NAME;
+    if (strpos($host, ':') !== false && $host[0] !== '[') {
+        $host = '[' . $host . ']';
+    }
+
+    return 'mysql:host=' . $host
+        . ';port=' . ($port > 0 ? $port : 3306)
+        . ';dbname=' . $name
+        . ';charset=utf8mb4';
+}
+
 function db_configured(): bool
 {
-    return defined('HA_DB_HOST') && HA_DB_HOST !== ''
-        && defined('HA_DB_NAME') && HA_DB_NAME !== ''
-        && defined('HA_DB_USER') && HA_DB_USER !== '';
+    return db_dsn() !== null;
 }
 
 /**
@@ -47,13 +101,21 @@ function db(): ?PDO
         return null;
     }
 
-    $host = (string) HA_DB_HOST;
-    $port = (int) (defined('HA_DB_PORT') ? HA_DB_PORT : 3306);
-    $name = (string) HA_DB_NAME;
-    $user = (string) HA_DB_USER;
-    $pass = (string) (defined('HA_DB_PASS') ? HA_DB_PASS : '');
+    $dsn = db_dsn();
+    if ($dsn === null) {
+        return null;
+    }
 
-    $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $name);
+    /* Native HA_DB_* credentials are retained for InfinityFree/manual MySQL.
+       DATABASE_URL supplies user/password through the URL itself. */
+    $user = defined('HA_DB_USER') ? (string) HA_DB_USER : '';
+    $pass = defined('HA_DB_PASS') ? (string) HA_DB_PASS : '';
+
+    if (defined('HA_DB_DSN') && trim((string) HA_DB_DSN) !== '') {
+        $parts = parse_url((string) HA_DB_DSN);
+        $user = isset($parts['user']) ? rawurldecode((string) $parts['user']) : $user;
+        $pass = isset($parts['pass']) ? rawurldecode((string) $parts['pass']) : $pass;
+    }
 
     try {
         $pdo = new PDO($dsn, $user, $pass, [
