@@ -53,7 +53,8 @@ function ha_breadcrumb_jsonld(array $items): array
 /** داده‌ی ساختاریافته‌ی «سایت + شخص» — فقط در صفحه‌ی اصلی. */
 function ha_website_jsonld(): array
 {
-    $root = absolute_url(url('home'));
+    // Structured-data site identity must match the homepage canonical root, not index.php?p=home.
+    $root = rtrim(site_url(), '/') . '/';
     $knows = [];
     foreach (categories() as $c) {
         $knows[] = (string) ($c['title'] ?? '');
