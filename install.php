@@ -11,6 +11,18 @@ declare(strict_types=1);
 define('HA_ROOT', __DIR__);
 define('HA_INSTALLER_VERSION', '3.5.0');
 
+/* Installer is never exposed on Vercel. This prevents an unauthenticated
+   setup surface and avoids collisions with the catch-all PHP runtime. */
+$haVercel = (function_exists('getenv') && getenv('VERCEL') === '1')
+    || (string) ($_SERVER['VERCEL'] ?? '') === '1'
+    || (bool) preg_match('/(^|\\.)vercel\\.app$/i', (string) ($_SERVER['HTTP_HOST'] ?? ''));
+if ($haVercel) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo 'Not Found';
+    exit;
+}
+
 // تنظیمات امنیتی نشست نصب
 if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent()) {
     $sessDir = HA_ROOT . '/storage/sessions';
