@@ -18,13 +18,41 @@
     }
   },
   "routes": [
-    { "src": "/install\\.php$", "dest": "/api/index.php?p=404" },
-    { "src": "/sitemap\\.xml", "dest": "/api/sitemap.php" },
-    { "src": "/sitemap\\.php", "dest": "/api/sitemap.php" },
-    { "src": "/robots\\.txt", "dest": "/api/robots.php" },
-    { "src": "/assets/(.*)", "dest": "/api/asset.php?path=$1" },
-    { "src": "/uploads/(.*)", "dest": "/api/asset.php?path=uploads/$1" },
-    { "src": "/api/db-health", "dest": "/api/db-health.php" },
-    { "src": "/(.*)", "dest": "/api/index.php" }
+    {
+      "src": "/google2b2831df6b773d4d\\.html$",
+      "dest": "/google2b2831df6b773d4d.html"
+    },
+    {
+      "src": "/install\\.php$",
+      "dest": "/api/index.php?p=404"
+    },
+    {
+      "src": "/sitemap\\.xml",
+      "dest": "/api/sitemap.php"
+    },
+    {
+      "src": "/sitemap\\.php",
+      "dest": "/api/sitemap.php"
+    },
+    {
+      "src": "/robots\\.txt",
+      "dest": "/api/robots.php"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/api/asset.php?path=$1"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/api/asset.php?path=uploads/$1"
+    },
+    {
+      "src": "/api/db-health",
+      "dest": "/api/db-health.php"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
   ]
 }
