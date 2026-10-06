@@ -17,12 +17,21 @@ if (!defined('HA_ROOT')) {
     exit('دسترسی مستقیم ممنوع است.');
 }
 
-/* ---- Database (الزامی برای Production کامل) ---- */
-define('HA_DB_HOST', 'sqlXXX.infinityfree.com');
-define('HA_DB_PORT', 3306);
-define('HA_DB_NAME', 'epiz_XXXX_havoice');
-define('HA_DB_USER', 'epiz_XXXX');
-define('HA_DB_PASS', 'YOUR_DB_PASSWORD');
+/* ---- Database ----
+   Vercel / modern MySQL providers: set DATABASE_URL in the Vercel
+   Environment Variables UI. Never put the real URL in this file or Git.
+   Example shape only:
+   mysql://USERNAME:PASSWORD@HOST:3306/DATABASE
+*/
+define('HA_DB_DSN', '');
+
+/* InfinityFree / manual MySQL fallback:
+   define('HA_DB_HOST', 'sqlXXX.infinityfree.com');
+   define('HA_DB_PORT', 3306);
+   define('HA_DB_NAME', 'epiz_XXXX_havoice');
+   define('HA_DB_USER', 'epiz_XXXX');
+   define('HA_DB_PASS', 'YOUR_DB_PASSWORD');
+*/
 
 /* ---- Site ---- */
 // define('HA_SITE_URL', 'https://your-domain.infinityfreeapp.com');
