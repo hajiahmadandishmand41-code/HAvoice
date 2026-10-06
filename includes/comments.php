@@ -21,57 +21,14 @@ function comments_configured(): bool
 /**
  * @return PDO|mysqli|null
  */
-function comments_db()
+function comments_db(): ?PDO
 {
-    static $db = null;
-    static $state = null;
-
-    if ($state !== null) {
-        return $state ? $db : null;
-    }
-    $state = false;
-
-    if (!comments_configured()) {
-        return null;
-    }
-
+    /* Use exactly the same PDO connection/configuration as the main repository. */
     if (function_exists('db')) {
         $pdo = db();
-        if ($pdo instanceof PDO) {
-            $db = $pdo;
-            $state = true;
-            return $db;
-        }
+        return $pdo instanceof PDO ? $pdo : null;
     }
-
-    if (!function_exists('mysqli_connect')) {
-        return null;
-    }
-
-    try {
-        mysqli_report(MYSQLI_REPORT_OFF);
-        $db = @mysqli_connect(
-            (string) HA_DB_HOST,
-            (string) HA_DB_USER,
-            (string) HA_DB_PASS,
-            (string) HA_DB_NAME,
-            (int) (defined('HA_DB_PORT') ? HA_DB_PORT : 3306)
-        );
-        if (!$db) {
-            return null;
-        }
-        mysqli_set_charset($db, 'utf8mb4');
-        if (@mysqli_query($db, comments_table_sql()) === false) {
-            @mysqli_close($db);
-            $db = null;
-            return null;
-        }
-        $state = true;
-        return $db;
-    } catch (Throwable $e) {
-        $db = null;
-        return null;
-    }
+    return null;
 }
 
 function comments_table_sql(): string
