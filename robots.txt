@@ -1,7 +1,4 @@
-# HAvoice — robots.txt
-# نسخهٔ ثابت برای سازگاری با InfinityFree و جلوگیری از وابستگی به mod_rewrite.
-# این فایل مرجعِ اصلی است و مستقیم سرو می‌شود (بدون Rewrite به robots.php).
-
+# HAvoice robots.txt
 User-agent: *
 Allow: /
 Disallow: /index.php?p=search
@@ -24,4 +21,4 @@ Disallow: /includes/
 Disallow: /data/
 Disallow: /pages/
 
-Sitemap: https://hajivoice.kesug.com/sitemap.xml
+Sitemap: https://hajiahmadbayan.vercel.app/sitemap.xml
