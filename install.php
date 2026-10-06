@@ -135,15 +135,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
         $action = (string) ($_POST['action'] ?? '');
 
         if ($action === 'install_all') {
-            $dbHost     = trim((string) ($_POST['db_host'] ?? 'sql201.infinityfree.com'));
+            $dbHost     = trim((string) ($_POST['db_host'] ?? ''));
             $dbPort     = (int) ($_POST['db_port'] ?? 3306);
-            $dbName     = trim((string) ($_POST['db_name'] ?? 'if0_42876129_hajiahmad'));
-            $dbUser     = trim((string) ($_POST['db_user'] ?? 'if0_42876129'));
+            $dbName     = trim((string) ($_POST['db_name'] ?? ''));
+            $dbUser     = trim((string) ($_POST['db_user'] ?? ''));
             $dbPass     = (string) ($_POST['db_pass'] ?? '');
             $siteUrl    = rtrim(trim((string) ($_POST['site_url'] ?? $defaultSiteUrl)), '/');
             $adminName  = trim((string) ($_POST['admin_name'] ?? 'حاجی احمد صالحی'));
-            $adminEmail = strtolower(trim((string) ($_POST['admin_email'] ?? 'hajiahmads299@gmail.com')));
-            $adminPass  = (string) ($_POST['admin_pass'] ?? 'HAvoice@2026#Admin');
+            $adminEmail = strtolower(trim((string) ($_POST['admin_email'] ?? '')));
+            $adminPass  = (string) ($_POST['admin_pass'] ?? '');
 
             if ($dbHost === '' || $dbName === '' || $dbUser === '') {
                 $errorMsg = 'لطفاً تمام اطلاعات اتصال به دیتابیس (هاست، نام دیتابیس و نام کاربری) را وارد کنید.';
@@ -764,7 +764,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="db_host">نام هاست دیتابیس (MySQL Host)</label>
-                        <input class="input" type="text" id="db_host" name="db_host" value="sql201.infinityfree.com" required dir="ltr">
+                        <input class="input" type="text" id="db_host" name="db_host" value="" required dir="ltr">
                         <span class="hint">معمولاً <code>sqlXXX.infinityfree.com</code> در پنل MySQL هاست</span>
                     </div>
 
@@ -776,13 +776,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
 
                     <div class="form-group">
                         <label for="db_name">نام پایگاه داده (Database Name)</label>
-                        <input class="input" type="text" id="db_name" name="db_name" value="if0_42876129_hajiahmad" required dir="ltr">
+                        <input class="input" type="text" id="db_name" name="db_name" value="" required dir="ltr">
                         <span class="hint">نام دیتابیس ساخته‌شده در پنل InfinityFree</span>
                     </div>
 
                     <div class="form-group">
                         <label for="db_user">نام کاربری دیتابیس (Username)</label>
-                        <input class="input" type="text" id="db_user" name="db_user" value="if0_42876129" required dir="ltr">
+                        <input class="input" type="text" id="db_user" name="db_user" value="" required dir="ltr">
                         <span class="hint">نام کاربری اکانت هاست</span>
                     </div>
 
@@ -808,12 +808,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
 
                     <div class="form-group">
                         <label for="admin_email">ایمیل مدیر (جهت ورود)</label>
-                        <input class="input" type="email" id="admin_email" name="admin_email" value="hajiahmads299@gmail.com" required dir="ltr">
+                        <input class="input" type="email" id="admin_email" name="admin_email" value="" required dir="ltr">
                     </div>
 
                     <div class="form-group form-grid--full" style="grid-column: span 2;">
                         <label for="admin_pass">رمز عبور اولیه مدیر</label>
-                        <input class="input" type="text" id="admin_pass" name="admin_pass" value="HAvoice@2026#Admin" required dir="ltr">
+                        <input class="input" type="password" id="admin_pass" name="admin_pass" value="" required dir="ltr">
                         <span class="hint">رمز به صورت هش‌شده با <code>password_hash()</code> ذخیره می‌گردد. پس از اولین ورود آن را تغییر دهید.</span>
                     </div>
                 </div>
@@ -853,7 +853,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isLocked) {
                         </tr>
                         <tr>
                             <td>رمز عبور موقت مدیر</td>
-                            <td><code>HAvoice@2026#Admin</code></td>
+                            <td><code>رمز عبور اختصاصی مدیر</code></td>
                         </tr>
                         <tr>
                             <td>فایل پیکربندی محلی</td>

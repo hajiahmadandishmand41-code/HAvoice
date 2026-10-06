@@ -59,6 +59,55 @@ if (is_file($haLocal)) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Environment variables — Production/Vercel                        */
+/* ------------------------------------------------------------------ */
+/**
+ * روی Vercel فایل config.local.php وجود ندارد؛ بنابراین credentialهای
+ * Production فقط از Environment Variables خوانده می‌شوند.
+ * اولویت: config.local.php موجود → Environment Variable → default امن.
+ */
+if (!function_exists('ha_env')) {
+    function ha_env(string $key, string $default = ''): string
+    {
+        $sources = [
+            function_exists('getenv') ? getenv($key) : false,
+            $_ENV[$key] ?? null,
+            $_SERVER[$key] ?? null,
+        ];
+        foreach ($sources as $value) {
+            if ($value !== false && $value !== null && (string) $value !== '') {
+                return trim((string) $value);
+            }
+        }
+        return $default;
+    }
+}
+
+$haEnvDatabaseUrl = ha_env('DATABASE_URL');
+if ($haEnvDatabaseUrl === '') {
+    $haEnvDatabaseUrl = ha_env('MYSQL_URL');
+}
+if (!defined('HA_DB_DSN') && $haEnvDatabaseUrl !== '') {
+    define('HA_DB_DSN', $haEnvDatabaseUrl);
+}
+
+if (!defined('HA_DB_HOST') || HA_DB_HOST === '') {
+    define('HA_DB_HOST', ha_env('HA_DB_HOST'));
+}
+if (!defined('HA_DB_PORT') || (int) HA_DB_PORT <= 0) {
+    define('HA_DB_PORT', (int) (ha_env('HA_DB_PORT', '3306') ?: 3306));
+}
+if (!defined('HA_DB_NAME') || HA_DB_NAME === '') {
+    define('HA_DB_NAME', ha_env('HA_DB_NAME'));
+}
+if (!defined('HA_DB_USER') || HA_DB_USER === '') {
+    define('HA_DB_USER', ha_env('HA_DB_USER'));
+}
+if (!defined('HA_DB_PASS') || HA_DB_PASS === '') {
+    define('HA_DB_PASS', ha_env('HA_DB_PASS'));
+}
+
+/* ------------------------------------------------------------------ */
 /*  مسیر و حالت آدرس‌دهی                                               */
 /* ------------------------------------------------------------------ */
 
@@ -75,7 +124,14 @@ if (!defined('HA_PRETTY_URLS')) { define('HA_PRETTY_URLS', false); }
  * نشانی مطلق سایت، بدون اسلش انتهایی.
  * برای canonical، OG:url، sitemap و robots در Production قطعی می‌شود.
  */
-if (!defined('HA_SITE_URL')) { define('HA_SITE_URL', 'https://hajivoice.kesug.com'); }
+if (!defined('HA_SITE_URL')) {
+    $haProductionUrl = ha_env('HA_SITE_URL');
+    if ($haProductionUrl === '') { $haProductionUrl = ha_env('VERCEL_PROJECT_PRODUCTION_URL'); }
+    if ($haProductionUrl !== '' && !preg_match('#^https?://#i', $haProductionUrl)) {
+        $haProductionUrl = 'https://' . $haProductionUrl;
+    }
+    define('HA_SITE_URL', rtrim($haProductionUrl !== '' ? $haProductionUrl : 'https://hajiahmadbayan.vercel.app', '/'));
+}
 
 /* ------------------------------------------------------------------ */
 /*  اطلاعات هویتی                                                     */
@@ -116,6 +172,7 @@ if (!defined('HA_SECURITY_HEADERS')) { define('HA_SECURITY_HEADERS', true); }
 /*  دیتابیس (MySQL/MariaDB — InfinityFree)                           */
 /* ------------------------------------------------------------------ */
 
+if (!defined('HA_DB_DSN')) { define('HA_DB_DSN', ''); }
 if (!defined('HA_DB_HOST')) { define('HA_DB_HOST', ''); }
 if (!defined('HA_DB_PORT')) { define('HA_DB_PORT', 3306); }
 if (!defined('HA_DB_NAME')) { define('HA_DB_NAME', ''); }

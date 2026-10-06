@@ -43,10 +43,32 @@ echo "  connected: yes\n";
 echo "  schema:   " . HA_DB_SCHEMA_VERSION . "\n";
 
 $tables = [
-    'ha_roles', 'ha_users', 'ha_categories', 'ha_courses', 'ha_stages', 'ha_lessons',
-    'ha_exercises', 'ha_media', 'ha_books', 'ha_articles', 'ha_tips',
-    'ha_research', 'ha_comments', 'ha_settings', 'ha_contact_messages',
+    'ha_schema_meta',
+    'ha_roles',
+    'ha_users',
+    'ha_categories',
+    'ha_courses',
+    'ha_stages',
+    'ha_lessons',
+    'ha_exercises',
+    'ha_media',
+    'ha_books',
+    'ha_articles',
+    'ha_tips',
+    'ha_research',
+    'ha_comments',
+    'ha_settings',
+    'ha_contact_messages',
     'ha_progress',
+    'ha_content_reactions',
+    'ha_content_comments',
+    'ha_comment_likes',
+    'ha_board_posts',
+    'ha_board_reactions',
+    'ha_board_comments',
+    'ha_board_comment_likes',
+    'ha_site_visits',
+    'ha_content_views',
 ];
 foreach ($tables as $t) {
     try {

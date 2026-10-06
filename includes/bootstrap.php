@@ -106,6 +106,12 @@ if ($route === '') {
 }
 
 if ($route === 'install') {
+    /* The Vercel deployment routes all requests through index.php.
+       Do not redirect /install back into the same catch-all and loop. */
+    if (ha_env('VERCEL') === '1') {
+        http_response_code(404);
+        exit;
+    }
     redirect('install.php');
 }
 

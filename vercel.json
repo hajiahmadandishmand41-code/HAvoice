@@ -12,6 +12,9 @@
     },
     "api/asset.php": {
       "runtime": "vercel-php@0.9.0"
+    },
+    "api/db-health.php": {
+      "runtime": "vercel-php@0.9.0"
     }
   },
   "routes": [
@@ -20,6 +23,7 @@
     { "src": "/robots\\.txt", "dest": "/api/robots.php" },
     { "src": "/assets/(.*)", "dest": "/api/asset.php?path=$1" },
     { "src": "/uploads/(.*)", "dest": "/api/asset.php?path=uploads/$1" },
+    { "src": "/api/db-health", "dest": "/api/db-health.php" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }
