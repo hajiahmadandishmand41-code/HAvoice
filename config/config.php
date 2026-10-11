@@ -92,7 +92,7 @@ $haEnvDbPass = ha_env('HA_DB_PASS', ha_env('MYSQLPASSWORD'));
 /*
  * Connection priority:
  * 1. Explicit DATABASE_URL, when provided.
- * 2. Split HA_DB_*/MYSQL* variables (needed when Vercel must use a public
+ * 2. Split HA_DB_ and MYSQL variables (needed when Vercel must use a public
  *    Railway TCP proxy instead of mysql.railway.internal).
  * 3. Legacy MYSQL_URL only when no split host is present.
  *
