@@ -83,8 +83,23 @@ if (!function_exists('ha_env')) {
     }
 }
 
+$haEnvDbHost = ha_env('HA_DB_HOST', ha_env('MYSQLHOST'));
+$haEnvDbPort = ha_env('HA_DB_PORT', ha_env('MYSQLPORT', '3306'));
+$haEnvDbName = ha_env('HA_DB_NAME', ha_env('MYSQL_DATABASE', ha_env('MYSQLDATABASE')));
+$haEnvDbUser = ha_env('HA_DB_USER', ha_env('MYSQLUSER'));
+$haEnvDbPass = ha_env('HA_DB_PASS', ha_env('MYSQLPASSWORD'));
+
+/*
+ * Connection priority:
+ * 1. Explicit DATABASE_URL, when provided.
+ * 2. Split HA_DB_*/MYSQL* variables (needed when Vercel must use a public
+ *    Railway TCP proxy instead of mysql.railway.internal).
+ * 3. Legacy MYSQL_URL only when no split host is present.
+ *
+ * Do not let a stale MYSQL_URL override a correctly configured public host.
+ */
 $haEnvDatabaseUrl = ha_env('DATABASE_URL');
-if ($haEnvDatabaseUrl === '') {
+if ($haEnvDatabaseUrl === '' && $haEnvDbHost === '') {
     $haEnvDatabaseUrl = ha_env('MYSQL_URL');
 }
 if (!defined('HA_DB_DSN') && $haEnvDatabaseUrl !== '') {
@@ -92,19 +107,19 @@ if (!defined('HA_DB_DSN') && $haEnvDatabaseUrl !== '') {
 }
 
 if (!defined('HA_DB_HOST') || HA_DB_HOST === '') {
-    define('HA_DB_HOST', ha_env('HA_DB_HOST'));
+    define('HA_DB_HOST', $haEnvDbHost);
 }
 if (!defined('HA_DB_PORT') || (int) HA_DB_PORT <= 0) {
-    define('HA_DB_PORT', (int) (ha_env('HA_DB_PORT', '3306') ?: 3306));
+    define('HA_DB_PORT', (int) ($haEnvDbPort !== '' ? $haEnvDbPort : '3306'));
 }
 if (!defined('HA_DB_NAME') || HA_DB_NAME === '') {
-    define('HA_DB_NAME', ha_env('HA_DB_NAME'));
+    define('HA_DB_NAME', $haEnvDbName);
 }
 if (!defined('HA_DB_USER') || HA_DB_USER === '') {
-    define('HA_DB_USER', ha_env('HA_DB_USER'));
+    define('HA_DB_USER', $haEnvDbUser);
 }
 if (!defined('HA_DB_PASS') || HA_DB_PASS === '') {
-    define('HA_DB_PASS', ha_env('HA_DB_PASS'));
+    define('HA_DB_PASS', $haEnvDbPass);
 }
 
 /* ------------------------------------------------------------------ */
