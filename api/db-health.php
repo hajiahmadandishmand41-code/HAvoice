@@ -10,6 +10,9 @@ declare(strict_types=1);
 
 define('HA_ROOT', dirname(__DIR__));
 
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+header_remove('X-Powered-By');
 header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -35,14 +38,25 @@ try {
 
     $ping = (int) $pdo->query('SELECT 1')->fetchColumn();
     $schema = null;
+    $seeded = false;
+    $tableCount = 0;
     try {
         $st = $pdo->query("SELECT meta_value FROM ha_schema_meta WHERE meta_key = 'version' LIMIT 1");
         $schema = $st ? (string) $st->fetchColumn() : null;
+
+        $stSeed = $pdo->query("SELECT meta_value FROM ha_schema_meta WHERE meta_key = 'seeded_at' LIMIT 1");
+        $seeded = $stSeed && (string) $stSeed->fetchColumn() !== '';
+
+        $tableCount = (int) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND LEFT(table_name, 3) = 'ha_'"
+        )->fetchColumn();
     } catch (Throwable $ignored) {
-        $schema = null;
+        /* Keep health response non-sensitive; missing metadata yields a failed check below. */
     }
 
-    $ok = ($ping === 1) && ($schema === (defined('HA_DB_SCHEMA_VERSION') ? (string) HA_DB_SCHEMA_VERSION : $schema));
+    $ok = ($ping === 1)
+        && ($schema === (defined('HA_DB_SCHEMA_VERSION') ? (string) HA_DB_SCHEMA_VERSION : $schema))
+        && ($tableCount >= 27);
 
     http_response_code($ok ? 200 : 503);
     echo json_encode([
@@ -52,6 +66,8 @@ try {
         'pdo_mysql_loaded' => true,
         'schema_version' => $schema,
         'schema_version_expected' => defined('HA_DB_SCHEMA_VERSION') ? HA_DB_SCHEMA_VERSION : null,
+        'application_tables_present' => $tableCount,
+        'content_seeded' => $seeded,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     http_response_code(503);
