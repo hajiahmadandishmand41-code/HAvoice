@@ -118,12 +118,21 @@ function db(): ?PDO
     }
 
     try {
-        $pdo = new PDO($dsn, $user, $pass, [
+        $pdoOptions = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
-        ]);
+        ];
+
+        /* PHP 8.5 replaces the deprecated PDO alias with Pdo\\Mysql::ATTR_INIT_COMMAND. */
+        if (defined('Pdo\\Mysql::ATTR_INIT_COMMAND')) {
+            $pdoOptions[constant('Pdo\\Mysql::ATTR_INIT_COMMAND')] = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci";
+        } elseif (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+            /* Compatibility with older PHP versions where Pdo\\Mysql is unavailable. */
+            $pdoOptions[constant('PDO::MYSQL_ATTR_INIT_COMMAND')] = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci";
+        }
+
+        $pdo = new PDO($dsn, $user, $pass, $pdoOptions);
         if (!db_ensure_schema($pdo)) {
             $pdo = null;
             return null;
