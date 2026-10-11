@@ -200,10 +200,10 @@ if (!defined('HA_DB_AUTO_SEED')) {
     define('HA_DB_AUTO_SEED', in_array($haSeedEnv, ['1', 'true', 'yes', 'on'], true));
 }
 
-/** ایمیل/رمز ادمین اولیه فقط برای seed (در config.local تعریف کنید). */
-if (!defined('HA_SEED_ADMIN_EMAIL')) { define('HA_SEED_ADMIN_EMAIL', ''); }
-if (!defined('HA_SEED_ADMIN_PASSWORD')) { define('HA_SEED_ADMIN_PASSWORD', ''); }
-if (!defined('HA_SEED_ADMIN_NAME')) { define('HA_SEED_ADMIN_NAME', 'مدیر'); }
+/** ایمیل/رمز مدیر اولیه؛ در Production از متغیرهای رمزگذاری‌شدهٔ محیطی خوانده می‌شود. */
+if (!defined('HA_SEED_ADMIN_EMAIL')) { define('HA_SEED_ADMIN_EMAIL', ha_env('HA_SEED_ADMIN_EMAIL')); }
+if (!defined('HA_SEED_ADMIN_PASSWORD')) { define('HA_SEED_ADMIN_PASSWORD', ha_env('HA_SEED_ADMIN_PASSWORD')); }
+if (!defined('HA_SEED_ADMIN_NAME')) { define('HA_SEED_ADMIN_NAME', ha_env('HA_SEED_ADMIN_NAME', 'مدیر')); }
 
 /* ------------------------------------------------------------------ */
 /*  محدودیت نرخ (Rate Limit) فرم تماس                                 */
