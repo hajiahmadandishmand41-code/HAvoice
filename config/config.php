@@ -195,7 +195,10 @@ if (!defined('HA_DB_USER')) { define('HA_DB_USER', ''); }
 if (!defined('HA_DB_PASS')) { define('HA_DB_PASS', ''); }
 
 /** Seed خودکار از data/*.php هنگام نخستین اتصال موفق (جداول خالی). */
-if (!defined('HA_DB_AUTO_SEED')) { define('HA_DB_AUTO_SEED', false); }
+if (!defined('HA_DB_AUTO_SEED')) {
+    $haSeedEnv = strtolower(ha_env('HA_DB_AUTO_SEED'));
+    define('HA_DB_AUTO_SEED', in_array($haSeedEnv, ['1', 'true', 'yes', 'on'], true));
+}
 
 /** ایمیل/رمز ادمین اولیه فقط برای seed (در config.local تعریف کنید). */
 if (!defined('HA_SEED_ADMIN_EMAIL')) { define('HA_SEED_ADMIN_EMAIL', ''); }
