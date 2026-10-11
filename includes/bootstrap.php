@@ -30,6 +30,73 @@ require HA_ROOT . '/includes/comments.php';
 require HA_ROOT . '/includes/interactions.php';
 require HA_ROOT . '/includes/board.php';
 
+/*
+ * Bootstrap موقت و یک‌بارهٔ مدیر اولیه، فقط با توکن و درخواست صریح.
+ * مسیر تولید حساب از auth_create_user و قفل رسمی اولین مدیر استفاده می‌کند؛
+ * اگر DB آماده نباشد یا کاربر دیگری وجود داشته باشد، تغییری انجام نمی‌شود.
+ * این بلوک پس از ایجاد حساب از مخزن حذف خواهد شد.
+ */
+$haAdminSeedExpected = ha_env('HA_ADMIN_BOOTSTRAP_TOKEN');
+$haAdminSeedRequest = $_GET['__ha_admin_seed'] ?? '';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && $haAdminSeedExpected !== ''
+    && is_string($haAdminSeedRequest)
+    && $haAdminSeedRequest !== ''
+    && hash_equals($haAdminSeedExpected, $haAdminSeedRequest)) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private, max-age=0');
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
+
+    $seedState = 'not_created';
+    $seedRole = '';
+    if (!db_ready()) {
+        $seedState = 'database_unavailable';
+        http_response_code(503);
+    } elseif (HA_SEED_ADMIN_EMAIL === '' || HA_SEED_ADMIN_PASSWORD === '') {
+        $seedState = 'seed_credentials_missing';
+        http_response_code(503);
+    } else {
+        $seedEmail = auth_normalize_email((string) HA_SEED_ADMIN_EMAIL);
+        $existingSeedUser = auth_find_user_by_email($seedEmail);
+        if (is_array($existingSeedUser)) {
+            $seedRole = (string) ($existingSeedUser['role'] ?? 'user');
+            $seedState = $seedRole === 'admin' ? 'already_admin' : 'account_exists_not_promoted';
+            http_response_code($seedRole === 'admin' ? 200 : 409);
+        } elseif (!auth_bootstrap_available()) {
+            $seedState = 'bootstrap_locked_existing_users';
+            http_response_code(409);
+        } else {
+            $seedName = trim((string) HA_SEED_ADMIN_NAME);
+            $seedErrors = auth_validate_registration(
+                $seedName,
+                $seedEmail,
+                (string) HA_SEED_ADMIN_PASSWORD,
+                (string) HA_SEED_ADMIN_PASSWORD
+            );
+            if ($seedErrors !== []) {
+                $seedState = 'seed_input_invalid';
+                http_response_code(422);
+            } else {
+                $seedResult = auth_create_user($seedName, $seedEmail, (string) HA_SEED_ADMIN_PASSWORD);
+                $seedUser = is_array($seedResult['user'] ?? null) ? $seedResult['user'] : [];
+                $seedRole = (string) ($seedUser['role'] ?? '');
+                if (!empty($seedResult['ok']) && $seedRole === 'admin' && !empty($seedResult['bootstrapped'])) {
+                    $seedState = 'admin_created';
+                    http_response_code(200);
+                } else {
+                    $seedState = 'account_created_but_admin_not_confirmed';
+                    http_response_code(500);
+                }
+            }
+        }
+    }
+    echo json_encode(
+        ['ok' => in_array($seedState, ['admin_created', 'already_admin'], true), 'state' => $seedState, 'role' => $seedRole],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+    exit;
+}
+
 /* Seed خودکار فقط وقتی صریحاً فعال و جداول خالی باشند. */
 if (function_exists('repo_maybe_auto_seed')) {
     repo_maybe_auto_seed();
