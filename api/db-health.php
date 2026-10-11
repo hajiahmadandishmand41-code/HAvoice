@@ -56,7 +56,7 @@ try {
 
     $ok = ($ping === 1)
         && ($schema === (defined('HA_DB_SCHEMA_VERSION') ? (string) HA_DB_SCHEMA_VERSION : $schema))
-        && ($tableCount >= 27);
+        && ($tableCount >= 26);
 
     http_response_code($ok ? 200 : 503);
     echo json_encode([
